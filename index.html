@@ -83,7 +83,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 
 .splitter{background:#3a3a3a;position:relative;z-index:12;touch-action:none;user-select:none;overflow:visible}
 .splitter:hover,.splitter.dragging{background:#d0d0d0}
-.splitter.vertical{cursor:col-resize;padding:unset}.splitter.horizontal{cursor:row-resize}
+.splitter.vertical{cursor:col-resize;padding:unset;}.splitter.horizontal{cursor:row-resize}
 /* Visible divider is exactly 1px; pseudo-elements create a forgiving hit target. */
 .splitter.vertical::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:11px;transform:translateX(-50%);cursor:col-resize;background:transparent}
 .splitter.horizontal::before{content:"";position:absolute;left:0;right:0;top:50%;height:11px;transform:translateY(-50%);cursor:row-resize;background:transparent}
@@ -168,7 +168,16 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
   <div class="sec">
     <div class="sec-head"><b>runtime</b></div>
     <div class="row">
-      <div class="field grow"><label>provider</label><select id="provider"><option value="ollama">ollama</option><option value="openai_compatible">openai-compatible</option><option value="openai">openai</option><option value="anthropic">anthropic</option><option value="gemini">gemini</option></select></div>
+      <div class="field grow"><label>provider</label><select id="provider">
+<option value="ollama">ollama</option>
+<option value="aihorde">AI Horde · anonymous</option>
+<option value="puter">Puter.js · user-auth</option>
+<option value="hf_space">HF public Gradio Space</option>
+<option value="openai_compatible">openai-compatible</option>
+<option value="openai">openai</option>
+<option value="anthropic">anthropic</option>
+<option value="gemini">gemini</option>
+</select></div>
       <div class="field grow"><label>model</label><select id="model" class="model-input"><option value="">connect first</option></select></div>
     </div>
     <div class="field"><label>endpoint</label><input id="host" value="http://127.0.0.1:11434"></div>
@@ -177,6 +186,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
       <div class="field grow"><label>context</label><input id="ctx" type="number" value="65536" step="1024"></div>
       <div class="field grow"><label>chunk</label><input id="chunk" type="number" value="18000" step="1000"></div>
     </div>
+    <div class="small mono">structured recovery · adaptive shard / retry / merge</div>
   </div>
 
   <div class="sec">
@@ -430,6 +440,13 @@ Do not convert every noun into an entity. Prefer concepts with identity, state, 
 Distinguish entity/object candidates, events, systems/actors, properties/variables, relationships, rules/constraints, actions/decisions, metrics, and ambiguities.
 Authority matters: a source can report an observation without being authoritative for the underlying state.
 Evidence strings must be compact anchors from the supplied fragment.
+OUTPUT BUDGET / COMPLETENESS:
+- Complete valid JSON is more important than verbosity.
+- Never reproduce large source passages.
+- Keep each evidence anchor <= 160 characters.
+- Prefer the highest-information candidates if the fragment is dense.
+- Per fragment, target at most: 12 entities, 20 relations, 24 variables, 12 events, 12 rules, 12 actions, 12 metrics, 12 ambiguities.
+- Use short labels and descriptions; do not explain your reasoning.
 Do not invent values, relationships, or actions.
 Return only JSON matching the schema.`,
 
@@ -469,6 +486,12 @@ MODELING RULES
 - Explicit manual input blocks are first-class sources.
 - IDs must be stable snake_case.
 - Source binding paths should identify a field, heading, row/column, JSON path, or evidence anchor where possible.
+OUTPUT BUDGET / COMPLETENESS:
+- Always finish the entire JSON object.
+- Prefer concise semantics over prose: descriptions <= 240 characters; binding notes <= 120 characters.
+- Never copy long source text into descriptions, assumptions, policies, or bindings.
+- Deduplicate semantically equivalent candidates before emitting the ontology.
+- If the source set is very dense, preserve structure/provenance and omit low-value descriptive repetition before risking truncation.
 
 AUTHORITY POLICY: {{AUTHORITY_POLICY}}
 INFER ACTIONS: {{INFER_ACTIONS}}
@@ -652,6 +675,9 @@ function renderPromptEditor(){const r=$("#promptEditor");r.innerHTML="";Object.e
 /* ---------------- v2 interaction/runtime layer ---------------- */
 const PROVIDER_DEFAULTS={
   ollama:{label:"Ollama",endpoint:"http://127.0.0.1:11434",model:"",apiKey:""},
+  aihorde:{label:"AI Horde · anonymous",endpoint:"https://oai.aihorde.net/v1/chat/completions",model:"",apiKey:"0000000000"},
+  puter:{label:"Puter.js · user-auth",endpoint:"https://js.puter.com/v2/",model:"",apiKey:""},
+  hf_space:{label:"HF public Gradio Space",endpoint:"",model:"/predict",apiKey:""},
   openai_compatible:{label:"OpenAI-compatible",endpoint:"http://127.0.0.1:8000/v1/chat/completions",model:"",apiKey:""},
   openai:{label:"OpenAI",endpoint:"https://api.openai.com/v1/chat/completions",model:"",apiKey:""},
   anthropic:{label:"Anthropic",endpoint:"https://api.anthropic.com/v1/messages",model:"",apiKey:""},
@@ -828,7 +854,7 @@ connect=async function(){
 
 function renderProviderEditor(){
   $("#persistKeys").checked=providerConfig.persistKeys;const root=$("#providerEditor");root.innerHTML="";
-  for(const [key,p] of Object.entries(providerConfig.profiles)){const d=document.createElement("div");d.className="provider-card";d.innerHTML=`<h4>${esc(p.label)}</h4><div class="field"><label>endpoint</label><input data-prof-endpoint="${key}" value="${esc(p.endpoint||"")}"></div><div class="field"><label>default model</label><input data-prof-model="${key}" value="${esc(p.model||"")}" placeholder="model name"></div>${key==="ollama"?"":`<div class="field"><label>API key</label><input data-prof-key="${key}" type="password" value="${esc(p.apiKey||"")}" placeholder="not persisted unless enabled"></div>`}`;root.appendChild(d)}
+  for(const [key,p] of Object.entries(providerConfig.profiles)){const d=document.createElement("div");d.className="provider-card";d.innerHTML=`<h4>${esc(p.label)}</h4><div class="field"><label>endpoint</label><input data-prof-endpoint="${key}" value="${esc(p.endpoint||"")}"></div><div class="field"><label>default model</label><input data-prof-model="${key}" value="${esc(p.model||"")}" placeholder="model name"></div>${["ollama","puter"].includes(key)?"":`<div class="field"><label>${key==="aihorde"?"API key · anonymous default":key==="hf_space"?"HF token · optional":"API key"}</label><input data-prof-key="${key}" type="password" value="${esc(p.apiKey||"")}" placeholder="${key==="aihorde"?"0000000000":key==="hf_space"?"public Spaces work without token":"not persisted unless enabled"}"></div>`}`;root.appendChild(d)}
   const lr=$("#layerEditor");lr.innerHTML="";for(const [key,l] of Object.entries(LAYERS)){const cfg=providerConfig.layers[key]||{provider:"default",model:""},d=document.createElement("div");d.className="layer-card";d.innerHTML=`<h4>${esc(l.name)}</h4><div class="row"><div class="field grow"><label>provider</label><select data-layer-provider="${key}"><option value="default">default</option>${Object.keys(PROVIDER_DEFAULTS).map(k=>`<option value="${k}" ${cfg.provider===k?"selected":""}>${PROVIDER_DEFAULTS[k].label}</option>`).join("")}</select></div><div class="field grow"><label>model override</label><input data-layer-model="${key}" value="${esc(cfg.model||"")}" placeholder="inherit"></div></div><div class="field"><label>system message</label><textarea data-layer-system="${key}"></textarea></div><div class="field"><label>user template</label><textarea data-layer-user="${key}"></textarea></div><button data-reset-layer="${key}">reset layer</button>`;d.querySelector(`[data-layer-system="${key}"]`).value=prompts[l.systemKey];d.querySelector(`[data-layer-user="${key}"]`).value=prompts[l.userKey];lr.appendChild(d)}
   lr.querySelectorAll("[data-reset-layer]").forEach(b=>b.onclick=()=>{const k=b.dataset.resetLayer,l=LAYERS[k];prompts[l.systemKey]=DEFAULT_PROMPTS[l.systemKey];prompts[l.userKey]=DEFAULT_PROMPTS[l.userKey];providerConfig.layers[k]={provider:"default",model:""};renderProviderEditor()})
 }
@@ -1058,8 +1084,342 @@ initCanvas=function(){
 function initGeoUI(){$("#graphModeBtn").onclick=()=>setCanvasMode("graph");$("#mapModeBtn").onclick=()=>setCanvasMode("world");$("#showWorldBtn").onclick=()=>{setCanvasMode("world");fitWorld()};$("#addGeo").onclick=()=>addInput("geo");$("#closeGeoModal").onclick=()=>{$("#geoModal").classList.remove("on");selectedSpatial=null;drawGraph()};$("#geoFocusBtn").onclick=()=>{if(!selectedSpatial)return;if(focusedSpatialIds.has(selectedSpatial.id))focusedSpatialIds.delete(selectedSpatial.id);else focusedSpatialIds.add(selectedSpatial.id);if(selectedSpatial.ontology_type_id&&allNodes().some(n=>n.id===selectedSpatial.ontology_type_id)&&focusedSpatialIds.has(selectedSpatial.id))focusedNodeIds.add(selectedSpatial.ontology_type_id);$("#geoFocusBtn").textContent=focusedSpatialIds.has(selectedSpatial.id)?"unfocus":"focus";renderFocusSummary();renderSpatial();drawGraph()};setCanvasMode(canvasMode)}
 /* -------------- end v3 geospatial ontology layer -------------- */
 
+
+/* -------------- v4 resilient structured inference + free backends -------------- */
+class StructuredOutputError extends Error{
+  constructor(message,kind="malformed",raw="",meta={}){super(message);this.name="StructuredOutputError";this.structured=true;this.kind=kind;this.raw=raw;this.meta=meta}
+}
+const RECOVERY_LIMITS={sameShardRetries:2,maxSplitDepth:4,minShardChars:1400,extractInputCap:12000,jsonInputCap:9000};
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function stripModelFences(text){
+  text=String(text??"").replace(/^\uFEFF/,"").trim();
+  const m=text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);return m?m[1].trim():text
+}
+function firstBalancedJSON(text){
+  text=stripModelFences(text);
+  for(let start=0;start<text.length;start++){
+    const ch=text[start];if(ch!=="{"&&ch!=="[")continue;
+    const stack=[],open=ch,close=open==="{"?"}":"]";let inStr=false,escp=false;
+    for(let i=start;i<text.length;i++){
+      const c=text[i];
+      if(inStr){if(escp){escp=false;continue}if(c==="\\"){escp=true;continue}if(c==='"')inStr=false;continue}
+      if(c==='"'){inStr=true;continue}
+      if(c==="{"||c==="[")stack.push(c);
+      else if(c==="}"||c==="]"){
+        const expected=c==="}"?"{":"[";if(stack.at(-1)!==expected)break;stack.pop();
+        if(!stack.length){const candidate=text.slice(start,i+1);try{return JSON.parse(candidate)}catch{break}}
+      }
+    }
+  }
+  return null
+}
+function validateRequiredShape(value,schema,path="$"){
+  if(!schema)return null;
+  if(schema.type==="object"){
+    if(value===null||typeof value!=="object"||Array.isArray(value))return `${path} must be object`;
+    for(const k of schema.required||[])if(!(k in value))return `${path}.${k} missing`;
+    for(const [k,s] of Object.entries(schema.properties||{}))if(k in value){const e=validateRequiredShape(value[k],s,`${path}.${k}`);if(e)return e}
+  }else if(schema.type==="array"){
+    if(!Array.isArray(value))return `${path} must be array`;
+    if(schema.items)for(let i=0;i<value.length;i++){const e=validateRequiredShape(value[i],schema.items,`${path}[${i}]`);if(e)return e}
+  }else if(schema.type==="string"&&typeof value!=="string")return `${path} must be string`;
+  else if(schema.type==="number"&&typeof value!=="number")return `${path} must be number`;
+  else if(schema.type==="integer"&&!Number.isInteger(value))return `${path} must be integer`;
+  else if(schema.type==="boolean"&&typeof value!=="boolean")return `${path} must be boolean`;
+  if(schema.enum&&!schema.enum.includes(value))return `${path} not in enum`;
+  return null
+}
+function parseStructuredModelText(text,schema,label){
+  const cleaned=stripModelFences(text);
+  let value=null,directErr=null;
+  try{value=JSON.parse(cleaned)}catch(e){directErr=e}
+  if(value===null){value=firstBalancedJSON(cleaned)}
+  if(value!==null){
+    const shapeErr=validateRequiredShape(value,schema);
+    if(shapeErr)throw new StructuredOutputError(`${label}: schema-incomplete structured JSON (${shapeErr})`,"schema",cleaned,{shapeErr});
+    return value
+  }
+  const opens=(cleaned.match(/[\{\[]/g)||[]).length,closes=(cleaned.match(/[\}\]]/g)||[]).length;
+  const truncated=opens>closes||/unterminated|unexpected end/i.test(directErr?.message||"");
+  throw new StructuredOutputError(`${label}: invalid structured JSON (${directErr?.message||"no complete JSON value"})`,truncated?"truncated":"malformed",cleaned,{length:cleaned.length,opens,closes});
+}
+function recoveryInstruction(kind,attempt){
+  return `
+
+STRUCTURED OUTPUT RECOVERY ${attempt}
+The previous response was ${kind==="truncated"?"cut off before the JSON object finished":kind==="schema"?"valid JSON but incomplete against the required schema":"not valid JSON"}.
+Return ONE complete JSON value matching the schema exactly.
+Do not include markdown fences or commentary.
+Reduce descriptive text aggressively before omitting required keys.
+Do not repeat source passages.
+Keep evidence anchors <= 120 characters.
+Prefer fewer high-information candidates over a response that risks truncation.
+Before ending, internally verify every opened object/array/string is closed.`;
+}
+function providerModelPrompt(system,user,schema){
+  const schemaText=schema?"\n\nOUTPUT JSON SCHEMA:\n"+JSON.stringify(schema):"";
+  return {schemaText,combined:`${system}${schemaText}\n\nUSER INPUT:\n${user}`}
+}
+function puterText(resp){
+  if(typeof resp==="string")return resp;
+  if(typeof resp?.message?.content==="string")return resp.message.content;
+  if(Array.isArray(resp?.message?.content))return resp.message.content.map(x=>x?.text||x?.content||"").join("");
+  if(typeof resp?.text==="string")return resp.text;
+  if(typeof resp?.content==="string")return resp.content;
+  if(typeof resp?.choices?.[0]?.message?.content==="string")return resp.choices[0].message.content;
+  try{return JSON.stringify(resp)}catch{return String(resp??"")}
+}
+function hfBase(endpoint){
+  let x=String(endpoint||"").trim().replace(/\/+$/,"");
+  if(!x)return"";
+  if(!/^https?:\/\//i.test(x)){const parts=x.split("/");if(parts.length===2)x=`https://${parts[0].replace(/\./g,"-")}-${parts[1].replace(/\./g,"-")}.hf.space`;else x="https://"+x}
+  return x
+}
+async function fetchWithTransientRetry(url,opts,label){
+  let last;
+  for(let i=0;i<3;i++){
+    try{
+      const r=await fetch(url,opts);
+      if(![429,500,502,503,504].includes(r.status)||i===2)return r;
+      last=new Error(`${label}: transient HTTP ${r.status}`);
+    }catch(e){last=e;if(i===2)throw e}
+    log(`${label} · transient retry ${i+1}/2`,"warn");await sleep(900*(2**i));
+  }
+  throw last
+}
+async function requestProviderText(layer,system,user,schema,label){
+  const {key,profile,model}=currentProvider(layer);
+  const temp=Number($("#temp").value||0),ctx=Number($("#ctx").value||65536);
+  const maxOut=layer==="compile"?24576:16384;
+  const {schemaText,combined}=providerModelPrompt(system,user,schema);
+
+  if(key==="puter"){
+    if(!model)throw new Error(`${label}: select a Puter model.`);
+    await loadScript("puter","https://js.puter.com/v2/");
+    if(!window.puter?.ai?.chat)throw new Error(`${label}: Puter.js did not initialize.`);
+    log(`${label} · ${profile.label}`);
+    const resp=await window.puter.ai.chat([{role:"system",content:system+schemaText},{role:"user",content:user}],false,{model,stream:false});
+    const text=puterText(resp);if(!text)throw new Error(`${label}: empty Puter response`);return text
+  }
+
+  if(key==="hf_space"){
+    const base=hfBase(profile.endpoint);if(!base)throw new Error(`${label}: configure a public Gradio Space URL or owner/space in endpoint.`);
+    const api=(model||"/predict").replace(/^\/+/,"");
+    const headers={"Content-Type":"application/json"};if(profile.apiKey)headers.Authorization="Bearer "+profile.apiKey;
+    log(`${label} · ${profile.label} · /${api}`);
+    const submit=await fetchWithTransientRetry(`${base}/gradio_api/call/${encodeURIComponent(api)}`,{method:"POST",headers,signal:aborter?.signal,body:JSON.stringify({data:[combined]})},label);
+    if(!submit.ok)throw new Error(`${label}: ${profile.label} HTTP ${submit.status} ${await submit.text()}`);
+    const sj=await submit.json();if(!sj.event_id)throw new Error(`${label}: Gradio Space did not return event_id.`);
+    const poll=await fetchWithTransientRetry(`${base}/gradio_api/call/${encodeURIComponent(api)}/${encodeURIComponent(sj.event_id)}`,{headers,signal:aborter?.signal},label);
+    if(!poll.ok)throw new Error(`${label}: ${profile.label} poll HTTP ${poll.status} ${await poll.text()}`);
+    const sse=await poll.text();let payload=null;
+    for(const line of sse.split(/\r?\n/))if(line.startsWith("data:")){const raw=line.slice(5).trim();try{payload=JSON.parse(raw)}catch{payload=raw}}
+    if(payload===null)throw new Error(`${label}: no completed Gradio result.`);
+    if(Array.isArray(payload)){const first=payload.find(x=>typeof x==="string")??payload[0];return typeof first==="string"?first:JSON.stringify(first)}
+    return typeof payload==="string"?payload:JSON.stringify(payload)
+  }
+
+  if(!model)throw new Error(`${label}: configure a model for ${profile.label}.`);
+  let url=profile.endpoint,headers={"Content-Type":"application/json"},body;
+  if(key==="ollama"){
+    url=(url||"http://127.0.0.1:11434").replace(/\/+$/,"")+"/api/chat";
+    body={model,stream:false,options:{temperature:temp,num_ctx:ctx,num_predict:maxOut},messages:[{role:"system",content:system+schemaText},{role:"user",content:user}]};
+    if(schema)body.format=schema;
+  }else if(key==="aihorde"){
+    const token=profile.apiKey||"0000000000";
+    headers.Authorization="Bearer "+token;headers.apikey=token;
+    body={model,temperature:temp,max_tokens:Math.min(maxOut,12288),messages:[{role:"system",content:system+schemaText},{role:"user",content:user}]};
+  }else if(key==="openai"||key==="openai_compatible"){
+    if(profile.apiKey)headers.Authorization="Bearer "+profile.apiKey;
+    body={model,temperature:temp,messages:[{role:"system",content:system+schemaText},{role:"user",content:user}]};
+    if(key==="openai")body.max_completion_tokens=maxOut;else body.max_tokens=maxOut;
+    if(schema&&key==="openai")body.response_format={type:"json_schema",json_schema:{name:"workbench_result",strict:true,schema}};
+  }else if(key==="anthropic"){
+    headers["x-api-key"]=profile.apiKey||"";headers["anthropic-version"]="2023-06-01";
+    body={model,max_tokens:maxOut,temperature:temp,system:system+schemaText,messages:[{role:"user",content:user}]};
+  }else if(key==="gemini"){
+    headers["x-goog-api-key"]=profile.apiKey||"";
+    url=(url||PROVIDER_DEFAULTS.gemini.endpoint).replace("{model}",encodeURIComponent(model));
+    body={systemInstruction:{parts:[{text:system+schemaText}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:{temperature:temp,maxOutputTokens:maxOut}};
+    if(schema)body.generationConfig.responseMimeType="application/json";
+  }else throw new Error(`${label}: unsupported provider ${key}`);
+
+  log(`${label} · ${profile.label}`);
+  let response=await fetchWithTransientRetry(url,{method:"POST",headers,signal:aborter?.signal,body:JSON.stringify(body)},label);
+  if(!response.ok&&(key==="openai"||key==="openai_compatible")&&response.status===400){
+    delete body.response_format;delete body.max_completion_tokens;delete body.max_tokens;
+    response=await fetchWithTransientRetry(url,{method:"POST",headers,signal:aborter?.signal,body:JSON.stringify(body)},label);
+  }
+  if(!response.ok)throw new Error(`${label}: ${profile.label} HTTP ${response.status} ${await response.text()}`);
+  const data=await response.json();
+  const responseKey=key==="aihorde"?"openai_compatible":key;
+  const text=extractTextResponse(responseKey,data);if(!text)throw new Error(`${label}: empty model response`);return text
+}
+providerRequest=async function(layer,system,user,schema,label,wantsJSON=true){
+  if(!wantsJSON)return requestProviderText(layer,system,user,null,label);
+  let last=null;
+  for(let attempt=0;attempt<=RECOVERY_LIMITS.sameShardRetries;attempt++){
+    const sys=attempt?system+recoveryInstruction(last?.kind||"malformed",attempt):system;
+    try{
+      const text=await requestProviderText(layer,sys,user,schema,label);
+      return parseStructuredModelText(text,schema,label)
+    }catch(e){
+      if(!e?.structured)throw e;
+      last=e;
+      if(attempt<RECOVERY_LIMITS.sameShardRetries)log(`${label} · ${e.kind} structured JSON · ${(e.raw?.length||0).toLocaleString()} ch · compact retry ${attempt+1}/${RECOVERY_LIMITS.sameShardRetries}`,"warn")
+    }
+  }
+  throw last
+};
+
+function compactJSONString(v){try{return JSON.stringify(v)}catch{return String(v)}}
+function jsonFragmentChunks(value,max,path="$"){
+  const wrap=(p,v,meta={})=>JSON.stringify({__source_path:p,...meta,__fragment:v},null,2);
+  const direct=wrap(path,value);if(direct.length<=max)return[{content:direct,path}];
+  if(Array.isArray(value)){
+    const out=[];let group=[],start=0;
+    const flush=(end)=>{if(group.length)out.push({content:wrap(path,group,{__array_range:[start,end]}),path:`${path}[${start}:${end}]`});group=[]};
+    for(let i=0;i<value.length;i++){
+      const item=value[i],candidate=[...group,item],txt=wrap(path,candidate,{__array_range:[start,i]});
+      if(group.length&&txt.length>max){flush(i-1);start=i}
+      if(wrap(`${path}[${i}]`,item).length>max){flush(i-1);out.push(...jsonFragmentChunks(item,max,`${path}[${i}]`));start=i+1}
+      else group.push(item)
+    }
+    flush(value.length-1);return out.filter(x=>x.content.length)
+  }
+  if(value&&typeof value==="object"){
+    const out=[];let group={},keys=Object.keys(value),groupStart=0;
+    const flush=()=>{if(Object.keys(group).length){out.push({content:wrap(path,group),path});group={}}};
+    for(const k of keys){
+      const v=value[k],candidate={...group,[k]:v};
+      if(Object.keys(group).length&&wrap(path,candidate).length>max)flush();
+      if(wrap(`${path}.${k}`,v).length>max){flush();out.push(...jsonFragmentChunks(v,max,`${path}.${k}`))}
+      else group[k]=v
+    }
+    flush();return out
+  }
+  const s=String(value??""),room=Math.max(400,max-180),out=[];
+  for(let at=0,seg=0;at<s.length;at+=room,seg++)out.push({content:wrap(path,s.slice(at,at+room),{__segment:seg}),path:`${path}#${seg}`});
+  return out
+}
+function proseChunks(text,max){
+  text=String(text||"");if(text.length<=max)return[{content:text,path:"text"}];
+  const units=text.split(/(?=\n#{1,6}\s)|\n{2,}/).filter(Boolean),out=[];let buf="";
+  const push=()=>{if(buf.trim())out.push({content:buf.trim(),path:`text:${out.length+1}`});buf=""};
+  for(const u of units){
+    if(u.length>max){push();let at=0;while(at<u.length){let end=Math.min(u.length,at+max),cut=u.lastIndexOf("\n",end);if(cut<at+max*.55)cut=u.lastIndexOf(". ",end);if(cut<at+max*.55)cut=end;out.push({content:u.slice(at,cut).trim(),path:`text:${out.length+1}`});at=cut}}
+    else if((buf+"\n\n"+u).length>max){push();buf=u}else buf+=(buf?"\n\n":"")+u
+  }push();return out
+}
+function tableChunks(text,max){
+  const lines=String(text||"").split(/\r?\n/);if(lines.length<3)return proseChunks(text,max);
+  const header=lines[0],out=[];let buf=header;
+  for(let i=1;i<lines.length;i++){const next=buf+"\n"+lines[i];if(next.length>max&&buf!==header){out.push({content:buf,path:`rows:${out.length+1}`});buf=header+"\n"+lines[i]}else buf=next}
+  if(buf.trim())out.push({content:buf,path:`rows:${out.length+1}`});return out
+}
+function sourceChunksV4(source,userMax){
+  const kind=String(source.kind||"").toLowerCase(),cap=Math.min(Math.max(3000,userMax||18000),RECOVERY_LIMITS.extractInputCap);
+  if(kind==="json"){
+    try{return jsonFragmentChunks(JSON.parse(source.content||""),Math.min(cap,RECOVERY_LIMITS.jsonInputCap))}
+    catch(e){log(`${source.name} · source JSON parse failed; using semantic text sharding (${e.message})`,"warn");return proseChunks(source.content||"",Math.min(cap,RECOVERY_LIMITS.jsonInputCap))}
+  }
+  if(kind==="table"||kind==="csv"||kind==="tsv"||kind==="spreadsheet")return tableChunks(source.content||"",cap);
+  return proseChunks(source.content||"",cap)
+}
+function subdivideRecoveryChunk(chunk,source){
+  const nextMax=Math.max(RECOVERY_LIMITS.minShardChars,Math.floor(chunk.content.length*.56));
+  if(String(source.kind||"").toLowerCase()==="json"){
+    try{return jsonFragmentChunks(JSON.parse(chunk.content),nextMax)}catch{}
+  }
+  return proseChunks(chunk.content,nextMax)
+}
+function fallbackPartial(source,chunk,error){
+  return {source_id:source.id,summary:`Unresolved extraction shard ${chunk.path}; raw evidence remains available in source ${source.name}.`,entity_candidates:[],relation_candidates:[],variable_candidates:[],event_candidates:[],rule_candidates:[],action_candidates:[],metric_candidates:[],ambiguity_candidates:[`Automatic structured extraction failed for ${chunk.path}: ${error.kind||error.name||"error"}; preserve source as unresolved evidence.`],spatial_candidates:[]}
+}
+async function extractShardWithRecovery(source,chunk,index,total,depth=0){
+  const suffix=total>1?` ${index+1}/${total}`:"";
+  const shardLabel=depth?`${suffix} · recover d${depth}`:suffix;
+  const user=tpl(prompts.extract_user,{SOURCE_ID:source.id,SOURCE_NAME:source.name,SOURCE_KIND:source.kind,AUTHORITY:source.authority,SCOPE:$("#scope").value||"(automatic)",CONTENT:chunk.content});
+  try{return [await ollamaJSON(prompts.extract_system,user,PARTIAL_SCHEMA,`extract ${source.name}${shardLabel}`)]}
+  catch(e){
+    if(!e?.structured)throw e;
+    if(depth<RECOVERY_LIMITS.maxSplitDepth&&chunk.content.length>RECOVERY_LIMITS.minShardChars*1.35){
+      const children=subdivideRecoveryChunk(chunk,source).filter(x=>x.content&&x.content.length<chunk.content.length);
+      if(children.length>1){
+        log(`extract ${source.name}${suffix} · ${e.kind} ${(e.raw?.length||chunk.content.length).toLocaleString()} ch → split ${children.length} child shards`,"warn");
+        const out=[];for(let i=0;i<children.length;i++)out.push(...await extractShardWithRecovery(source,children[i],i,children.length,depth+1));return out
+      }
+    }
+    log(`extract ${source.name}${suffix} · recovery exhausted; preserving unresolved shard`,"err");
+    return [fallbackPartial(source,chunk,e)]
+  }
+}
+
+compile=async function(){
+  const scoped=sourcesForContext();
+  if(!scoped.length&&!inputBlocks.length){log(contextMode()==="all"?"Add at least one source or input block.":"No sources match the current focus mode.","err");return}
+  aborter=new AbortController();setBusy(true,"compiling");
+  try{
+    const partials=[],userMax=Math.max(3000,Number($("#chunk").value||18000));
+    for(const s of scoped){
+      const cs=sourceChunksV4(s,userMax);
+      log(`${s.name} · ${cs.length} structure-aware shard${cs.length===1?"":"s"}`,"good");
+      for(let i=0;i<cs.length;i++)partials.push(...await extractShardWithRecovery(s,cs[i],i,cs.length,0))
+    }
+    const registry=scoped.map(s=>({id:s.id,name:s.name,kind:s.kind,authority:s.authority,description:s.meta||"",content_summary:(s.content||"").slice(0,400),read_policy:"read-only unless an action explicitly writes to its external system",freshness:"unknown"}));
+    inputBlocks.forEach(b=>registry.push({id:b.id,name:b.key||b.id,kind:"manual_input",authority:b.authority,description:`${b.kind} · ${b.data_type}`,content_summary:String(b.value).slice(0,400),read_policy:"explicit user-supplied input",freshness:"session"}));
+    ontology=await ollamaJSON(tpl(prompts.compile_system,{AUTHORITY_POLICY:$("#authorityPolicy").value,INFER_ACTIONS:$("#inferActions").checked,INFER_FUNCTIONS:$("#inferFunctions").checked,INFER_POLICIES:$("#inferPolicies").checked}),tpl(prompts.compile_user,{SCOPE:$("#scope").value||"(automatic scope discovery)",SOURCE_REGISTRY:JSON.stringify(registry,null,2),PARTIALS:JSON.stringify(partials,null,2),INPUTS:JSON.stringify(inputBlocks,null,2)}),ONTOLOGY_SCHEMA,"compile ontology");
+    normalizeOntology();analysis=null;selected=null;focusedNodeIds.clear();layoutGraph(true);renderAll();renderFocusSummary();
+    const unresolved=partials.filter(p=>(p.ambiguity_candidates||[]).some(x=>String(x).includes("Automatic structured extraction failed"))).length;
+    log(`Operational model compiled from ${scoped.length} source(s) · ${partials.length} extracted shard(s)${unresolved?` · ${unresolved} unresolved`:""}.`,unresolved?"warn":"good")
+  }catch(e){if(e.name==="AbortError")log("Compile cancelled.","warn");else log(e.message,"err")}
+  finally{aborter=null;setBusy(false)}
+};
+
+connect=async function(){
+  syncRuntimeToConfig();
+  const key=providerConfig.defaultProvider,p=providerConfig.profiles[key];
+  try{
+    $("#statusText").textContent="connecting";
+    if(key==="ollama"){
+      const r=await fetch((p.endpoint||"http://127.0.0.1:11434").replace(/\/+$/,"")+"/api/tags",{signal:AbortSignal.timeout(8000)});
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json(),models=(d.models||[]).map(m=>m.name||m.model).filter(Boolean);p._models=models;setMainModelOptions(models,p.model||models[0]||"");p.model=$("#model").value||models[0]||"";$("#statusText").textContent=`ollama · ${models.length} models`
+    }else if(key==="aihorde"){
+      const token=p.apiKey||"0000000000",headers={Authorization:"Bearer "+token,apikey:token};let models=[];
+      try{const r=await fetch("https://oai.aihorde.net/v1/models",{headers,signal:AbortSignal.timeout(12000)});if(r.ok){const d=await r.json();models=(d.data||[]).map(x=>x.id).filter(Boolean)}}catch{}
+      if(!models.length){const r=await fetch("https://aihorde.net/api/v2/status/models?type=text",{signal:AbortSignal.timeout(12000)});if(r.ok){const d=await r.json();models=(Array.isArray(d)?d:[]).map(x=>x.name).filter(Boolean)}}
+      p._models=models;setMainModelOptions(models,p.model||models[0]||"");p.model=$("#model").value||models[0]||"";$("#statusText").textContent=`AI Horde · ${models.length} active models`
+    }else if(key==="puter"){
+      await loadScript("puter","https://js.puter.com/v2/");if(!window.puter?.ai?.listModels)throw new Error("Puter model registry unavailable.");
+      const list=await window.puter.ai.listModels(),models=(list||[]).map(x=>x.id).filter(Boolean);p._models=models;setMainModelOptions(models,p.model||models[0]||"");p.model=$("#model").value||models[0]||"";$("#statusText").textContent=`Puter · ${models.length} models`
+    }else if(key==="hf_space"){
+      const base=hfBase(p.endpoint);if(!base)throw new Error("Set a public Gradio Space URL or owner/space in endpoint.");
+      const r=await fetch(base+"/gradio_api/openapi.json",{signal:AbortSignal.timeout(12000)});if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json();
+      const endpoints=Object.keys(d.paths||{}).map(x=>{const m=x.match(/\/gradio_api\/call\/([^\/{]+)/);return m?"/"+decodeURIComponent(m[1]):null}).filter(Boolean);
+      const models=[...new Set(endpoints)];p._models=models;setMainModelOptions(models,p.model||models[0]||"/predict");p.model=$("#model").value||models[0]||"/predict";$("#statusText").textContent=`HF Space · ${models.length} API endpoints`
+    }else{
+      setMainModelOptions(p.model?[p.model]:[],p.model||"");$("#statusText").textContent=`${p.label} configured`
+    }
+    $("#dot").className="dot ok";saveProviderConfig();log(`${p.label} ready.`,"good")
+  }catch(e){$("#dot").className="dot";$("#statusText").textContent="connection failed";log("Connection failed: "+e.message,"err")}
+};
+
+const renderProviderEditorV4Base=renderProviderEditor;
+renderProviderEditor=function(){
+  renderProviderEditorV4Base();
+  for(const [key,p] of Object.entries(providerConfig.profiles)){
+    const card=document.querySelector(`[data-prof-endpoint="${key}"]`)?.closest(".provider-card");if(!card)continue;
+    if(key==="aihorde")card.insertAdjacentHTML("beforeend",`<div class="small">Free volunteer inference. Anonymous key <code>0000000000</code> is used by default; queue priority and available context/output vary by active workers.</div>`);
+    if(key==="puter")card.insertAdjacentHTML("beforeend",`<div class="small">Developer-keyless browser inference. Connect loads the current Puter model registry; the end user may be asked to authenticate.</div>`);
+    if(key==="hf_space")card.insertAdjacentHTML("beforeend",`<div class="small">Endpoint accepts a public <code>https://…hf.space</code> URL or <code>owner/space</code>. Connect reads <code>/gradio_api/openapi.json</code>; the model dropdown becomes the Space API-endpoint selector. Generic mode assumes one text input.</div>`)
+  }
+};
+/* -------------- end v4 resilient structured inference + free backends -------------- */
+
+
 function initContextUI(){const saved=localStorage.getItem("ontologyContextMode")||"all";setContextMode(saved);$("#contextMode").onchange=e=>setContextMode(e.target.value);$("#toolbarContextMode").onchange=e=>setContextMode(e.target.value)}
-function initProviderUI(){$("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();$("#provider").onchange=async()=>{syncRuntimeFromConfig();if($("#provider").value==="ollama")await connect()};$("#host").oninput=syncRuntimeToConfig;$("#model").onchange=syncRuntimeToConfig;$("#configBtn").onclick=openConfig;$("#closeConfig").onclick=()=>$("#configModal").classList.remove("on");$("#saveConfig").onclick=()=>{captureConfigEditor();$("#configModal").classList.remove("on");log("LLM configuration saved.","good")};$("#resetConfig").onclick=()=>{providerConfig={defaultProvider:"ollama",persistKeys:false,profiles:JSON.parse(JSON.stringify(PROVIDER_DEFAULTS)),layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""}}};prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyProviderConfig");localStorage.removeItem("ontologyWorkbenchPrompts");renderProviderEditor();$("#provider").value="ollama";syncRuntimeFromConfig();renderPromptEditor();log("LLM configuration reset.","good")};$("#persistKeys").onchange=e=>providerConfig.persistKeys=e.target.checked}
+function initProviderUI(){$("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();$("#provider").onchange=async()=>{syncRuntimeFromConfig();if(["ollama","aihorde","puter","hf_space"].includes($("#provider").value))await connect()};$("#host").oninput=syncRuntimeToConfig;$("#model").onchange=syncRuntimeToConfig;$("#configBtn").onclick=openConfig;$("#closeConfig").onclick=()=>$("#configModal").classList.remove("on");$("#saveConfig").onclick=()=>{captureConfigEditor();$("#configModal").classList.remove("on");log("LLM configuration saved.","good")};$("#resetConfig").onclick=()=>{providerConfig={defaultProvider:"ollama",persistKeys:false,profiles:JSON.parse(JSON.stringify(PROVIDER_DEFAULTS)),layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""}}};prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyProviderConfig");localStorage.removeItem("ontologyWorkbenchPrompts");renderProviderEditor();$("#provider").value="ollama";syncRuntimeFromConfig();renderPromptEditor();log("LLM configuration reset.","good")};$("#persistKeys").onchange=e=>providerConfig.persistKeys=e.target.checked}
 function initNodeModal(){$("#closeNodeModal").onclick=()=>{$("#nodeModal").classList.remove("on");selected=null;drawGraph()};$("#nodeFocusBtn").onclick=()=>{if(!selected)return;if(focusedNodeIds.has(selected.id))focusedNodeIds.delete(selected.id);else focusedNodeIds.add(selected.id);$("#nodeFocusBtn").textContent=focusedNodeIds.has(selected.id)?"unfocus":"focus";renderFocusSummary();drawGraph()}}
 
 // Replace legacy fit/layout controls with viewport-aware graph controls.
