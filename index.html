@@ -81,7 +81,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 .main{grid-template-columns:var(--left-w) 1px minmax(0,1fr) 1px var(--right-w);overflow:hidden}
 .left,.right{min-width:0;overflow:auto;position:relative}
 
-.splitter{background:#3a3a3a;position:relative;z-index:12;touch-action:none;user-select:none;overflow:visible}
+.splitter{background:#3a3a3a;position:relative;padding:unset;z-index:12;touch-action:none;user-select:none;overflow:visible}
 .splitter:hover,.splitter.dragging{background:#d0d0d0}
 .splitter.vertical{cursor:col-resize}.splitter.horizontal{cursor:row-resize}
 /* Visible divider is exactly 1px; pseudo-elements create a forgiving hit target. */
