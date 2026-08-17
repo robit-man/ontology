@@ -218,6 +218,22 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 .health-bad{color:#d8a0a0}.health-warn{color:#d8c59a}.health-good{color:#b8d8b8}
 @media(max-width:900px){.world-summary{grid-template-columns:1fr 1fr}}
 
+
+/* ========== v9 target-focused reasoning ========== */
+.reason-verify-check{white-space:nowrap;font-size:9px}
+.reason-trace{margin-top:7px;border-top:1px solid var(--line);padding-top:5px}
+.reason-trace>summary{cursor:pointer;color:#666;font:700 9px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase;letter-spacing:.06em}
+.reason-trace-body{margin-top:6px;border:1px solid var(--line);background:#090909;padding:7px;max-height:220px;overflow:auto;font:9px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#888;white-space:pre-wrap}
+.reason-targets{display:flex;flex-flow:wrap;gap:4px;margin:0 0 7px}
+.reason-target{border:1px solid #3c4a42;background:#0d1210;padding:2px 5px;font:9px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;color:#9cb1a4}
+.verify-pass{color:#a8c7ad}.verify-corrected{color:#d3bf8f}.verify-warn{color:#d39b9b}
+.causal-finding{border-left:2px solid #56635b;padding:6px 7px;margin:6px 0;background:#0b0d0c}
+.causal-finding.unrelated,.causal-finding.symptom{border-left-color:#555;opacity:.72}
+.causal-path{font:9px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:#7e9687;margin-top:4px}
+.evidence-balance{border-top:1px solid var(--line);margin-top:8px;padding-top:6px}
+.evidence-balance-row{padding:5px 0;border-bottom:1px solid #171717}
+.action-metrics{font:9px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;color:#8a8a8a;margin-top:3px}
+
 </style>
 </head>
 <body>
@@ -440,6 +456,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
           <option value="explain">explain</option>
           <option value="audit">audit</option>
         </select>
+        <label class="check reason-verify-check" title="Run a grounding/causal critic and autonomously correct failures"><input id="reasonVerify" type="checkbox" checked> verify</label>
         <button id="runInsight">run</button>
       </div>
       <div class="hrule"></div>
@@ -447,8 +464,12 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
     </div>
     <div class="splitter vertical" id="lowerInnerSplitter"></div>
     <div class="lower-pane">
-      <div class="sec-head"><b>result</b><div class="spacer"></div><span id="analysisScore" class="small"></span></div>
+      <div class="sec-head"><b>result</b><div class="spacer"></div><span id="reasonVerifyBadge" class="small"></span><span id="analysisScore" class="small"></span></div>
       <div id="result" class="result"><span class="small">No analysis.</span></div>
+      <details id="reasonTracePanel" class="reason-trace">
+        <summary>reason context / verification</summary>
+        <div id="reasonTraceBody" class="reason-trace-body">No reasoning trace.</div>
+      </details>
     </div>
   </div>
 </main>
@@ -3195,6 +3216,496 @@ function initWorkspaceUI(){
 }
 setTimeout(initWorkspaceUI,0);
 /* ====================== end v8 world workspace ====================== */
+
+
+/* ========================================================================
+   V9 · TARGET-FOCUSED REASONING / CAUSAL DISCIPLINE / AUTONOMOUS CRITIC
+   ======================================================================== */
+
+const INSIGHT_SCHEMA_V9={type:"object",additionalProperties:false,properties:{
+  answer:{type:"string"},
+  confidence:{type:"number",minimum:0,maximum:1},
+  target_entities:{type:"array",items:{type:"string"}},
+  insights:{type:"array",items:{type:"object",additionalProperties:false,properties:{
+    id:{type:"string"},title:{type:"string"},statement:{type:"string"},impact:{type:"string"},urgency:{type:"string"},
+    confidence:{type:"number",minimum:0,maximum:1},evidence_refs:{type:"array",items:{type:"string"}},
+    affected_types:{type:"array",items:{type:"string"}},uncertainties:{type:"array",items:{type:"string"}}
+  },required:["id","title","statement","impact","urgency","confidence","evidence_refs","affected_types","uncertainties"]}},
+  causal_findings:{type:"array",items:{type:"object",additionalProperties:false,properties:{
+    subject:{type:"string"},target_property:{type:"string"},cause:{type:"string"},
+    classification:{type:"string",enum:["cause","contributor","symptom","unrelated","unknown"]},
+    causal_path:{type:"array",items:{type:"string"}},
+    supporting_evidence:{type:"array",items:{type:"string"}},
+    contradicting_evidence:{type:"array",items:{type:"string"}},
+    confidence:{type:"number",minimum:0,maximum:1}
+  },required:["subject","target_property","cause","classification","causal_path","supporting_evidence","contradicting_evidence","confidence"]}},
+  evidence_balance:{type:"array",items:{type:"object",additionalProperties:false,properties:{
+    proposition:{type:"string"},
+    status:{type:"string",enum:["supported","contested","unsupported","unknown"]},
+    supporting_evidence:{type:"array",items:{type:"string"}},
+    contradicting_evidence:{type:"array",items:{type:"string"}},
+    note:{type:"string"}
+  },required:["proposition","status","supporting_evidence","contradicting_evidence","note"]}},
+  hypotheses:{type:"array",items:{type:"object",additionalProperties:false,properties:{
+    statement:{type:"string"},supporting_evidence:{type:"array",items:{type:"string"}},
+    contradicting_evidence:{type:"array",items:{type:"string"}},confidence:{type:"number",minimum:0,maximum:1},
+    next_information:{type:"string"}
+  },required:["statement","supporting_evidence","contradicting_evidence","confidence","next_information"]}},
+  recommended_actions:{type:"array",items:{type:"object",additionalProperties:false,properties:{
+    action_id:{type:"string"},label:{type:"string"},rationale:{type:"string"},
+    required_inputs:{type:"array",items:{type:"string"}},preconditions:{type:"array",items:{type:"string"}},
+    expected_effect:{type:"string"},risks:{type:"array",items:{type:"string"}},approval:{type:"string"},
+    evidence_refs:{type:"array",items:{type:"string"}},information_gain:{type:"number",minimum:0,maximum:1},
+    cost_risk:{type:"number",minimum:0,maximum:1},redundancy_check:{type:"string"},why_now:{type:"string"}
+  },required:["action_id","label","rationale","required_inputs","preconditions","expected_effect","risks","approval","evidence_refs","information_gain","cost_risk","redundancy_check","why_now"]}},
+  missing_information:{type:"array",items:{type:"string"}}
+},required:["answer","confidence","target_entities","insights","causal_findings","evidence_balance","hypotheses","recommended_actions","missing_information"]};
+
+const REASON_VERIFY_SCHEMA={type:"object",additionalProperties:false,properties:{
+  verdict:{type:"string",enum:["pass","correct"]},
+  confidence:{type:"number",minimum:0,maximum:1},
+  issues:{type:"array",items:{type:"object",additionalProperties:false,properties:{
+    kind:{type:"string",enum:["unrelated_cause","contradicted_claim","unsupported_claim","missing_key_evidence","stale_current_confusion","redundant_action","policy_violation","causal_gap","identity_overclaim","temporal_error","other"]},
+    statement:{type:"string"},detail:{type:"string"},evidence_refs:{type:"array",items:{type:"string"}},severity:{type:"string",enum:["error","warning"]}
+  },required:["kind","statement","detail","evidence_refs","severity"]}},
+  repair_instruction:{type:"string"}
+},required:["verdict","confidence","issues","repair_instruction"]};
+
+const REASON_GUARDRAILS_V9=`
+TARGET-FOCUSED REASONING CONTRACT
+The runtime context was selected deterministically around the user's target. Treat facts outside a causal/dependency/evidence path to that target as background, not causes.
+
+GENERAL:
+- Resolve the objective's named entities first. Put their IDs in target_entities.
+- Prefer runtime instances/claims/evidence over broad source background when available.
+- Source excerpts are TARGETED windows, not permission to infer facts elsewhere in a document.
+- Separate CURRENT state from historical/stale observations.
+- A high-confidence position does not imply high-confidence identity.
+- Absence of evidence is not evidence of absence unless the source actually measured absence.
+- If evidence conflicts, preserve the conflict and calibrate confidence.
+- Before asserting a proposition, check both supporting and contradicting evidence.
+- Never silently convert an ontology type into an instance-level fact.
+
+DIAGNOSE:
+- Every proposed cause or contributor MUST appear in causal_findings.
+- A cause/contributor requires: target_property, a concrete causal_path, supporting_evidence, and confidence.
+- Do NOT include a condition merely because it exists elsewhere in the world.
+- Distinguish cause vs contributor vs symptom vs unrelated.
+- If direct evidence says a subsystem is healthy/nominal, do not call it failed or bottlenecked without stronger contrary evidence; cite the contradiction explicitly if one exists.
+- If no evidence supports a suspected cause, classify it unknown/unrelated rather than asserting it.
+
+DECIDE / PLAN / OPPORTUNITY:
+- Rank actions by expected information gain divided by operational cost/risk/latency.
+- Check whether a proposed action is redundant with observation already occurring.
+- Prefer actions that reduce the unresolved variable, not actions that only improve already-high-confidence state.
+- Respect approval and policy constraints.
+
+OPTIMIZE:
+- Optimize the objective globally, not one metric in isolation.
+- Identify second-order bottlenecks introduced by a proposed optimization.
+
+EXPLAIN / AUDIT:
+- Include the strongest supporting AND contradicting evidence.
+- If the evidence set is incomplete, state that limitation.
+
+Return only JSON matching the supplied schema.`;
+
+const REASON_VERIFY_SYSTEM_V9=`You are an independent grounding and causal critic.
+Audit a proposed operational answer against ONLY the supplied target-focused context.
+
+Flag:
+1. causes with no causal/dependency path to the target;
+2. claims contradicted by direct evidence that the answer ignored;
+3. unsupported certainty or identity resolution;
+4. stale/historical observations presented as current state;
+5. missing high-value contradictory evidence;
+6. redundant actions that do not reduce the unresolved variable;
+7. policy/approval violations;
+8. temporal mistakes.
+
+Do not rewrite the answer. Return a verdict and precise correction instructions.
+A "pass" means no material correction is required.`;
+
+const REASON_REPAIR_SYSTEM_V9=`You are correcting a grounded operational analysis after an independent critic found specific failures.
+Return a COMPLETE replacement analysis matching the schema.
+Correct every listed error.
+Do not defend the previous answer.
+Do not introduce new claims unless supported by the supplied context.
+For DIAGNOSE, exclude unrelated world problems and require evidence-backed causal paths.
+For decisions/actions, remove redundant actions and rank for information gain versus cost/risk.
+Preserve uncertainty and contradictory evidence.`;
+
+function objectiveTermsV9(text){
+  const stop=new Set(["what","which","when","where","why","how","should","would","could","right","now","about","current","currently","most","likely","best","into","from","with","that","this","there","their","they","them","then","than","while","every","each","system","world","model","please","determine","explain","create","build","optimize","audit"]);
+  return [...new Set(String(text||"").toLowerCase().split(/[^a-z0-9_-]+/).filter(x=>x.length>2&&!stop.has(x)))].slice(0,36)
+}
+function objectiveIdTokensV9(text){
+  return [...new Set((String(text||"").match(/\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\b/g)||[]))];
+}
+function flattenScalarsV9(v,out=[]){
+  if(v==null)return out;
+  if(typeof v==="string"||typeof v==="number"||typeof v==="boolean")out.push(String(v));
+  else if(Array.isArray(v))for(const x of v)flattenScalarsV9(x,out);
+  else if(typeof v==="object")for(const x of Object.values(v))flattenScalarsV9(x,out);
+  return out
+}
+function resolveReasonTargetsV9(objective){
+  const raw=String(objective||""),low=raw.toLowerCase(),ids=objectiveIdTokensV9(raw),terms=objectiveTermsV9(raw),targets=[];
+  const candidates=[];
+  for(const x of workspace.world.instances||[])candidates.push({id:x.id,label:x.label||"",kind:"instance",obj:x,aliases:flattenScalarsV9(x.identity||{}).slice(0,20)});
+  for(const x of ontology?.object_types||[])candidates.push({id:x.id,label:x.label||"",kind:"type",obj:x,aliases:[]});
+  for(const x of spatialGroundings()||[])if(x.instance_id)candidates.push({id:x.instance_id,label:x.label||x.place_name||"",kind:"spatial_instance",obj:x,aliases:[]});
+  const seen=new Set();
+  for(const c of candidates){
+    const idLow=String(c.id||"").toLowerCase(),labelLow=String(c.label||"").toLowerCase();
+    let score=0,reasons=[];
+    if(ids.some(x=>x.toLowerCase()===idLow)){score+=100;reasons.push("exact id")}
+    if(idLow&&low.includes(idLow)){score+=60;reasons.push("id mention")}
+    if(labelLow&&labelLow.length>3&&low.includes(labelLow)){score+=45;reasons.push("label mention")}
+    for(const a of c.aliases||[]){const al=String(a).toLowerCase();if(al.length>3&&low.includes(al)){score+=30;reasons.push("identity alias");break}}
+    const hay=`${idLow} ${labelLow}`;const overlap=terms.filter(t=>hay.includes(t)).length;score+=overlap*6;
+    if(score>0&&!seen.has(c.id)){seen.add(c.id);targets.push({...c,score,reasons})}
+  }
+  targets.sort((a,b)=>b.score-a.score);
+  // Preserve explicit IDs even when they have not yet been reconciled as runtime instances.
+  for(const id of ids)if(!seen.has(id)){seen.add(id);targets.push({id,label:id,kind:"source_entity",obj:null,aliases:[],score:90,reasons:["explicit source id"]})}
+  return targets.slice(0,12)
+}
+function worldIndexV9(){
+  const rels=workspace.world.relationships||[],outgoing=new Map(),incoming=new Map();
+  for(const r of rels){if(!outgoing.has(r.from_id))outgoing.set(r.from_id,[]);outgoing.get(r.from_id).push(r);if(!incoming.has(r.to_id))incoming.set(r.to_id,[]);incoming.get(r.to_id).push(r)}
+  return{
+    instance:new Map((workspace.world.instances||[]).map(x=>[x.id,x])),
+    outgoing,incoming,
+    claims:new Map((workspace.epistemics.claims||[]).filter(x=>x.status!=="retracted").map(x=>[x.id,x])),
+    evidence:new Map((workspace.epistemics.evidence||[]).map(x=>[x.id,x])),
+    link:new Map((ontology?.link_types||[]).map(x=>[x.id,x])),
+    event:new Map((workspace.world.events||[]).map(x=>[x.id,x]))
+  }
+}
+function linkLabelV9(r,idx){const l=idx.link.get(r.link_type_id);return l?.label||l?.id||r.link_type_id||"related_to"}
+function graphNeighborhoodV9(seedIds,depth=2){
+  const idx=worldIndexV9(),visited=new Set(seedIds),frontier=[...seedIds],relationships=[],paths=[];
+  for(let d=0;d<depth;d++){
+    const next=[];
+    for(const id of frontier){
+      for(const r of [...(idx.outgoing.get(id)||[]),...(idx.incoming.get(id)||[])]){
+        if(!relationships.some(x=>x.id===r.id))relationships.push(r);
+        const other=r.from_id===id?r.to_id:r.from_id;
+        paths.push({from:r.from_id,relationship:linkLabelV9(r,idx),to:r.to_id,relation_id:r.id,direction:r.to_id===id?"incoming":"outgoing",depth:d+1});
+        if(!visited.has(other)){visited.add(other);next.push(other)}
+      }
+    }
+    frontier.splice(0,frontier.length,...next)
+    if(!frontier.length)break
+  }
+  return{ids:visited,relationships,paths}
+}
+function sourceWindowsV9(content,needles,maxChars=3200){
+  content=String(content||"");if(!content)return[];
+  const low=content.toLowerCase(),hits=[];
+  for(const n0 of needles){
+    const n=String(n0||"").toLowerCase().trim();if(n.length<3)continue;
+    let at=0,count=0;while((at=low.indexOf(n,at))>=0&&count<4){hits.push(at);at+=Math.max(1,n.length);count++}
+  }
+  if(!hits.length)return[];
+  hits.sort((a,b)=>a-b);
+  const ranges=[];for(const h of hits){let a=Math.max(0,h-520),b=Math.min(content.length,h+820);const prev=ranges.at(-1);if(prev&&a<=prev[1]+120)prev[1]=Math.max(prev[1],b);else ranges.push([a,b])}
+  const out=[];let used=0;for(const [a,b] of ranges){if(used>=maxChars)break;const txt=content.slice(a,Math.min(b,a+(maxChars-used)));out.push({start:a,end:a+txt.length,text:txt});used+=txt.length}
+  return out
+}
+function sentenceSignalsV9(excerpts){
+  const signals=[],re=/(healthy|nominal|normal|no\b|not\b|without|stale|degraded|failed|failure|unavailable|contradict|conflict|unknown|intermittent|bottleneck|overload|authorized|unauthorized|problem)/i;
+  for(const e of excerpts){
+    // Clause-level signals prevent "compute healthy; network is degraded" from
+    // being misread as evidence that the network is healthy.
+    for(const part of String(e.excerpt||"").split(/(?<=[.!?])\s+|\n+|;\s+|\s+\bbut\b\s+/i)){
+      const t=part.trim();if(t.length>=12&&t.length<=420&&re.test(t))signals.push({ref_id:e.ref_id||e.id,source_id:e.id,locator:e.locator,text:t})
+    }
+  }
+  return signals.slice(0,100)
+}
+function evidenceNeighborhoodV9(targetIds,neighborIds,needles){
+  const allIds=new Set([...targetIds,...neighborIds]),claims=(workspace.epistemics.claims||[]).filter(c=>allIds.has(c.subject_id)&&c.status!=="retracted");
+  const claimIds=new Set(claims.map(c=>c.id)),conflicts=(workspace.epistemics.conflicts||[]).filter(c=>c.claim_ids.some(id=>claimIds.has(id)));
+  for(const c of conflicts)for(const id of c.claim_ids){const x=(workspace.epistemics.claims||[]).find(q=>q.id===id);if(x&&!claims.some(q=>q.id===x.id))claims.push(x)}
+  const evIds=new Set(claims.flatMap(c=>c.evidence_ids||[]));
+  const needleLow=needles.map(x=>String(x).toLowerCase()).filter(Boolean);
+  const evidence=(workspace.epistemics.evidence||[]).filter(e=>evIds.has(e.id)||needleLow.some(n=>stableJSON(e).toLowerCase().includes(n))).slice(0,140);
+  const events=(workspace.world.events||[]).filter(e=>[...(e.actor_ids||[]),...(e.target_ids||[])].some(id=>allIds.has(id))||needleLow.some(n=>stableJSON(e).toLowerCase().includes(n))).slice(-120);
+  return{claims,conflicts,evidence,events}
+}
+function targetedSourceEvidenceV9(objective,targets){
+  const terms=objectiveTermsV9(objective),primary=[...new Set(targets.flatMap(t=>[t.id,t.label,...(t.aliases||[])]).filter(x=>String(x||"").length>2))],rows=[];
+  for(const src of sourcesForContext()){
+    // Exact target/identity windows have first claim on the context budget.
+    let wins=sourceWindowsV9(src.content,primary,3000);
+    // If no named target can be found, fall back to objective terms.
+    if(!wins.length)wins=sourceWindowsV9(src.content,terms,2400);
+    const discovered=new Set();
+    for(const w of wins)for(const id of (w.text.match(/\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\b/g)||[]))if(!primary.some(p=>String(p).toLowerCase()===id.toLowerCase()))discovered.add(id);
+    // One controlled evidence expansion hop captures conflicting/co-referenced
+    // entities (for example a candidate asset identity) without broad document retrieval.
+    const secondary=sourceWindowsV9(src.content,[...discovered].slice(0,14),1800);
+    const merged=[...wins,...secondary].sort((a,b)=>a.start-b.start),uniq=[];
+    for(const w of merged){
+      const prev=uniq.at(-1);
+      if(prev&&w.start<=prev.end+80){prev.end=Math.max(prev.end,w.end);prev.text=String(src.content||"").slice(prev.start,prev.end)}
+      else uniq.push({...w})
+    }
+    for(const w of uniq.slice(0,10)){
+      const locator=`chars ${w.start}-${w.end}`,ref_id=`${src.id}@${w.start}-${w.end}`;
+      rows.push({ref_id,id:src.id,name:src.name,authority:src.authority||"unknown",locator,excerpt:w.text})
+    }
+  }
+  for(const b of inputBlocks){
+    const txt=String(b.value||""),needles=primary.length?primary:terms;
+    if(needles.some(n=>txt.toLowerCase().includes(String(n).toLowerCase())))rows.push({ref_id:`${b.id}@manual`,id:b.id,name:b.key||b.id,authority:b.authority||"authoritative",locator:"manual input",excerpt:txt.slice(0,2400)})
+  }
+  return rows.slice(0,28)
+}
+function buildReasoningContextV9(objective,budget=36000){
+  const mode=$("#analysisMode").value,targets=resolveReasonTargetsV9(objective),targetIds=new Set(targets.map(t=>t.id)),runtimeTargetIds=[...targetIds].filter(id=>(workspace.world.instances||[]).some(x=>x.id===id));
+  const depth=["diagnostic","planning","optimize","simulate","risk","audit"].includes(mode)?2:1,hood=graphNeighborhoodV9(runtimeTargetIds,depth),idx=worldIndexV9();
+  const neighborIds=new Set([...hood.ids].filter(id=>!targetIds.has(id))),instances=[...hood.ids].map(id=>idx.instance.get(id)).filter(Boolean);
+  // If reconciliation is sparse, retain objective-matched runtime instances as a fallback.
+  if(!instances.length){const terms=objectiveTermsV9(objective);for(const x of workspace.world.instances||[]){const h=stableJSON(x).toLowerCase();if(terms.some(t=>h.includes(t)))instances.push(x);if(instances.length>=24)break}}
+  const needles=[...targets.flatMap(t=>[t.id,t.label]),...objectiveTermsV9(objective)],epi=evidenceNeighborhoodV9(targetIds,neighborIds,needles),source_evidence=targetedSourceEvidenceV9(objective,targets),qualifying_evidence=sentenceSignalsV9(source_evidence);
+  const typeIds=new Set(instances.map(x=>x.type_id)),candidate_actions=(ontology?.actions||[]).filter(a=>(a.target_types||[]).some(t=>typeIds.has(t))||needles.some(n=>stableJSON(a).toLowerCase().includes(String(n).toLowerCase()))).slice(0,50);
+  const candidate_metrics=(ontology?.metrics||[]).filter(m=>needles.some(n=>stableJSON(m).toLowerCase().includes(String(n).toLowerCase()))).slice(0,30);
+  const candidate_policies=(ontology?.policies||[]).filter(p=>needles.some(n=>stableJSON(p).toLowerCase().includes(String(n).toLowerCase()))).slice(0,30);
+  const context={
+    mode,world_revision:workspace.world.revision,ontology_revision:workspace.metadata.ontology_revision||0,
+    targets:targets.map(t=>({id:t.id,label:t.label,kind:t.kind,match_score:t.score,reasons:t.reasons})),
+    instances,relationships:hood.relationships,dependency_paths:hood.paths,
+    events:epi.events,claims:epi.claims,conflicts:epi.conflicts,evidence:epi.evidence,
+    source_evidence,qualifying_evidence,candidate_actions,candidate_metrics,candidate_policies
+  };
+  // Deterministic budget trimming preserves target evidence before background neighbors.
+  let raw=JSON.stringify(context);
+  if(raw.length>budget){
+    context.source_evidence=context.source_evidence.slice(0,12).map(e=>({...e,excerpt:e.excerpt.slice(0,1800)}));
+    context.qualifying_evidence=context.qualifying_evidence.slice(0,40);
+    context.evidence=context.evidence.slice(0,80);context.claims=context.claims.slice(0,90);
+    context.events=context.events.slice(-70);context.instances=context.instances.slice(0,40);context.relationships=context.relationships.slice(0,80)
+  }
+  return context
+}
+buildReasoningContext=buildReasoningContextV9;
+
+function knownReasonRefsV9(ctx){
+  const set=new Set();
+  const add=x=>{if(x) set.add(String(x))};
+  for(const t of ctx.targets||[])add(t.id);
+  for(const group of ["instances","relationships","events","claims","evidence","candidate_actions","candidate_metrics","candidate_policies"])for(const x of ctx[group]||[])add(x.id||x.action_id);
+  for(const x of ctx.source_evidence||[]){add(x.id);add(x.ref_id);}
+  for(const c of ctx.conflicts||[])add(c.id);
+  return set
+}
+function refKnownV9(ref,known){
+  ref=String(ref||"");if(!ref)return false;
+  if(known.has(ref))return true;
+  for(const k of known)if(ref.includes(k))return true;
+  if(/^(source|claim|evidence|event|relationship|policy|action|metric|instance):/i.test(ref))return true;
+  return false
+}
+function deterministicAnalysisCheckV9(a,ctx,mode){
+  const issues=[],known=knownReasonRefsV9(ctx),refs=[];
+  for(const x of a.insights||[])refs.push(...(x.evidence_refs||[]));
+  for(const x of a.recommended_actions||[])refs.push(...(x.evidence_refs||[]));
+  for(const x of a.hypotheses||[])refs.push(...(x.supporting_evidence||[]),...(x.contradicting_evidence||[]));
+  for(const x of a.causal_findings||[])refs.push(...(x.supporting_evidence||[]),...(x.contradicting_evidence||[]));
+  for(const x of a.evidence_balance||[])refs.push(...(x.supporting_evidence||[]),...(x.contradicting_evidence||[]));
+  const unknown=refs.filter(r=>!refKnownV9(r,known));
+  if(unknown.length>Math.max(2,refs.length*.25))issues.push({kind:"unsupported_claim",severity:"error",statement:"Evidence references",detail:`Too many evidence references are outside the selected context: ${unknown.slice(0,8).join(", ")}`,evidence_refs:unknown.slice(0,8)});
+  if((ctx.targets||[]).length){
+    const returned=new Set((a.target_entities||[]).map(String));
+    const exact=(ctx.targets||[]).filter(t=>t.match_score>=60).map(t=>t.id);
+    const missing=exact.filter(id=>!returned.has(id));
+    if(missing.length)issues.push({kind:"missing_key_evidence",severity:"warning",statement:"Target resolution",detail:`Analysis omitted resolved objective target(s): ${missing.join(", ")}`,evidence_refs:missing})
+  }
+  if(mode==="diagnostic"){
+    const causes=(a.causal_findings||[]).filter(x=>["cause","contributor"].includes(x.classification));
+    if(!causes.length)issues.push({kind:"causal_gap",severity:"error",statement:"Diagnosis",detail:"No evidence-backed cause/contributor was represented in causal_findings.",evidence_refs:[]});
+    for(const c of causes){
+      if(!(c.causal_path||[]).length)issues.push({kind:"causal_gap",severity:"error",statement:c.cause,detail:"Cause/contributor has no causal path.",evidence_refs:c.supporting_evidence||[]});
+      if(!(c.supporting_evidence||[]).length)issues.push({kind:"unsupported_claim",severity:"error",statement:c.cause,detail:"Cause/contributor has no supporting evidence.",evidence_refs:[]});
+      // Generic negative-evidence check: if the proposed failure noun appears in
+      // a target-local clause explicitly stating healthy/nominal/normal, force correction.
+      const ct=objectiveTermsV9(c.cause).filter(t=>t.length>4&&!["cause","contributor","problem","issue"].includes(t));
+      const failureLike=/(fail|degrad|poor|bottleneck|overload|problem|latency|loss|stale|conflict|skew)/i.test(c.cause);
+      if(failureLike){
+        const contra=(ctx.qualifying_evidence||[]).filter(q=>/(healthy|nominal|normal)/i.test(q.text)&&ct.some(t=>String(q.text).toLowerCase().includes(t)));
+        if(contra.length&&!String(c.contradicting_evidence||[]).includes(contra[0].ref_id||contra[0].source_id)){
+          issues.push({kind:"contradicted_claim",severity:"error",statement:c.cause,detail:`Target-local evidence explicitly describes the implicated subsystem as healthy/nominal: ${contra[0].text}`,evidence_refs:[contra[0].ref_id||contra[0].source_id]})
+        }
+      }
+    }
+  }
+  for(const act of a.recommended_actions||[]){
+    if(Number(act.information_gain||0)<.15&&Number(act.cost_risk||0)>.35)issues.push({kind:"redundant_action",severity:"warning",statement:act.label,detail:"Low information gain relative to cost/risk.",evidence_refs:act.evidence_refs||[]})
+  }
+  return issues
+}
+async function verifyReasoningV9(objective,mode,ctx,candidate){
+  const deterministic=deterministicAnalysisCheckV9(candidate,ctx,mode);
+  if(!$("#reasonVerify")?.checked)return{verdict:deterministic.some(x=>x.severity==="error")?"correct":"pass",confidence:1,issues:deterministic,repair_instruction:deterministic.map(x=>x.detail).join(" ")};
+  const criticUser=`MODE: ${mode}
+OBJECTIVE:
+${objective}
+
+TARGET-FOCUSED CONTEXT:
+${JSON.stringify(ctx)}
+
+CANDIDATE ANALYSIS:
+${JSON.stringify(candidate)}
+
+DETERMINISTIC PRECHECK ISSUES:
+${JSON.stringify(deterministic)}
+
+Audit this candidate.`;
+  try{
+    const critic=await ollamaJSON(REASON_VERIFY_SYSTEM_V9,criticUser,REASON_VERIFY_SCHEMA,"reason verifier");
+    const byKey=new Map();for(const x of [...deterministic,...(critic.issues||[])])byKey.set(`${x.kind}:${x.statement}:${x.detail}`,x);
+    critic.issues=[...byKey.values()];
+    if(critic.issues.some(x=>x.severity==="error"))critic.verdict="correct";
+    return critic
+  }catch(e){
+    log(`Reason verifier unavailable · ${e.message||e} · using deterministic checks.`,"warn");
+    return{verdict:deterministic.some(x=>x.severity==="error")?"correct":"pass",confidence:.6,issues:deterministic,repair_instruction:deterministic.map(x=>x.detail).join(" ")}
+  }
+}
+async function repairReasoningV9(objective,mode,ctx,candidate,verification){
+  const user=`MODE: ${mode}
+OBJECTIVE:
+${objective}
+
+TARGET-FOCUSED CONTEXT:
+${JSON.stringify(ctx)}
+
+PREVIOUS ANALYSIS:
+${JSON.stringify(candidate)}
+
+VERIFICATION FAILURES:
+${JSON.stringify(verification.issues)}
+
+REPAIR INSTRUCTION:
+${verification.repair_instruction||"Correct every material issue."}
+
+Return a complete replacement analysis.`;
+  return await ollamaJSON(REASON_REPAIR_SYSTEM_V9,user,INSIGHT_SCHEMA_V9,"reason corrective")
+}
+function traceSummaryV9(ctx,verification,corrected=false){
+  const lines=[];
+  lines.push(`mode        ${ctx.mode}`);
+  lines.push(`world rev   ${ctx.world_revision}`);
+  lines.push(`targets     ${(ctx.targets||[]).map(t=>`${t.id}{${t.kind}}`).join(", ")||"none resolved"}`);
+  lines.push(`instances   ${(ctx.instances||[]).length}`);
+  lines.push(`relations   ${(ctx.relationships||[]).length}`);
+  lines.push(`paths       ${(ctx.dependency_paths||[]).length}`);
+  lines.push(`events      ${(ctx.events||[]).length}`);
+  lines.push(`claims      ${(ctx.claims||[]).length}`);
+  lines.push(`conflicts   ${(ctx.conflicts||[]).length}`);
+  lines.push(`evidence    ${(ctx.evidence||[]).length}`);
+  lines.push(`source win  ${(ctx.source_evidence||[]).length}`);
+  lines.push(`qualifiers  ${(ctx.qualifying_evidence||[]).length}`);
+  lines.push(`verification ${verification?.verdict||"not run"}${corrected?" → corrected":""}`);
+  for(const i of verification?.issues||[])lines.push(`${i.severity==="error"?"ERROR":"WARN "} ${i.kind}: ${i.detail}`);
+  if((ctx.dependency_paths||[]).length){lines.push("");lines.push("dependency paths");for(const p of ctx.dependency_paths.slice(0,16))lines.push(`  ${p.from} --${p.relationship}--> ${p.to}`)}
+  return lines.join("\n")
+}
+
+const renderAnalysisBeforeV9=renderAnalysis;
+renderAnalysis=function(){
+  const r=$("#result"),vb=$("#reasonVerifyBadge");
+  if(!analysis){r.innerHTML='<span class="small">No analysis.</span>';$("#analysisScore").textContent="";if(vb)vb.textContent="";if($("#reasonTraceBody"))$("#reasonTraceBody").textContent="No reasoning trace.";return}
+  $("#analysisScore").textContent=Math.round(Number(analysis.confidence||0)*100)+"%";
+  if(vb){const v=analysis._verification||{};vb.textContent=v.corrected?"corrected":v.verdict==="pass"?"verified":v.verdict==="correct"?"verify warn":"";vb.className=`small ${v.corrected?"verify-corrected":v.verdict==="pass"?"verify-pass":v.verdict==="correct"?"verify-warn":""}`}
+  let h="";
+  if((analysis.target_entities||[]).length)h+=`<div class="reason-targets">${analysis.target_entities.map(x=>`<span class="reason-target">${esc(x)}</span>`).join("")}</div>`;
+  h+=`<div style="font-size:11px;margin-bottom:9px">${esc(analysis.answer||"")}</div>`;
+  if((analysis.causal_findings||[]).length){
+    h+=`<div class="small" style="margin-top:8px">CAUSAL FINDINGS</div>`;
+    for(const x of analysis.causal_findings)h+=`<div class="causal-finding ${esc(x.classification)}"><div><span class="badge">${esc(x.classification)}</span> <b>${esc(x.cause)}</b></div><div class="small">${esc(x.subject)} · ${esc(x.target_property)} · ${Math.round(Number(x.confidence||0)*100)}%</div><div class="causal-path">${esc((x.causal_path||[]).join(" → ")||"no path")}</div><div class="evidence">support: ${esc((x.supporting_evidence||[]).join(" · ")||"—")}<br>contra: ${esc((x.contradicting_evidence||[]).join(" · ")||"—")}</div></div>`
+  }
+  for(const x of analysis.insights||[])h+=`<div class="insight"><b>${esc(x.title)}</b><div>${esc(x.statement)}</div><div class="small">${esc(x.impact)} · ${esc(x.urgency)} · ${Math.round(Number(x.confidence||0)*100)}%</div><div class="evidence">${esc((x.evidence_refs||[]).join(" · "))}</div></div>`;
+  if((analysis.recommended_actions||[]).length)h+=`<div class="small" style="margin-top:10px">ACTIONS</div>`;
+  for(const a of analysis.recommended_actions||[])h+=`<div class="action-row"><div class="top"><span class="badge">${esc(a.approval)}</span><b>${esc(a.label)}</b></div><div>${esc(a.rationale)}</div><div class="small">${esc(a.expected_effect)}</div><div class="action-metrics">info gain ${Math.round(Number(a.information_gain||0)*100)} · cost/risk ${Math.round(Number(a.cost_risk||0)*100)} · ${esc(a.redundancy_check||"")}</div><div class="small">${esc(a.why_now||"")}</div><div class="evidence">${esc((a.evidence_refs||[]).join(" · "))}</div></div>`;
+  if((analysis.evidence_balance||[]).length){
+    h+=`<div class="evidence-balance"><div class="small">EVIDENCE BALANCE</div>`;
+    for(const x of analysis.evidence_balance)h+=`<div class="evidence-balance-row"><b>${esc(x.status)}</b> · ${esc(x.proposition)}<div class="evidence">support: ${esc((x.supporting_evidence||[]).join(" · ")||"—")}<br>contra: ${esc((x.contradicting_evidence||[]).join(" · ")||"—")}</div><div class="small">${esc(x.note||"")}</div></div>`;
+    h+="</div>"
+  }
+  if((analysis.hypotheses||[]).length)h+=`<div class="small" style="margin-top:10px">HYPOTHESES</div>`;
+  for(const x of analysis.hypotheses||[])h+=`<div class="insight"><b>${Math.round(Number(x.confidence||0)*100)}%</b> ${esc(x.statement)}<div class="evidence">support: ${esc((x.supporting_evidence||[]).join(" · ")||"—")}<br>contra: ${esc((x.contradicting_evidence||[]).join(" · ")||"—")}</div><div class="small">next: ${esc(x.next_information)}</div></div>`;
+  if((analysis.missing_information||[]).length)h+=`<div class="small" style="margin-top:9px">MISSING · ${esc(analysis.missing_information.join(" · "))}</div>`;
+  r.innerHTML=h;
+  if($("#reasonTraceBody"))$("#reasonTraceBody").textContent=analysis._reason_trace||"No reasoning trace."
+};
+
+runInsight=async function(){
+  if(!ontology){log("Compile or load a model first.","err");return}
+  const natural=$("#objective").value.trim();if(!natural){log("Enter an objective.","err");return}
+  const mode=$("#analysisMode").value,objective={id:uid("objective"),natural_language:natural,desired_state:[],constraints:[],optimize:[],deadline:null,priority:1,mode,status:"running",created_at:isoNow(),world_revision:workspace.world.revision};
+  workspace.operations.objectives.push(objective);if(workspace.operations.objectives.length>100)workspace.operations.objectives.shift();
+  const scopedOntology=ontologyForContext();
+  if((contextMode().startsWith("focused_node")||contextMode()==="focused_neighbors"||contextMode()==="focused_combined")&&focusedNodeIds.size===0){objective.status="blocked";objective.block_reason="focused graph context has no selected node";log("Select at least one graph node for the current context mode.","err");return}
+  aborter=new AbortController();setBusy(true,"targeting context");
+  try{
+    const ctx=buildReasoningContextV9(natural);
+    const targetLabels=(ctx.targets||[]).map(t=>t.id).join(", ")||"unresolved";
+    log(`Reason target · ${targetLabels} · ${ctx.source_evidence.length} source window(s) · ${ctx.dependency_paths.length} dependency path(s).`,"good");
+    setBusy(true,"reasoning");
+    const compactOntology={
+      world_model:scopedOntology.world_model,
+      object_types:(scopedOntology.object_types||[]).filter(t=>(ctx.instances||[]).some(i=>i.type_id===t.id)||(ctx.targets||[]).some(x=>x.id===t.id)).slice(0,40),
+      link_types:scopedOntology.link_types||[],
+      event_types:scopedOntology.event_types||[],
+      actions:ctx.candidate_actions||[],
+      metrics:ctx.candidate_metrics||[],
+      policies:ctx.candidate_policies||[],
+      unresolved_questions:scopedOntology.unresolved_questions||[]
+    };
+    const user=`MODE: ${mode}
+OBJECTIVE:
+${natural}
+
+TARGET-FOCUSED ONTOLOGY SLICE:
+${JSON.stringify(compactOntology)}
+
+TARGET-FOCUSED RUNTIME / EVIDENCE CONTEXT:
+${JSON.stringify(ctx)}
+
+The target-focused context is authoritative for what was selected. Do not broaden to unrelated scenario problems.`;
+    analysis=await ollamaJSON(`${prompts.insight_system}\n\n${REASON_GUARDRAILS_V9}`,user,INSIGHT_SCHEMA_V9,`reason ${mode}`);
+    setBusy(true,"verifying reasoning");
+    let verification=await verifyReasoningV9(natural,mode,ctx,analysis),corrected=false;
+    if(verification.verdict==="correct"){
+      const failures=(verification.issues||[]).filter(x=>x.severity==="error").map(x=>x.kind).join(", ")||"grounding";
+      log(`Reason verification · corrective action required · ${failures}`,"warn");
+      try{
+        const repaired=await repairReasoningV9(natural,mode,ctx,analysis,verification);
+        const post=await verifyReasoningV9(natural,mode,ctx,repaired);
+        if(post.verdict==="pass"||!(post.issues||[]).some(x=>x.severity==="error")){
+          analysis=repaired;verification=post;corrected=true;log("Reason correction · accepted after verification.","good")
+        }else{
+          analysis=repaired;verification=post;corrected=true;log(`Reason correction remains qualified · ${(post.issues||[]).filter(x=>x.severity==="error").length} material issue(s).`,"warn")
+        }
+      }catch(e){log(`Reason corrective pass failed · ${e.message||e}`,"err")}
+    }else log("Reason verification · pass.","good");
+    analysis._verification={...verification,corrected};
+    analysis._reason_context={targets:ctx.targets,world_revision:ctx.world_revision,counts:{instances:ctx.instances.length,relationships:ctx.relationships.length,paths:ctx.dependency_paths.length,events:ctx.events.length,claims:ctx.claims.length,conflicts:ctx.conflicts.length,evidence:ctx.evidence.length,source_evidence:ctx.source_evidence.length}};
+    analysis._reason_trace=traceSummaryV9(ctx,verification,corrected);
+    objective.status="complete";objective.completed_at=isoNow();objective.result_summary=analysis.answer||"";objective.confidence=analysis.confidence??null;objective.verification=cloneJSON(analysis._verification);objective.targets=(analysis.target_entities||[]).slice();
+    renderAnalysis();renderWorkspacePanels();scheduleWorkspaceSave();
+    log(`Reason complete · ${analysis._verification.corrected?"corrected":analysis._verification.verdict} · world rev ${workspace.world.revision}.`,"good")
+  }catch(e){
+    objective.status=e.name==="AbortError"?"cancelled":"failed";objective.error=e.message||String(e);
+    if(e.name!=="AbortError")log(e.message,"err")
+  }finally{aborter=null;setBusy(false);scheduleWorkspaceSave()}
+};
+
+/* ====================== end v9 target-focused reasoning ====================== */
 
 function initContextUI(){const saved=localStorage.getItem("ontologyContextMode")||"all";setContextMode(saved);$("#contextMode").onchange=e=>setContextMode(e.target.value);$("#toolbarContextMode").onchange=e=>setContextMode(e.target.value)}
 function initProviderUI(){$("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();$("#provider").onchange=async()=>{syncRuntimeFromConfig();if(["ollama","anonymous_pool","aihorde","aihorde_native","ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","openapis_anthropic","mangaai","petals","puter","hf_space","inference_sh","kilo","peerwave","tangle","chat_at","tiamat","distil_sn97","ailiance","novai_free","mimocode","dandolo","vedaya","agentbot_demo","mlvoca","helloblue_test","iaqa_mcp"].includes($("#provider").value))await connect()};$("#host").oninput=syncRuntimeToConfig;$("#model").onchange=syncRuntimeToConfig;$("#configBtn").onclick=openConfig;$("#closeConfig").onclick=()=>$("#configModal").classList.remove("on");$("#saveConfig").onclick=()=>{captureConfigEditor();$("#configModal").classList.remove("on");log("LLM configuration saved.","good")};$("#resetConfig").onclick=()=>{providerConfig={defaultProvider:"ollama",persistKeys:false,profiles:JSON.parse(JSON.stringify(PROVIDER_DEFAULTS)),layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""}}};prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyProviderConfig");localStorage.removeItem("ontologyWorkbenchPrompts");renderProviderEditor();$("#provider").value="ollama";syncRuntimeFromConfig();renderPromptEditor();log("LLM configuration reset.","good")};$("#persistKeys").onchange=e=>providerConfig.persistKeys=e.target.checked}
