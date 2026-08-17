@@ -151,7 +151,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 /* v5 inference fabric */
 .runtime-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .runtime-grid .field{margin:0}
-.runtime-actions{display:flex;align-items:center;gap:8px;margin-top:7px}
+.runtime-actions{display:flex;flex-flow:wrap;align-items:center;gap:8px;margin-top:7px}
 .runtime-actions .check{margin:0;white-space:nowrap}
 .obs{margin-top:8px;border:1px solid var(--line2);background:#080808;padding:7px;font:9px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .obs-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
@@ -166,7 +166,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 .provider-note.good{border-color:#8a8;color:#bdb}.provider-note.warn{border-color:#a86;color:#cba}
 .pool-chip{display:inline-block;border:1px solid #333;padding:1px 4px;margin:1px 2px 1px 0;color:#999;font-size:8px}
 .pool-chip.ok{border-color:#596;color:#bdb}.pool-chip.bad{border-color:#744;color:#c99}.pool-chip.cool{border-color:#765;color:#ca9}.pool-chip.off{opacity:.38;text-decoration:line-through;border-style:dashed;cursor:pointer}.pool-chip:not(.off){cursor:pointer}
-.audit-options{display:grid;grid-template-columns:minmax(0,1fr) 72px 72px 72px;gap:5px;margin-top:6px;align-items:end}
+.audit-options{display:flex;flex-flow:wrap;gap:5px;margin-top:6px;align-items:end}
 .audit-options .field{margin:0}.audit-options .check{margin:0 0 5px 0;white-space:normal}
 .pool-order{margin-top:4px;padding:4px 0;border-top:1px dotted #242424;color:#888;white-space:normal;line-height:1.45}
 .audit-panel{display:none;margin-top:7px;border:1px solid #2b2b2b;background:#070707}.audit-panel.on{display:block}
