@@ -78,12 +78,16 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 /* v2 workspace */
 *{scrollbar-width:none;-ms-overflow-style:none}*::-webkit-scrollbar{width:0;height:0;display:none}
 :root{--left-w:320px;--right-w:390px;--lower-h:230px;--lower-left-w:50%}
-.main{grid-template-columns:var(--left-w) 5px minmax(0,1fr) 5px var(--right-w);overflow:hidden}
+.main{grid-template-columns:var(--left-w) 1px minmax(0,1fr) 1px var(--right-w);overflow:hidden}
 .left,.right{min-width:0;overflow:auto;position:relative}
-.splitter{background:#151515;position:relative;z-index:8;touch-action:none;user-select:none}
-.splitter:hover,.splitter.dragging{background:#555}
+
+.splitter{background:#3a3a3a;position:relative;z-index:12;touch-action:none;user-select:none;overflow:visible}
+.splitter:hover,.splitter.dragging{background:#d0d0d0}
 .splitter.vertical{cursor:col-resize}.splitter.horizontal{cursor:row-resize}
-#leftSplitter,#rightSplitter{border-left:1px solid #202020;border-right:1px solid #202020}
+/* Visible divider is exactly 1px; pseudo-elements create a forgiving hit target. */
+.splitter.vertical::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:11px;transform:translateX(-50%);cursor:col-resize;background:transparent}
+.splitter.horizontal::before{content:"";position:absolute;left:0;right:0;top:50%;height:11px;transform:translateY(-50%);cursor:row-resize;background:transparent}
+#leftSplitter,#rightSplitter{border:0}
 .panel-rail{height:28px;display:flex;align-items:center;border-bottom:1px solid var(--line);background:#0b0b0b;position:sticky;top:0;z-index:8}
 .panel-rail button{border:0;width:28px;height:27px;padding:5px;display:grid;place-items:center}
 .panel-rail svg,.canvas-btn svg,.header-icon svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6}
@@ -91,7 +95,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 .left.minimized>:not(.panel-rail),.right.minimized>:not(.panel-rail){display:none!important}
 .left.minimized .panel-rail,.right.minimized .panel-rail{height:100%;align-items:flex-start;justify-content:center;border-bottom:0}
 .left.minimized .panel-rail button,.right.minimized .panel-rail button{margin-top:4px}
-.center{grid-template-rows:40px minmax(0,1fr) 5px var(--lower-h);overflow:hidden}
+.center{grid-template-rows:40px minmax(0,1fr) 1px var(--lower-h);overflow:hidden}
 .view{overflow:hidden;position:relative;background:#090909;cursor:grab}
 .view.panning{cursor:grabbing}
 #graphCanvas{display:block;width:100%;height:100%;position:absolute;inset:0;touch-action:none}
@@ -100,8 +104,8 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 .canvas-btn{width:27px;height:27px;padding:5px;border:0;border-right:1px solid #333;display:grid;place-items:center}
 .canvas-btn:last-child{border-right:0}
 .empty{pointer-events:none}
-.lower{position:relative;grid-template-columns:minmax(160px,var(--lower-left-w)) 5px minmax(160px,1fr);border-top:0;overflow:hidden}
-.lower>.lower-pane{min-width:0;overflow:auto;padding:var(--pad)}
+.lower{position:relative;grid-template-columns:minmax(160px,var(--lower-left-w)) 1px minmax(160px,1fr);border-top:0;overflow:hidden}
+.lower>.lower-pane{min-width:0;overflow:auto;padding:var(--pad);position:relative;z-index:1}
 .lower>.lower-pane+.splitter,.lower>.splitter+.lower-pane{border-left:0}
 .lower-toggle{position:absolute;right:0;top:0;z-index:9;width:28px;height:28px;padding:5px;border-width:0 0 1px 1px}
 .lower.minimized{display:block;overflow:hidden}
@@ -124,7 +128,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 .config-note{border-left:2px solid #777;padding:7px 9px;color:#999;font-size:9px;margin-bottom:10px}
 #provider{width:auto;min-width:130px}.model-input{min-width:130px}
 .header-icon{width:29px;height:27px;padding:5px;display:grid;place-items:center}
-@media(max-width:1150px){.main{grid-template-columns:var(--left-w) 5px minmax(0,1fr) 5px var(--right-w)}.right{display:block}}
+@media(max-width:1150px){.main{grid-template-columns:var(--left-w) 1px minmax(0,1fr) 1px var(--right-w)}.right{display:block}}
 
 </style>
 </head>
@@ -148,7 +152,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
     <div class="sec-head"><b>runtime</b></div>
     <div class="row">
       <div class="field grow"><label>provider</label><select id="provider"><option value="ollama">ollama</option><option value="openai_compatible">openai-compatible</option><option value="openai">openai</option><option value="anthropic">anthropic</option><option value="gemini">gemini</option></select></div>
-      <div class="field grow"><label>model</label><input id="model" class="model-input" list="modelList" placeholder="model name"><datalist id="modelList"></datalist></div>
+      <div class="field grow"><label>model</label><select id="model" class="model-input"><option value="">connect first</option></select></div>
     </div>
     <div class="field"><label>endpoint</label><input id="host" value="http://127.0.0.1:11434"></div>
     <div class="row">
@@ -649,13 +653,69 @@ function applyLayoutState(){
   $("#toggleLower").querySelector("svg").innerHTML=layoutState.lowerMin?'<path d="m5 9 7 7 7-7"/>':'<path d="m5 15 7-7 7 7"/>';
   requestAnimationFrame(()=>{resizeCanvas();drawGraph()});
 }
-function bindResize(el,axis,onMove,onEnd){el.addEventListener("pointerdown",e=>{e.preventDefault();el.setPointerCapture(e.pointerId);el.classList.add("dragging");const sx=e.clientX,sy=e.clientY;const move=ev=>onMove(ev.clientX-sx,ev.clientY-sy);const up=()=>{el.classList.remove("dragging");el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);el.removeEventListener("pointercancel",up);saveLayoutState();onEnd?.()};el.addEventListener("pointermove",move);el.addEventListener("pointerup",up);el.addEventListener("pointercancel",up)})}
+function bindResizeAbsolute(el,onMove,onEnd){
+  el.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    el.classList.add("dragging");
+    const move=ev=>onMove(ev.clientX,ev.clientY);
+    const up=()=>{
+      el.classList.remove("dragging");
+      el.removeEventListener("pointermove",move);
+      el.removeEventListener("pointerup",up);
+      el.removeEventListener("pointercancel",up);
+      saveLayoutState();
+      onEnd?.();
+    };
+    el.addEventListener("pointermove",move);
+    el.addEventListener("pointerup",up);
+    el.addEventListener("pointercancel",up);
+    onMove(e.clientX,e.clientY);
+  });
+}
 function initPanelLayout(){
   applyLayoutState();
-  bindResize($("#leftSplitter"),"x",dx=>{let w=(layoutState.leftMin?layoutState.leftPrev:layoutState.leftW)+dx;if(w<65){layoutState.leftMin=true}else{layoutState.leftMin=false;layoutState.leftW=Math.min(720,Math.max(180,w));layoutState.leftPrev=layoutState.leftW}applyLayoutState()});
-  bindResize($("#rightSplitter"),"x",dx=>{let w=(layoutState.rightMin?layoutState.rightPrev:layoutState.rightW)-dx;if(w<65){layoutState.rightMin=true}else{layoutState.rightMin=false;layoutState.rightW=Math.min(760,Math.max(200,w));layoutState.rightPrev=layoutState.rightW}applyLayoutState()});
-  bindResize($("#lowerSplitter"),"y",(dx,dy)=>{let h=(layoutState.lowerMin?layoutState.lowerPrev:layoutState.lowerH)-dy;if(h<55){layoutState.lowerMin=true}else{layoutState.lowerMin=false;layoutState.lowerH=Math.min(window.innerHeight*.72,Math.max(120,h));layoutState.lowerPrev=layoutState.lowerH}applyLayoutState()});
-  bindResize($("#lowerInnerSplitter"),"x",dx=>{const lower=$("#lowerPanel");layoutState.lowerLeftW=Math.min(lower.clientWidth-180,Math.max(160,layoutState.lowerLeftW+dx));applyLayoutState()});
+
+  // Every splitter is positioned from the pointer's absolute client coordinate.
+  // There is no accumulated delta, so the visible 1px line follows the mouse 1:1.
+  bindResizeAbsolute($("#leftSplitter"),(clientX)=>{
+    const r=document.querySelector(".main").getBoundingClientRect();
+    const w=clientX-r.left;
+    if(w<65){layoutState.leftMin=true}else{
+      layoutState.leftMin=false;
+      layoutState.leftW=Math.min(720,Math.max(180,w));
+      layoutState.leftPrev=layoutState.leftW;
+    }
+    applyLayoutState();
+  });
+
+  bindResizeAbsolute($("#rightSplitter"),(clientX)=>{
+    const r=document.querySelector(".main").getBoundingClientRect();
+    const w=r.right-clientX-1;
+    if(w<65){layoutState.rightMin=true}else{
+      layoutState.rightMin=false;
+      layoutState.rightW=Math.min(760,Math.max(200,w));
+      layoutState.rightPrev=layoutState.rightW;
+    }
+    applyLayoutState();
+  });
+
+  bindResizeAbsolute($("#lowerSplitter"),(_clientX,clientY)=>{
+    const r=document.querySelector(".center").getBoundingClientRect();
+    const h=r.bottom-clientY-1;
+    if(h<55){layoutState.lowerMin=true}else{
+      layoutState.lowerMin=false;
+      layoutState.lowerH=Math.min(r.height-90,Math.max(120,h));
+      layoutState.lowerPrev=layoutState.lowerH;
+    }
+    applyLayoutState();
+  });
+
+  bindResizeAbsolute($("#lowerInnerSplitter"),(clientX)=>{
+    const r=$("#lowerPanel").getBoundingClientRect();
+    layoutState.lowerLeftW=Math.min(r.width-180,Math.max(160,clientX-r.left));
+    applyLayoutState();
+  });
   $("#toggleLeft").onclick=()=>{if(layoutState.leftMin){layoutState.leftMin=false;layoutState.leftW=layoutState.leftPrev||320}else{layoutState.leftPrev=layoutState.leftW;layoutState.leftMin=true}saveLayoutState();applyLayoutState()};
   $("#toggleRight").onclick=()=>{if(layoutState.rightMin){layoutState.rightMin=false;layoutState.rightW=layoutState.rightPrev||390}else{layoutState.rightPrev=layoutState.rightW;layoutState.rightMin=true}saveLayoutState();applyLayoutState()};
   $("#toggleLower").onclick=()=>{if(layoutState.lowerMin){layoutState.lowerMin=false;layoutState.lowerH=layoutState.lowerPrev||230}else{layoutState.lowerPrev=layoutState.lowerH;layoutState.lowerMin=true}saveLayoutState();applyLayoutState()};
@@ -665,8 +725,24 @@ function currentProvider(layer="compile"){
   const lc=providerConfig.layers[layer]||{provider:"default",model:""};const key=lc.provider&&lc.provider!=="default"?lc.provider:(providerConfig.defaultProvider||"ollama");const profile=providerConfig.profiles[key]||providerConfig.profiles.ollama;
   return {key,profile,model:lc.model||profile.model||$("#model").value.trim()};
 }
-function syncRuntimeFromConfig(){const key=$("#provider").value||providerConfig.defaultProvider||"ollama";providerConfig.defaultProvider=key;const p=providerConfig.profiles[key];$("#host").value=p.endpoint||"";$("#model").value=p.model||"";saveProviderConfig()}
-function syncRuntimeToConfig(){const key=$("#provider").value||"ollama";providerConfig.defaultProvider=key;providerConfig.profiles[key].endpoint=$("#host").value.trim();providerConfig.profiles[key].model=$("#model").value.trim();saveProviderConfig()}
+function setMainModelOptions(models,selectedValue=""){
+  const sel=$("#model");
+  const unique=[...new Set((models||[]).filter(Boolean))];
+  sel.innerHTML="";
+  if(!unique.length){
+    const o=document.createElement("option");o.value=selectedValue||"";o.textContent=selectedValue||"configure in settings";sel.appendChild(o);
+  }else{
+    unique.forEach(name=>{const o=document.createElement("option");o.value=name;o.textContent=name;sel.appendChild(o)});
+    if(selectedValue&&!unique.includes(selectedValue)){const o=document.createElement("option");o.value=selectedValue;o.textContent=selectedValue;sel.insertBefore(o,sel.firstChild)}
+  }
+  sel.value=selectedValue&&[...sel.options].some(o=>o.value===selectedValue)?selectedValue:(sel.options[0]?.value||"");
+}
+function syncRuntimeFromConfig(){
+  const key=$("#provider").value||providerConfig.defaultProvider||"ollama";providerConfig.defaultProvider=key;const p=providerConfig.profiles[key];$("#host").value=p.endpoint||"";
+  if(key==="ollama"){setMainModelOptions(p._models||[],p.model||"")}else{setMainModelOptions(p.model?[p.model]:[],p.model||"")}
+  saveProviderConfig();
+}
+function syncRuntimeToConfig(){const key=$("#provider").value||"ollama";providerConfig.defaultProvider=key;providerConfig.profiles[key].endpoint=$("#host").value.trim();providerConfig.profiles[key].model=$("#model").value||"";saveProviderConfig()}
 
 function extractTextResponse(key,data){
   if(key==="ollama")return data?.message?.content||"";
@@ -695,7 +771,25 @@ function layerFromLabel(label){label=String(label).toLowerCase();if(label.includ
 ollamaJSON=async function(system,user,schema,label){const t=performance.now(),x=await providerRequest(layerFromLabel(label),system,user,schema,label,true);log(`${label} · ${((performance.now()-t)/1000).toFixed(1)}s`,"good");return x};
 ollamaText=async function(system,user,label){return providerRequest("custom_output",system,user,null,label,false)};
 connect=async function(){
-  syncRuntimeToConfig();const key=providerConfig.defaultProvider,p=providerConfig.profiles[key];try{$("#statusText").textContent="connecting";if(key==="ollama"){const r=await fetch((p.endpoint||"http://127.0.0.1:11434").replace(/\/+$/,'')+"/api/tags",{signal:AbortSignal.timeout(8000)});if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json(),list=$("#modelList");list.innerHTML="";(d.models||[]).forEach(m=>{const o=document.createElement("option");o.value=m.name||m.model;list.appendChild(o)});if(!$("#model").value&&(d.models||[])[0])$("#model").value=(d.models[0].name||d.models[0].model);p.model=$("#model").value;$("#statusText").textContent=`ollama · ${(d.models||[]).length} models`}else{$("#statusText").textContent=`${p.label} configured`}$("#dot").className="dot ok";saveProviderConfig();log(`${p.label} ready.`,"good")}catch(e){$("#dot").className="dot";$("#statusText").textContent="connection failed";log("Connection failed: "+e.message,"err")}
+  syncRuntimeToConfig();
+  const key=providerConfig.defaultProvider,p=providerConfig.profiles[key];
+  try{
+    $("#statusText").textContent="connecting";
+    if(key==="ollama"){
+      const r=await fetch((p.endpoint||"http://127.0.0.1:11434").replace(/\/+$/,'')+"/api/tags",{signal:AbortSignal.timeout(8000)});
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      const d=await r.json();
+      const models=(d.models||[]).map(m=>m.name||m.model).filter(Boolean);
+      p._models=models;
+      setMainModelOptions(models,p.model||models[0]||"");
+      p.model=$("#model").value||models[0]||"";
+      $("#statusText").textContent=`ollama · ${models.length} models`;
+    }else{
+      setMainModelOptions(p.model?[p.model]:[],p.model||"");
+      $("#statusText").textContent=`${p.label} configured`;
+    }
+    $("#dot").className="dot ok";saveProviderConfig();log(`${p.label} ready.`,"good");
+  }catch(e){$("#dot").className="dot";$("#statusText").textContent="connection failed";log("Connection failed: "+e.message,"err")}
 };
 
 function renderProviderEditor(){
@@ -774,7 +868,7 @@ const oldRenderAll=renderAll;renderAll=function(){renderGraph();renderLineage();
 const oldRenderOutput=renderOutput;renderOutput=async function(){if(!ontology){log("No model to translate.","err");return}const original=ontology,scoped=ontologyForContext();if(scoped)ontology=scoped;try{return await oldRenderOutput()}finally{ontology=original}};
 
 function initContextUI(){const saved=localStorage.getItem("ontologyContextMode")||"all";setContextMode(saved);$("#contextMode").onchange=e=>setContextMode(e.target.value);$("#toolbarContextMode").onchange=e=>setContextMode(e.target.value)}
-function initProviderUI(){$("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();$("#provider").onchange=()=>syncRuntimeFromConfig();$("#host").oninput=syncRuntimeToConfig;$("#model").oninput=syncRuntimeToConfig;$("#configBtn").onclick=openConfig;$("#closeConfig").onclick=()=>$("#configModal").classList.remove("on");$("#saveConfig").onclick=()=>{captureConfigEditor();$("#configModal").classList.remove("on");log("LLM configuration saved.","good")};$("#resetConfig").onclick=()=>{providerConfig={defaultProvider:"ollama",persistKeys:false,profiles:JSON.parse(JSON.stringify(PROVIDER_DEFAULTS)),layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""}}};prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyProviderConfig");localStorage.removeItem("ontologyWorkbenchPrompts");renderProviderEditor();$("#provider").value="ollama";syncRuntimeFromConfig();renderPromptEditor();log("LLM configuration reset.","good")};$("#persistKeys").onchange=e=>providerConfig.persistKeys=e.target.checked}
+function initProviderUI(){$("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();$("#provider").onchange=async()=>{syncRuntimeFromConfig();if($("#provider").value==="ollama")await connect()};$("#host").oninput=syncRuntimeToConfig;$("#model").onchange=syncRuntimeToConfig;$("#configBtn").onclick=openConfig;$("#closeConfig").onclick=()=>$("#configModal").classList.remove("on");$("#saveConfig").onclick=()=>{captureConfigEditor();$("#configModal").classList.remove("on");log("LLM configuration saved.","good")};$("#resetConfig").onclick=()=>{providerConfig={defaultProvider:"ollama",persistKeys:false,profiles:JSON.parse(JSON.stringify(PROVIDER_DEFAULTS)),layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""}}};prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyProviderConfig");localStorage.removeItem("ontologyWorkbenchPrompts");renderProviderEditor();$("#provider").value="ollama";syncRuntimeFromConfig();renderPromptEditor();log("LLM configuration reset.","good")};$("#persistKeys").onchange=e=>providerConfig.persistKeys=e.target.checked}
 function initNodeModal(){$("#closeNodeModal").onclick=()=>{$("#nodeModal").classList.remove("on");selected=null;drawGraph()};$("#nodeFocusBtn").onclick=()=>{if(!selected)return;if(focusedNodeIds.has(selected.id))focusedNodeIds.delete(selected.id);else focusedNodeIds.add(selected.id);$("#nodeFocusBtn").textContent=focusedNodeIds.has(selected.id)?"unfocus":"focus";renderFocusSummary();drawGraph()}}
 
 // Replace legacy fit/layout controls with viewport-aware graph controls.
