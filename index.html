@@ -83,7 +83,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 
 .splitter{background:#3a3a3a;position:relative;z-index:12;touch-action:none;user-select:none;overflow:visible}
 .splitter:hover,.splitter.dragging{background:#d0d0d0}
-.splitter.vertical{cursor:col-resize;padding:unset;}.splitter.horizontal{cursor:row-resize}
+.splitter.vertical{cursor:col-resize;padding:unset}.splitter.horizontal{cursor:row-resize}
 /* Visible divider is exactly 1px; pseudo-elements create a forgiving hit target. */
 .splitter.vertical::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:11px;transform:translateX(-50%);cursor:col-resize;background:transparent}
 .splitter.horizontal::before{content:"";position:absolute;left:0;right:0;top:50%;height:11px;transform:translateY(-50%);cursor:row-resize;background:transparent}
@@ -147,6 +147,26 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 .spatial-modal-grid>div:nth-child(odd){font:8px ui-monospace,monospace;text-transform:uppercase;color:#777;border-right:1px solid #292929}
 .map-legend{display:flex;gap:8px;align-items:center;color:#777;font-size:8px;margin-top:6px}.map-swatch{width:10px;height:10px;border:1px solid #777;display:inline-block}
 
+
+/* v5 inference fabric */
+.runtime-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.runtime-grid .field{margin:0}
+.runtime-actions{display:flex;align-items:center;gap:8px;margin-top:7px}
+.runtime-actions .check{margin:0;white-space:nowrap}
+.obs{margin-top:8px;border:1px solid var(--line2);background:#080808;padding:7px;font:9px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.obs-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.obs-cell{min-width:0;border-right:1px solid #222;padding-right:4px}.obs-cell:last-child{border:0}
+.obs-k{display:block;color:#777;text-transform:uppercase;font-size:7px;letter-spacing:.08em}
+.obs-v{display:block;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.obs-preview{margin-top:6px;padding-top:6px;border-top:1px solid #202020;max-height:74px;overflow:auto;white-space:pre-wrap;word-break:break-word;color:#aaa}
+.obs-events{margin-top:5px;color:#777;max-height:44px;overflow:auto}
+.reasoning-preview{color:#8f8f8f;border-left:1px solid #444;padding-left:6px;margin-top:5px;display:none}
+.reasoning-preview.on{display:block}
+.provider-note{margin-top:6px;padding:6px;border-left:2px solid #444;background:#0b0b0b;color:#999;font-size:9px}
+.provider-note.good{border-color:#8a8;color:#bdb}.provider-note.warn{border-color:#a86;color:#cba}
+.pool-chip{display:inline-block;border:1px solid #333;padding:1px 4px;margin:1px 2px 1px 0;color:#999;font-size:8px}
+.pool-chip.ok{border-color:#596;color:#bdb}.pool-chip.bad{border-color:#744;color:#c99}.pool-chip.cool{border-color:#765;color:#ca9}.pool-chip.off{opacity:.38;text-decoration:line-through;border-style:dashed;cursor:pointer}.pool-chip:not(.off){cursor:pointer}
+
 </style>
 </head>
 <body>
@@ -170,9 +190,25 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
     <div class="row">
       <div class="field grow"><label>provider</label><select id="provider">
 <option value="ollama">ollama</option>
-<option value="aihorde">AI Horde · anonymous</option>
+<option value="anonymous_pool">AUTO · anonymous free pool</option>
+<option value="aihorde">AI Horde · OpenAI proxy · shared anonymous</option>
+<option value="aihorde_native">AI Horde · native async · shared anonymous</option>
+<option value="ovh">OVHcloud AI · anonymous</option>
+<option value="llm7">LLM7 · anonymous</option>
+<option value="opencode_free">OpenCode Console · free anonymous</option>
+<option value="andy">Andy distributed pool · anonymous</option>
+<option value="blockrun">BlockRun · free reasoning · anonymous</option>
+<option value="arcrouter">ArcRouter · free smart route · anonymous</option>
+<option value="kilo">Kilo Gateway · anonymous free</option>
+<option value="unclose_hermes">uncloseai · Hermes community</option>
+<option value="unclose_qwen">uncloseai · Qwen Coder community</option>
+<option value="openapis">OpenAPIs beta · shared public credential</option>
+<option value="openapis_anthropic">OpenAPIs Anthropic · shared public credential</option>
+<option value="mangaai">MangaAI / LLMPlayGround · community anonymous</option>
+<option value="petals">Petals · public research swarm</option>
+<option value="hf_space">HF / public Gradio Space</option>
+<option value="inference_sh">inference.sh · public embedded agent</option>
 <option value="puter">Puter.js · user-auth</option>
-<option value="hf_space">HF public Gradio Space</option>
 <option value="openai_compatible">openai-compatible</option>
 <option value="openai">openai</option>
 <option value="anthropic">anthropic</option>
@@ -184,9 +220,39 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
     <div class="row">
       <div class="field grow"><label>temp</label><input id="temp" type="number" value="0" step=".1"></div>
       <div class="field grow"><label>context</label><input id="ctx" type="number" value="65536" step="1024"></div>
-      <div class="field grow"><label>chunk</label><input id="chunk" type="number" value="18000" step="1000"></div>
+      <div class="field grow"><label>chunk chars</label><input id="chunk" type="number" value="12000" step="1000"></div>
     </div>
-    <div class="small mono">structured recovery · adaptive shard / retry / merge</div>
+    <div class="runtime-grid">
+      <div class="field"><label>response transport</label><select id="responseTransport"><option value="auto">auto stream</option><option value="stream">force stream</option><option value="buffered">buffered</option></select></div>
+      <div class="field"><label>reasoning</label><select id="reasoningMode"><option value="off">off</option><option value="auto">model default</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option><option value="max">max</option></select></div>
+      <div class="field"><label>shard strategy</label><select id="shardMode"><option value="auto">structure-aware</option><option value="semantic">semantic prose</option><option value="fixed">fixed + overlap</option><option value="none">no proactive shard</option></select></div>
+      <div class="field"><label>shard overlap chars</label><input id="chunkOverlap" type="number" value="600" min="0" step="100"></div>
+      <div class="field"><label>shard concurrency</label><select id="shardConcurrency"><option value="auto">auto · provider-aware</option><option value="1">1 · serial</option><option value="2">2</option><option value="4">4</option><option value="8">8</option></select></div>
+      <div class="field"><label>max output tokens</label><input id="maxOutputTokens" type="number" value="16384" min="128" step="1024"></div>
+      <div class="field"><label>request timeout sec</label><input id="requestTimeout" type="number" value="180" min="10" step="10"></div>
+    </div>
+    <div class="runtime-actions">
+      <label class="check"><input id="showReasoning" type="checkbox"> show provider reasoning trace</label>
+      <div class="spacer"></div><button id="probePool" class="iconbtn" title="Probe anonymous provider registries">probe pool</button>
+    </div>
+    <div id="poolStatus" class="small mono" style="margin-top:5px">anonymous resolver idle</div>
+    <div id="inferenceObs" class="obs">
+      <div class="obs-grid">
+        <div class="obs-cell"><span class="obs-k">state</span><span id="obsState" class="obs-v">idle</span></div>
+        <div class="obs-cell"><span class="obs-k">provider</span><span id="obsProvider" class="obs-v">—</span></div>
+        <div class="obs-cell"><span class="obs-k">ttft</span><span id="obsTtft" class="obs-v">—</span></div>
+        <div class="obs-cell"><span class="obs-k">throughput</span><span id="obsRate" class="obs-v">—</span></div>
+        <div class="obs-cell"><span class="obs-k">chunks</span><span id="obsChunks" class="obs-v">0</span></div>
+        <div class="obs-cell"><span class="obs-k">output</span><span id="obsChars" class="obs-v">0 ch</span></div>
+        <div class="obs-cell"><span class="obs-k">reasoning</span><span id="obsReasoning" class="obs-v">0 ch</span></div>
+        <div class="obs-cell"><span class="obs-k">http / retry</span><span id="obsHttp" class="obs-v">—</span></div>
+      </div>
+      <div id="streamPreview" class="obs-preview">stream idle</div>
+      <div id="reasoningPreview" class="reasoning-preview"></div>
+      <div id="obsEvents" class="obs-events"></div>
+      <div id="obsRecent" class="obs-events" style="border-top:1px solid var(--line);margin-top:5px;padding-top:5px"></div>
+    </div>
+    <div class="small mono" style="margin-top:6px">structured recovery · adaptive shard / retry / merge · SSE / NDJSON telemetry</div>
   </div>
 
   <div class="sec">
@@ -1361,13 +1427,34 @@ compile=async function(){
   if(!scoped.length&&!inputBlocks.length){log(contextMode()==="all"?"Add at least one source or input block.":"No sources match the current focus mode.","err");return}
   aborter=new AbortController();setBusy(true,"compiling");
   try{
-    const partials=[],userMax=Math.max(3000,Number($("#chunk").value||18000));
-    for(const s of scoped){
-      const cs=sourceChunksV4(s,userMax);
-      log(`${s.name} · ${cs.length} structure-aware shard${cs.length===1?"":"s"}`,"good");
-      for(let i=0;i<cs.length;i++)partials.push(...await extractShardWithRecovery(s,cs[i],i,cs.length,0))
+    const userMax=Math.max(3000,Number($("#chunk").value||18000)),jobs=[];let order=0;
+    for(const source of scoped){
+      const cs=sourceChunksV4(source,userMax);
+      log(`${source.name} · ${cs.length} ${runtimeEl("shardMode")?.value||"auto"} shard${cs.length===1?"":"s"}`,"good");
+      cs.forEach((chunk,i)=>jobs.push({source,chunk,i,total:cs.length,order:order++}))
     }
-    const registry=scoped.map(s=>({id:s.id,name:s.name,kind:s.kind,authority:s.authority,description:s.meta||"",content_summary:(s.content||"").slice(0,400),read_policy:"read-only unless an action explicitly writes to its external system",freshness:"unknown"}));
+    const rawConc=runtimeEl("shardConcurrency")?.value||"auto";
+    let concurrency=rawConc==="auto"?(providerConfig.defaultProvider==="anonymous_pool"?Math.min(4,Math.max(1,ANON_POOL_KEYS.length-disabledAnonProviders.size)):1):Math.max(1,Math.min(8,Number(rawConc)||1));
+    concurrency=Math.min(concurrency,Math.max(1,jobs.length));
+    log(`Extraction queue · ${jobs.length} shard job${jobs.length===1?"":"s"} · concurrency ${concurrency}`,"good");
+    const resultSlots=new Array(jobs.length);let cursor=0,completed=0;
+    const worker=async workerId=>{
+      while(true){
+        const idx=cursor++;if(idx>=jobs.length)return;
+        const j=jobs[idx];
+        try{
+          resultSlots[j.order]=await extractShardWithRecovery(j.source,j.chunk,j.i,j.total,0)
+        }catch(e){
+          if(e?.name==="AbortError")throw e;
+          log(`shard worker ${workerId} · ${j.source.name} ${j.i+1}/${j.total} failed · ${e.message}`,"err");throw e
+        }finally{
+          completed++;if(jobs.length>1)log(`Extraction progress · ${completed}/${jobs.length} shards complete`)
+        }
+      }
+    };
+    await Promise.all(Array.from({length:concurrency},(_,i)=>worker(i+1)));
+    const partials=resultSlots.flatMap(x=>x||[]);
+    const registry=scoped.map(source=>({id:source.id,name:source.name,kind:source.kind,authority:source.authority,description:source.meta||"",content_summary:(source.content||"").slice(0,400),read_policy:"read-only unless an action explicitly writes to its external system",freshness:"unknown"}));
     inputBlocks.forEach(b=>registry.push({id:b.id,name:b.key||b.id,kind:"manual_input",authority:b.authority,description:`${b.kind} · ${b.data_type}`,content_summary:String(b.value).slice(0,400),read_policy:"explicit user-supplied input",freshness:"session"}));
     ontology=await ollamaJSON(tpl(prompts.compile_system,{AUTHORITY_POLICY:$("#authorityPolicy").value,INFER_ACTIONS:$("#inferActions").checked,INFER_FUNCTIONS:$("#inferFunctions").checked,INFER_POLICIES:$("#inferPolicies").checked}),tpl(prompts.compile_user,{SCOPE:$("#scope").value||"(automatic scope discovery)",SOURCE_REGISTRY:JSON.stringify(registry,null,2),PARTIALS:JSON.stringify(partials,null,2),INPUTS:JSON.stringify(inputBlocks,null,2)}),ONTOLOGY_SCHEMA,"compile ontology");
     normalizeOntology();analysis=null;selected=null;focusedNodeIds.clear();layoutGraph(true);renderAll();renderFocusSummary();
@@ -1418,8 +1505,602 @@ renderProviderEditor=function(){
 /* -------------- end v4 resilient structured inference + free backends -------------- */
 
 
+/* -------------- v5 anonymous inference fabric + streaming observability -------------- */
+Object.assign(PROVIDER_DEFAULTS,{
+  anonymous_pool:{label:"AUTO · anonymous free pool",endpoint:"resolver://anonymous",model:"auto",apiKey:"",auth:"none",modelsEndpoint:"",stream:true,reasoning:"mixed",strictAnonymous:true},
+  aihorde_native:{label:"AI Horde · native async",endpoint:"https://aihorde.net/api/v2/generate/text/async",model:"",apiKey:"0000000000",auth:"shared",modelsEndpoint:"https://aihorde.net/api/v2/status/models?type=text",stream:false,reasoning:"model",strictAnonymous:true,rate:"volunteer queue · shared anonymous key",note:"Direct Horde v2 text generation with queue polling; max_length is capped by the Horde schema."},
+  ovh:{label:"OVHcloud AI Endpoints · anonymous",endpoint:"https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions",model:"Qwen3.5-397B-A17B",apiKey:"",auth:"none",modelsEndpoint:"https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/models",stream:true,reasoning:"best-effort",strictAnonymous:true,rate:"2 RPM / IP / model"},
+  llm7:{label:"LLM7 · anonymous",endpoint:"https://api.llm7.io/v1/chat/completions",model:"default",apiKey:"",auth:"placeholder",modelsEndpoint:"https://api.llm7.io/v1/models",stream:true,reasoning:"model",strictAnonymous:true,rate:"basic anonymous tier"},
+  opencode_free:{label:"OpenCode Console · free anonymous",endpoint:"https://console.opencode.ai/inference/openai/v1/chat/completions",model:"big-pickle",apiKey:"",auth:"none",modelsEndpoint:"https://console.opencode.ai/inference/openai/v1/models",stream:true,reasoning:"best-effort",strictAnonymous:true,rate:"free-model lane"},
+  andy:{label:"Andy distributed pool · anonymous",endpoint:"https://andy.mindcraft-ce.com/api/v1/chat/completions",model:"sweaterdog/andy-4:latest",apiKey:"",auth:"none",modelsEndpoint:"https://andy.mindcraft-ce.com/api/v1/models",healthEndpoint:"https://andy.mindcraft-ce.com/api/ping",stream:false,reasoning:"model",strictAnonymous:true,rate:"server 3 RPM/100 day; pool 6 RPM/1000 day"},
+  blockrun:{label:"BlockRun · free reasoning",endpoint:"https://blockrun.ai/api/v1/chat/completions",model:"nvidia/step-3.7-flash",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["nvidia/step-3.7-flash","nvidia/gpt-oss-120b"],stream:true,reasoning:"native",strictAnonymous:true,trust:3,rate:"free NVIDIA-backed route · 128 KB request cap",note:"No API key, wallet, or signup for free models. Also supports nvidia/gpt-oss-120b."},
+  arcrouter:{label:"ArcRouter · free smart route",endpoint:"https://api.arcrouter.com/v1/chat/completions",model:"arc-router-v1",apiKey:"",auth:"none",modelsEndpoint:"https://api.arcrouter.com/v1/models/scores",healthEndpoint:"https://api.arcrouter.com/health",stream:true,reasoning:"router",strictAnonymous:true,rate:"20 requests/hour/IP · free models only",note:"Requests are pinned to budget=free; SSE supported."},
+  unclose_hermes:{label:"uncloseai · Hermes community",endpoint:"https://hermes.ai.unturf.com/v1/chat/completions",model:"adamo1139/Hermes-3-Llama-3.1-8B-FP8-Dynamic",apiKey:"",auth:"none",modelsEndpoint:"https://hermes.ai.unturf.com/v1/models",stream:true,reasoning:"model",strictAnonymous:true,rate:"community inference · no account",note:"Public-domain community endpoint; browser client documented."},
+  unclose_qwen:{label:"uncloseai · Qwen Coder community",endpoint:"https://qwen.ai.unturf.com/v1/chat/completions",model:"hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q4_K_M",apiKey:"",auth:"none",modelsEndpoint:"https://qwen.ai.unturf.com/v1/models",stream:true,reasoning:"model",strictAnonymous:true,trust:2,rate:"community inference · no account",note:"Public-domain community endpoint; browser client documented."},
+  openapis:{label:"OpenAPIs · free beta",endpoint:"https://api.openapis.online/openai/v1/chat/completions",model:"gpt-5.4-mini",apiKey:"admin",auth:"shared",modelsEndpoint:"",staticModels:["gpt-5.4","gpt-5.4-mini","gpt-5.4-nano","gpt-5.2","gpt-5","gpt-5-mini","gpt-5-nano","gpt-4.1","gpt-4.1-mini","gpt-4.1-nano","gpt-4o","gpt-4o-mini"],stream:true,reasoning:"best-effort",strictAnonymous:true,trust:2,rate:"free beta · shared public admin credential · streaming preferred",note:"No signup. Uses the project-wide public beta credential admin; SSE streaming is explicitly supported and less rate-limited than buffered calls."},
+  openapis_anthropic:{label:"OpenAPIs · Anthropic-compatible beta",endpoint:"https://api.openapis.online/anthropic/v1/messages",model:"claude-sonnet-4-6",apiKey:"admin",auth:"shared",modelsEndpoint:"",staticModels:["claude-sonnet-4-6","claude-haiku-4-5","claude-opus-4-7"],stream:true,reasoning:"model",strictAnonymous:true,trust:2,excluded:true,rate:"free beta · shared public admin credential · SSE",note:"Second protocol surface on the same OpenAPIs infrastructure. Kept manual so AUTO does not double-count one provider as two independent backends."},
+  mangaai:{label:"MangaAI / LLMPlayGround · community anonymous",endpoint:"https://api.mangaai.mangoi.in/v1/chat/completions",model:"deepseek-r1",apiKey:"",auth:"none",modelsEndpoint:"https://api.mangaai.mangoi.in/v1/models",stream:true,reasoning:"model",strictAnonymous:true,trust:1,experimental:true,rate:"community-operated · advertised anonymous/unlimited",note:"Community endpoint with a very small public maintenance footprint. Default-disabled in AUTO until explicitly enabled."},
+  petals:{label:"Petals · public research swarm",endpoint:"https://chat.petals.dev/api/v1/generate",wsEndpoint:"wss://chat.petals.dev/api/v2/generate",model:"stabilityai/StableBeluga2",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["stabilityai/StableBeluga2","meta-llama/Llama-2-70b-chat-hf","bigscience/bloomz"],stream:true,reasoning:"model",strictAnonymous:true,trust:2,experimental:true,rate:"public research/dev gateway · limited throughput",note:"Distributed public Petals swarm. WebSocket is preferred for token streaming; public gateway may pause or stop and is not recommended for production. Default-disabled in AUTO."},
+  inference_sh:{label:"inference.sh · public embedded agent",endpoint:"https://api.inference.sh/embed/agents/run",model:"namespace/name",apiKey:"",auth:"none",modelsEndpoint:"",stream:true,reasoning:"model",strictAnonymous:true,excluded:true,note:"No Authorization header for published agents; requires a public agent ref and publisher-allowed browser Origin. Manual route, not auto pool."},
+  kilo:{label:"Kilo Gateway · anonymous free",endpoint:"https://api.kilo.ai/api/gateway/chat/completions",model:"kilo-auto/free",apiKey:"",auth:"none",modelsEndpoint:"https://api.kilo.ai/api/gateway/models",staticModels:["kilo-auto/free","openrouter/free","stepfun/step-3.7-flash:free","poolside/laguna-m.1:free","nvidia/nemotron-3-ultra-550b-a55b:free"],stream:true,reasoning:"best-effort",strictAnonymous:true,trust:3,rate:"200 requests/hour/IP · free models only",note:"Official anonymous gateway lane. Only free model IDs are eligible without auth; Auto Free can route through providers that log prompts/outputs, so do not send personal or confidential data."},
+  pollinations_legacy:{label:"Pollinations legacy · probe only",endpoint:"https://text.pollinations.ai/openai",model:"openai",apiKey:"",auth:"none",modelsEndpoint:"",stream:true,reasoning:"model",strictAnonymous:true,excluded:true,note:"Current official gen.pollinations.ai API requires a key. Some independent catalogs still report the legacy text surface as anonymous; because those sources conflict, this route remains manual and never auto-routed."}
+});
+
+Object.assign(PROVIDER_DEFAULTS.aihorde,{trust:3});
+Object.assign(PROVIDER_DEFAULTS.aihorde_native,{trust:3});
+Object.assign(PROVIDER_DEFAULTS.ovh,{trust:3});
+Object.assign(PROVIDER_DEFAULTS.arcrouter,{trust:3});
+Object.assign(PROVIDER_DEFAULTS.opencode_free,{trust:3});
+Object.assign(PROVIDER_DEFAULTS.kilo,{trust:3});
+Object.assign(PROVIDER_DEFAULTS.llm7,{trust:2});
+Object.assign(PROVIDER_DEFAULTS.andy,{trust:2});
+Object.assign(PROVIDER_DEFAULTS.unclose_hermes,{trust:2});
+PROVIDER_DEFAULTS.anthropic.stream=true;
+PROVIDER_DEFAULTS.gemini.stream=false;
+// Migrate the obsolete pre-gateway Kilo profile if it was persisted by an earlier build.
+if(providerConfig.defaultProvider==="kilo_legacy")providerConfig.defaultProvider="kilo";
+if(providerConfig.profiles?.kilo_legacy)delete providerConfig.profiles.kilo_legacy;
+for(const [k,v] of Object.entries(PROVIDER_DEFAULTS)){
+  if(!providerConfig.profiles[k])providerConfig.profiles[k]={...v};
+  else providerConfig.profiles[k]={...v,...providerConfig.profiles[k]};
+}
+if(!providerConfig.profiles.aihorde.apiKey)providerConfig.profiles.aihorde.apiKey="0000000000";
+if(!providerConfig.profiles.aihorde_native.apiKey)providerConfig.profiles.aihorde_native.apiKey="0000000000";
+
+const ANON_POOL_KEYS=["blockrun","arcrouter","kilo","ovh","openapis","llm7","opencode_free","andy","unclose_hermes","unclose_qwen","aihorde","aihorde_native","mangaai","petals"];
+const providerRuntime={};
+let disabledAnonProviders=new Set();
+try{
+  const savedDisabled=localStorage.getItem("ontologyAnonPoolDisabled");
+  disabledAnonProviders=savedDisabled===null?new Set(["mangaai","petals"]):new Set(JSON.parse(savedDisabled||"[]"));
+}catch{disabledAnonProviders=new Set(["mangaai","petals"])}
+let currentTelemetry=null,telemetryHistory=[];
+const MAX_TELEMETRY_HISTORY=80;
+
+function runtimeEl(id){return document.getElementById(id)}
+function transportMode(){return runtimeEl("responseTransport")?.value||"auto"}
+function reasoningMode(){return runtimeEl("reasoningMode")?.value||"off"}
+function maxOutputTokens(layer){const ui=Math.max(128,Number(runtimeEl("maxOutputTokens")?.value||16384));return layer==="compile"?Math.max(ui,24576):ui}
+function requestTimeoutMs(){return Math.max(10000,Number(runtimeEl("requestTimeout")?.value||180)*1000)}
+function estTokens(chars){return Math.max(0,Math.round(Number(chars||0)/3.7))}
+function telemetryEvent(msg,t=currentTelemetry){
+  if(!t)return;
+  t.events.push({t:performance.now(),msg:String(msg)});
+  if(t.events.length>8)t.events.shift();
+  renderTelemetry()
+}
+function beginTelemetry(key,profile,model,label,transport){
+  currentTelemetry={id:uid("req"),key,provider:profile?.label||key,model:model||"",label,transport,state:"requesting",started:performance.now(),ttft:null,chunks:0,chars:0,reasoningChars:0,http:"—",retries:0,text:"",reasoningText:"",events:[]};
+  renderTelemetry();return currentTelemetry
+}
+function noteFirstToken(t=currentTelemetry){
+  if(t&&!t.ttft)t.ttft=performance.now()-t.started
+}
+function telemetryChunk(kind,text,t=currentTelemetry){
+  text=String(text||"");if(!text||!t)return;
+  noteFirstToken(t);t.chunks++;
+  if(kind==="reasoning"){t.reasoningChars+=text.length;t.reasoningText+=text;if(t.reasoningText.length>5000)t.reasoningText=t.reasoningText.slice(-5000)}
+  else{t.chars+=text.length;t.text+=text;if(t.text.length>6000)t.text=t.text.slice(-6000)}
+  t.state="streaming";renderTelemetry()
+}
+function endTelemetry(ok,http="",t=currentTelemetry){
+  if(!t)return;t.state=ok?"done":"error";if(http)t.http=http;t.ended=performance.now();
+  telemetryHistory.unshift({...t});if(telemetryHistory.length>MAX_TELEMETRY_HISTORY)telemetryHistory.pop();renderTelemetry()
+}
+function renderTelemetry(){
+  const t=currentTelemetry;if(!runtimeEl("obsState"))return;
+  runtimeEl("obsState").textContent=t?.state||"idle";
+  runtimeEl("obsProvider").textContent=t?`${t.provider}${t.model?` · ${t.model}`:""}`:"—";
+  runtimeEl("obsTtft").textContent=t?.ttft?`${Math.round(t.ttft)} ms`:"—";
+  const elapsed=t?Math.max(.001,((t.ended||performance.now())-t.started)/1000):0;
+  runtimeEl("obsRate").textContent=t&&t.chars?`${(estTokens(t.chars)/elapsed).toFixed(1)} tok/s est`:"—";
+  runtimeEl("obsChunks").textContent=String(t?.chunks||0);
+  runtimeEl("obsChars").textContent=`${(t?.chars||0).toLocaleString()} ch`;
+  runtimeEl("obsReasoning").textContent=`${(t?.reasoningChars||0).toLocaleString()} ch`;
+  runtimeEl("obsHttp").textContent=t?`${t.http||"—"} · r${t.retries||0}`:"—";
+  runtimeEl("streamPreview").textContent=t?.text? t.text.slice(-1800) : (t?`${t.label} · waiting for first token`:"stream idle");
+  const rp=runtimeEl("reasoningPreview");if(rp){const show=!!runtimeEl("showReasoning")?.checked&&!!t?.reasoningText;rp.classList.toggle("on",show);rp.textContent=show?t.reasoningText.slice(-1800):""}
+  const ev=runtimeEl("obsEvents");if(ev)ev.innerHTML=(t?.events||[]).map(x=>`<div>${((x.t-t.started)/1000).toFixed(2)}s · ${esc(x.msg)}</div>`).join("");
+  const recent=runtimeEl("obsRecent");if(recent){
+    recent.innerHTML=telemetryHistory.slice(0,6).map(x=>{const sec=Math.max(.001,((x.ended||performance.now())-x.started)/1000);return `<div title="${esc(x.label||"")}">${esc(x.id)} · ${esc(x.key)} · ${esc(x.state)} · ttft ${x.ttft?Math.round(x.ttft)+"ms":"—"} · ${sec.toFixed(1)}s · ${x.chars||0}ch · ${esc(x.http||"—")}</div>`}).join("")
+  }
+}
+function providerCooldown(key,ms,why){
+  const st=providerRuntime[key]||(providerRuntime[key]={});st.cooldownUntil=Date.now()+ms;st.lastError=why||"";st.failures=(st.failures||0)+1;renderPoolStatus()
+}
+function providerSuccess(key,latency){
+  const st=providerRuntime[key]||(providerRuntime[key]={});st.ok=true;st.catalogOnly=false;st.lastSuccess=Date.now();st.latency=latency;st.failures=Math.max(0,(st.failures||0)-1);st.cooldownUntil=0;renderPoolStatus()
+}
+function renderPoolStatus(){
+  const el=runtimeEl("poolStatus");if(!el)return;
+  const enabled=ANON_POOL_KEYS.filter(k=>!disabledAnonProviders.has(k)).length;
+  const chips=ANON_POOL_KEYS.map(k=>{const st=providerRuntime[k]||{},p=providerConfig.profiles[k]||PROVIDER_DEFAULTS[k];const off=disabledAnonProviders.has(k),cool=(st.cooldownUntil||0)>Date.now(),cls=off?"off":st.ok&&!cool?"ok":cool?"cool":st.lastError&&!st.catalogOnly?"bad":"";const detail=off?"disabled":cool?`cool ${Math.ceil((st.cooldownUntil-Date.now())/1000)}s`:st.catalogOnly?"catalog":st.latency?`${Math.round(st.latency)}ms`:st.lastError?"fail":"unprobed";const flag=p.experimental?" · exp":"";return `<span class="pool-chip ${cls}" data-pool-key="${esc(k)}" title="click to ${off?"enable":"disable"} · trust ${p.trust||1}/3 · ${st.catalogOnly?"catalog only; health learned on first inference · ":""}${esc(st.lastError||p.rate||"")}">${esc(k)}${flag} · ${esc(detail)}</span>`}).join("");
+  el.innerHTML=`pool ${enabled}/${ANON_POOL_KEYS.length} enabled · ${chips}`
+}
+function toggleAnonProvider(key){
+  if(!ANON_POOL_KEYS.includes(key))return;
+  if(disabledAnonProviders.has(key))disabledAnonProviders.delete(key);else disabledAnonProviders.add(key);
+  localStorage.setItem("ontologyAnonPoolDisabled",JSON.stringify([...disabledAnonProviders]));renderPoolStatus()
+}
+function timeoutSignal(){
+  const sigs=[];if(aborter?.signal)sigs.push(aborter.signal);if(globalThis.AbortSignal?.timeout)sigs.push(AbortSignal.timeout(requestTimeoutMs()));
+  if(sigs.length===1)return sigs[0];if(sigs.length>1&&AbortSignal.any)return AbortSignal.any(sigs);return sigs[0]
+}
+function retryDelay(response,attempt){
+  const ra=response?.headers?.get?.("Retry-After");if(ra){const n=Number(ra);if(Number.isFinite(n))return Math.max(250,n*1000);const d=Date.parse(ra);if(Number.isFinite(d))return Math.max(250,d-Date.now())}
+  return 700*(2**attempt)+Math.floor(Math.random()*250)
+}
+async function fetchObserved(url,opts,label,key,maxRetries=2,t=currentTelemetry){
+  let last=null;
+  for(let attempt=0;attempt<=maxRetries;attempt++){
+    if(t)t.retries=attempt;
+    const started=performance.now();
+    try{
+      const r=await fetch(url,{...opts,signal:opts.signal||timeoutSignal()});if(t)t.http=String(r.status);
+      if(![408,425,429,500,502,503,504].includes(r.status)||attempt===maxRetries)return r;
+      const wait=retryDelay(r,attempt);telemetryEvent(`HTTP ${r.status}; retry in ${wait}ms`,t);if(r.status===429)providerCooldown(key,wait,`HTTP 429`);await sleep(wait);last=r
+    }catch(e){
+      last=e;if(e?.name==="AbortError"||attempt===maxRetries)throw e;
+      telemetryEvent(`${e.name||"network"}; retry ${attempt+1}`,t);await sleep(700*(2**attempt))
+    }
+  }
+  return last
+}
+function extractReasoningFromObject(data,key){
+  if(key==="ollama")return data?.message?.thinking||data?.thinking||"";
+  if(key==="anthropic")return (data?.content||[]).filter(x=>x?.type==="thinking").map(x=>x?.thinking||x?.text||"").join("")||data?.thinking||"";
+  const m=data?.choices?.[0]?.message||data?.choices?.[0]?.delta||{};
+  return m.reasoning_content||m.reasoning||m.thinking||data?.reasoning||""
+}
+async function consumeOpenAIStream(response,t=currentTelemetry){
+  const reader=response.body?.getReader();if(!reader)return"";
+  const dec=new TextDecoder(),parts=[];let buf="";
+  const ingest=raw=>{
+    let line=String(raw||"").trim();if(!line||line.startsWith("event:"))return;
+    if(line.startsWith("data:"))line=line.slice(5).trim();
+    if(!line||line==="[DONE]")return;
+    let o;try{o=JSON.parse(line)}catch{return}
+    const d=o?.choices?.[0]?.delta||o?.choices?.[0]?.message||{};
+    const reasoning=d.reasoning_content||d.reasoning||d.thinking||o?.reasoning||"";
+    if(reasoning)telemetryChunk("reasoning",reasoning,t);
+    let txt=d.content??"";
+    if(Array.isArray(txt))txt=txt.map(x=>typeof x==="string"?x:(x?.text||"")).join("");
+    if(txt){parts.push(txt);telemetryChunk("text",txt,t)}
+    if(o?.usage)telemetryEvent(`usage ${o.usage.prompt_tokens??"?"}→${o.usage.completion_tokens??"?"}`,t)
+  };
+  while(true){
+    const {done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});
+    let idx;while((idx=buf.indexOf("\n"))>=0){ingest(buf.slice(0,idx));buf=buf.slice(idx+1)}
+  }
+  buf+=dec.decode();if(buf.trim())ingest(buf);
+  return parts.join("")
+}
+async function consumeOllamaStream(response,t=currentTelemetry){
+  const reader=response.body?.getReader();if(!reader)return"";
+  const dec=new TextDecoder(),parts=[];let buf="";
+  const ingest=raw=>{
+    const line=String(raw||"").trim();if(!line)return;let o;try{o=JSON.parse(line)}catch{return}
+    const th=o?.message?.thinking||o?.thinking||"";if(th)telemetryChunk("reasoning",th,t);
+    const txt=o?.message?.content||o?.response||"";if(txt){parts.push(txt);telemetryChunk("text",txt,t)}
+    if(o?.done&&o?.eval_count)telemetryEvent(`${o.eval_count} eval tokens · ${(Number(o.eval_duration||0)/1e9).toFixed(2)}s eval`,t)
+  };
+  while(true){
+    const {done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});
+    let idx;while((idx=buf.indexOf("\n"))>=0){ingest(buf.slice(0,idx));buf=buf.slice(idx+1)}
+  }
+  buf+=dec.decode();if(buf.trim())ingest(buf);
+  return parts.join("")
+}
+async function consumeGradioEvents(response,t=currentTelemetry){
+  const reader=response.body?.getReader();if(!reader)return"";
+  const dec=new TextDecoder();let buf="",payload=null,lastText="";
+  const ingest=raw=>{
+    let line=String(raw||"").trim();if(!line||line.startsWith("event:"))return;
+    if(line.startsWith("data:"))line=line.slice(5).trim();
+    if(!line)return;
+    try{payload=JSON.parse(line)}catch{payload=line}
+    let txt="";
+    if(Array.isArray(payload)){const first=payload.find(x=>typeof x==="string")??payload[0];txt=typeof first==="string"?first:""}
+    else if(typeof payload==="string")txt=payload;
+    if(txt&&txt!==lastText){const delta=txt.startsWith(lastText)?txt.slice(lastText.length):txt;lastText=txt;telemetryChunk("text",delta,t)}
+  };
+  while(true){
+    const {done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});
+    let idx;while((idx=buf.indexOf("\n"))>=0){ingest(buf.slice(0,idx));buf=buf.slice(idx+1)}
+  }
+  buf+=dec.decode();if(buf.trim())ingest(buf);
+  if(Array.isArray(payload)){const first=payload.find(x=>typeof x==="string")??payload[0];return typeof first==="string"?first:JSON.stringify(first)}
+  return typeof payload==="string"?payload:payload===null?"":JSON.stringify(payload)
+}
+async function consumeAnthropicStream(response,t=currentTelemetry){
+  const reader=response.body?.getReader();if(!reader)return"";
+  const dec=new TextDecoder(),parts=[];let buf="";
+  const ingest=raw=>{
+    let line=String(raw||"").trim();if(!line||line.startsWith("event:"))return;
+    if(line.startsWith("data:"))line=line.slice(5).trim();
+    if(!line||line==="[DONE]")return;
+    let o;try{o=JSON.parse(line)}catch{return}
+    const d=o?.delta||{};
+    const reasoning=d.thinking||d.reasoning||o?.thinking||"";
+    if(reasoning)telemetryChunk("reasoning",reasoning,t);
+    const txt=d.text||((o?.type==="content_block_start")?o?.content_block?.text:"")||"";
+    if(txt){parts.push(txt);telemetryChunk("text",txt,t)}
+    if(o?.usage)telemetryEvent(`usage ${o.usage.input_tokens??"?"}→${o.usage.output_tokens??"?"}`,t)
+  };
+  while(true){
+    const {done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});
+    let idx;while((idx=buf.indexOf("\n"))>=0){ingest(buf.slice(0,idx));buf=buf.slice(idx+1)}
+  }
+  buf+=dec.decode();if(buf.trim())ingest(buf);
+  return parts.join("")
+}
+function nativeReasoningControl(key,body){
+  const mode=reasoningMode();
+  if(key==="ollama"){
+    if(mode==="off")body.think=false;
+    else if(mode!=="auto")body.think=mode==="max"?"high":mode;
+    return true
+  }
+  const openAIish=["openai","openai_compatible","ovh","opencode_free","llm7","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","mangaai","kilo"];
+  if(openAIish.includes(key)){
+    if(mode==="off"){body.reasoning_effort="none";if(key==="openai_compatible")body.chat_template_kwargs={enable_thinking:false};return true}
+    if(["low","medium","high","max"].includes(mode)){body.reasoning_effort=mode==="max"?"high":mode;if(key==="openai_compatible")body.chat_template_kwargs={enable_thinking:true};return true}
+  }
+  return false
+}
+function canonicalResponseKey(key){if(key==="openapis_anthropic")return"anthropic";return key==="aihorde"||["ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","mangaai","kilo","pollinations_legacy"].includes(key)?"openai_compatible":key}
+function shouldStream(key,profile){
+  const mode=transportMode();if(mode==="buffered")return false;if(profile?.stream===false)return false;return mode==="stream"||mode==="auto"
+}
+function applyAuth(key,profile,headers){
+  if(["aihorde","aihorde_native"].includes(key)){const tok=profile.apiKey||"0000000000";headers.Authorization="Bearer "+tok;headers.apikey=tok}
+  else if(profile?.auth==="placeholder"){if(profile.apiKey)headers.Authorization="Bearer "+profile.apiKey}
+  else if(profile?.apiKey)headers.Authorization="Bearer "+profile.apiKey
+}
+
+async function requestAIHordeNative(profile,model,combined,temp,ctx,maxOut,label,t){
+  const token=profile.apiKey||"0000000000",headers={"Content-Type":"application/json",apikey:token,"Client-Agent":"ontology-workbench:5"};
+  const body={
+    prompt:combined,
+    params:{
+      temperature:Math.max(0,Math.min(5,temp)),
+      max_length:Math.max(16,Math.min(1024,maxOut)),
+      max_context_length:Math.max(80,Math.min(32000,ctx))
+    },
+    models:model?[model]:[],
+    trusted_workers:false
+  };
+  telemetryEvent(`native Horde submit · max ${body.params.max_length} · ctx ${body.params.max_context_length}`,t);
+  const submit=await fetchObserved(profile.endpoint,{method:"POST",headers,body:JSON.stringify(body)},label,"aihorde_native",2,t);
+  if(!submit.ok)throw new Error(`${label}: native Horde submit HTTP ${submit.status} ${(await submit.text()).slice(0,700)}`);
+  const accepted=await submit.json(),id=accepted?.id;if(!id)throw new Error(`${label}: native Horde returned no request id`);
+  telemetryEvent(`Horde job ${String(id).slice(0,8)}…`,t);
+  const deadline=Date.now()+requestTimeoutMs();let lastQueue=null,polls=0;
+  while(Date.now()<deadline){
+    await sleep(polls?Math.min(2500,900+polls*120):450);polls++;
+    const statusUrl=`https://aihorde.net/api/v2/generate/text/status/${encodeURIComponent(id)}`;
+    const r=await fetchObserved(statusUrl,{headers:{apikey:token}},label,"aihorde_native",1,t);
+    if(!r.ok)throw new Error(`${label}: native Horde status HTTP ${r.status} ${(await r.text()).slice(0,500)}`);
+    const d=await r.json(),q=d.queue_position??d.waiting??null;
+    if(q!==lastQueue||polls===1){telemetryEvent(`Horde poll ${polls} · queue ${q??"?"} · wait ${d.wait_time??"?"}s · finished ${d.finished??0}`,t);lastQueue=q}
+    const gen=(d.generations||[])[0],done=!!d.done||((d.generations||[]).length>0&&(d.processing??0)===0&&(d.waiting??0)===0);
+    if(done&&gen?.text){
+      const text=String(gen.text);telemetryChunk("text",text,t);providerSuccess("aihorde_native",performance.now()-t.started);endTelemetry(true,"200",t);return text
+    }
+    if(d.faulted)throw new Error(`${label}: native Horde job faulted`)
+  }
+  try{await fetch(`https://aihorde.net/api/v2/generate/text/status/${encodeURIComponent(id)}`,{method:"DELETE",headers:{apikey:token}})}catch{}
+  throw new Error(`${label}: native Horde timed out after ${Math.round(requestTimeoutMs()/1000)}s`)
+}
+
+async function consumeInferenceShStream(response,t=currentTelemetry){
+  const reader=response.body?.getReader();if(!reader)return"";
+  const dec=new TextDecoder(),parts=[];let buf="",event="";
+  const ingest=raw=>{
+    const line=String(raw||"").trim();
+    if(!line)return;
+    if(line.startsWith("event:")){event=line.slice(6).trim();return}
+    if(!line.startsWith("data:"))return;
+    const payload=line.slice(5).trim();if(!payload)return;
+    let d;try{d=JSON.parse(payload)}catch{return}
+    if(event==="content"||typeof d?.text==="string"){const txt=String(d.text||"");if(txt){parts.push(txt);telemetryChunk("text",txt,t)}}
+    else if(event==="error")telemetryEvent(`embed error · ${d?.message||payload.slice(0,120)}`,t);
+    else if(event==="tool_call")telemetryEvent(`embed tool · ${d?.name||"tool"}`,t)
+  };
+  while(true){
+    const {done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});
+    let idx;while((idx=buf.indexOf("\n"))>=0){ingest(buf.slice(0,idx));buf=buf.slice(idx+1)}
+  }
+  buf+=dec.decode();if(buf.trim())ingest(buf);
+  return parts.join("")
+}
+
+async function requestInferenceSh(profile,agent,combined,label,t,wantsStream){
+  if(!agent||!agent.includes("/"))throw new Error(`${label}: inference.sh model field must be a published agent ref namespace/name`);
+  const headers={"Content-Type":"application/json","X-API-Version":"2"};if(wantsStream)headers.Accept="text/event-stream";
+  const body={agent,input:{text:combined},stream:wantsStream};
+  const r=await fetchObserved(profile.endpoint,{method:"POST",headers,credentials:"include",body:JSON.stringify(body)},label,"inference_sh",1,t);
+  if(!r.ok)throw new Error(`${label}: inference.sh embed HTTP ${r.status} ${(await r.text()).slice(0,700)}`);
+  let text="";
+  if(wantsStream&&!String(r.headers.get("content-type")||"").toLowerCase().includes("application/json"))text=await consumeInferenceShStream(r,t);
+  else{
+    const d=await r.json();
+    text=d?.text||d?.message?.content||d?.output?.text||d?.output||d?.response||"";
+    if(typeof text!=="string")text=JSON.stringify(text);
+    if(text)telemetryChunk("text",text,t)
+  }
+  if(!text)throw new Error(`${label}: inference.sh embed returned no text`);
+  providerSuccess("inference_sh",performance.now()-t.started);endTelemetry(true,String(r.status),t);return text
+}
+
+
+async function requestPetals(profile,model,combined,temp,maxOut,label,t,wantsStream){
+  const maxNew=Math.max(8,Math.min(2048,maxOut));
+  const maxLength=Math.max(256,Math.min(8192,estTokens(combined.length)+maxNew+32));
+  if(wantsStream&&profile.wsEndpoint&&globalThis.WebSocket){
+    telemetryEvent(`Petals websocket · max_new ${maxNew} · session ${maxLength}`,t);
+    return await new Promise((resolve,reject)=>{
+      const ws=new WebSocket(profile.wsEndpoint);let text="",lastChunk="",settled=false;
+      const timer=setTimeout(()=>finish(new Error(`${label}: Petals websocket timed out`)),requestTimeoutMs());
+      const abortHandler=()=>finish(new DOMException("Aborted","AbortError"));
+      if(aborter?.signal)aborter.signal.addEventListener("abort",abortHandler,{once:true});
+      function finish(err,value){if(settled)return;settled=true;clearTimeout(timer);try{ws.close()}catch{};if(aborter?.signal)aborter.signal.removeEventListener("abort",abortHandler);if(err){endTelemetry(false,t.http||"WS",t);reject(err)}else{providerSuccess("petals",performance.now()-t.started);endTelemetry(true,"WS",t);resolve(value)}}
+      ws.onopen=()=>{
+        t.http="WS";telemetryEvent("Petals session opened",t);
+        ws.send(JSON.stringify({type:"open_inference_session",model,max_length:maxLength}));
+        ws.send(JSON.stringify({type:"generate",inputs:combined,max_new_tokens:maxNew,do_sample:temp>0?1:0,temperature:Math.max(.01,temp||.6),top_p:.9}))
+      };
+      ws.onmessage=ev=>{
+        let d;try{d=JSON.parse(ev.data)}catch{return}
+        if(!d?.ok){finish(new Error(`${label}: Petals ${String(d?.traceback||"generation failed").slice(0,700)}`));return}
+        if(d.outputs===undefined){telemetryEvent("Petals inference session ready",t);return}
+        const out=String(d.outputs||"");
+        // Endpoint may emit deltas or a cumulative continuation; normalize either form.
+        let delta=out;
+        if(lastChunk&&out.startsWith(lastChunk))delta=out.slice(lastChunk.length);
+        else if(text&&out.startsWith(text))delta=out.slice(text.length);
+        if(delta){text+=delta;telemetryChunk("text",delta,t)}
+        lastChunk=out;
+        if(d.stop===true)finish(null,text||out)
+      };
+      ws.onerror=()=>finish(new Error(`${label}: Petals websocket error`));
+      ws.onclose=()=>{if(!settled)finish(text?null:new Error(`${label}: Petals websocket closed before output`),text)}
+    })
+  }
+  telemetryEvent(`Petals HTTP fallback · max_new ${maxNew}`,t);
+  const form=new URLSearchParams({model,inputs:combined,max_new_tokens:String(maxNew),do_sample:temp>0?"1":"0",temperature:String(Math.max(.01,temp||.6)),top_p:"0.9"});
+  const r=await fetchObserved(profile.endpoint,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:form.toString()},label,"petals",1,t);
+  if(!r.ok)throw new Error(`${label}: Petals HTTP ${r.status} ${(await r.text()).slice(0,700)}`);
+  const d=await r.json();if(!d?.ok)throw new Error(`${label}: Petals ${String(d?.traceback||"generation failed").slice(0,700)}`);
+  const text=String(d.outputs||"");if(text)telemetryChunk("text",text,t);if(!text)throw new Error(`${label}: empty Petals result`);
+  providerSuccess("petals",performance.now()-t.started);endTelemetry(true,String(r.status),t);return text
+}
+
+async function requestSingleProvider(key,profile,model,layer,system,user,schema,label){
+  const temp=Number(runtimeEl("temp")?.value||0),ctx=Number(runtimeEl("ctx")?.value||65536),maxOut=maxOutputTokens(layer);
+  const {schemaText,combined}=providerModelPrompt(system,user,schema);const wantsStream=shouldStream(key,profile);
+  const t=beginTelemetry(key,profile,model,label,wantsStream?"stream":"buffered");let url=profile.endpoint,headers={"Content-Type":"application/json"},body;
+  try{
+    if(key==="aihorde_native")return await requestAIHordeNative(profile,model,combined,temp,ctx,maxOut,label,t);
+    if(key==="inference_sh")return await requestInferenceSh(profile,model,combined,label,t,wantsStream);
+    if(key==="petals")return await requestPetals(profile,model,combined,temp,maxOut,label,t,wantsStream);
+    if(key==="puter"){
+      await loadScript("puter","https://js.puter.com/v2/");if(!window.puter?.ai?.chat)throw new Error(`${label}: Puter.js did not initialize.`);
+      const resp=await window.puter.ai.chat([{role:"system",content:system+schemaText},{role:"user",content:user}],false,{model,stream:false});
+      const text=puterText(resp);telemetryChunk("text",text,t);endTelemetry(true,"sdk",t);return text
+    }
+    if(key==="hf_space"){
+      const base=hfBase(profile.endpoint);if(!base)throw new Error(`${label}: configure a public Gradio Space URL or owner/space in endpoint.`);
+      const api=(model||"/predict").replace(/^\/+/,"");applyAuth(key,profile,headers);
+      const submit=await fetchObserved(`${base}/gradio_api/call/${encodeURIComponent(api)}`,{method:"POST",headers,body:JSON.stringify({data:[combined]})},label,key,2,t);
+      if(!submit.ok)throw new Error(`${label}: ${profile.label} HTTP ${submit.status} ${await submit.text()}`);
+      const sj=await submit.json();if(!sj.event_id)throw new Error(`${label}: Gradio Space did not return event_id.`);
+      telemetryEvent(`event ${sj.event_id.slice(0,8)}…`,t);
+      const poll=await fetchObserved(`${base}/gradio_api/call/${encodeURIComponent(api)}/${encodeURIComponent(sj.event_id)}`,{headers},label,key,2,t);
+      if(!poll.ok)throw new Error(`${label}: ${profile.label} event HTTP ${poll.status} ${await poll.text()}`);
+      const text=await consumeGradioEvents(poll,t);if(!text)throw new Error(`${label}: empty Gradio result`);providerSuccess(key,performance.now()-t.started);endTelemetry(true,String(poll.status),t);return text
+    }
+    if(!model)throw new Error(`${label}: configure a model for ${profile.label}.`);
+    if(key==="ollama"){
+      url=(url||"http://127.0.0.1:11434").replace(/\/+$/,"")+"/api/chat";
+      body={model,stream:wantsStream,options:{temperature:temp,num_ctx:ctx,num_predict:maxOut},messages:[{role:"system",content:system+schemaText},{role:"user",content:user}]};if(schema)body.format=schema;nativeReasoningControl(key,body)
+    }else if(key==="openapis_anthropic"){
+      headers["x-api-key"]=profile.apiKey||"admin";headers["anthropic-version"]="2023-06-01";
+      body={model,max_tokens:maxOut,temperature:temp,system:system+schemaText,messages:[{role:"user",content:user}],stream:wantsStream}
+    }else if(["aihorde","ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","mangaai","kilo","pollinations_legacy","openai","openai_compatible"].includes(key)){
+      applyAuth(key,profile,headers);body={model,temperature:temp,max_tokens:maxOut,stream:wantsStream,messages:[{role:"system",content:system+schemaText},{role:"user",content:user}]};
+      if(key==="arcrouter")body.budget="free";
+      if(key==="openai"){delete body.max_tokens;body.max_completion_tokens=maxOut;if(schema)body.response_format={type:"json_schema",json_schema:{name:"workbench_result",strict:true,schema}}}
+      nativeReasoningControl(key,body)
+    }else if(key==="anthropic"){
+      headers["x-api-key"]=profile.apiKey||"";headers["anthropic-version"]="2023-06-01";body={model,max_tokens:maxOut,temperature:temp,system:system+schemaText,messages:[{role:"user",content:user}]};body.stream=wantsStream
+    }else if(key==="gemini"){
+      headers["x-goog-api-key"]=profile.apiKey||"";url=(url||PROVIDER_DEFAULTS.gemini.endpoint).replace("{model}",encodeURIComponent(model));body={systemInstruction:{parts:[{text:system+schemaText}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:{temperature:temp,maxOutputTokens:maxOut}};if(schema)body.generationConfig.responseMimeType="application/json"
+    }else throw new Error(`${label}: unsupported provider ${key}`);
+
+    telemetryEvent(`${wantsStream?"stream":"buffered"} · reasoning ${reasoningMode()}`,t);
+    let response=await fetchObserved(url,{method:"POST",headers,body:JSON.stringify(body)},label,key,2,t);
+    if(!response.ok&&response.status===400&&(body.reasoning_effort||body.response_format||body.max_completion_tokens)){
+      telemetryEvent("compat fallback · stripped optional request fields",t);delete body.reasoning_effort;delete body.chat_template_kwargs;delete body.response_format;if(body.max_completion_tokens){body.max_tokens=body.max_completion_tokens;delete body.max_completion_tokens}
+      response=await fetchObserved(url,{method:"POST",headers,body:JSON.stringify(body)},label,key,1,t)
+    }
+    if(!response.ok){
+      const errText=(await response.text()).slice(0,900);if(response.status===429)providerCooldown(key,retryDelay(response,1),`HTTP 429`);else if(response.status>=500)providerCooldown(key,15000,`HTTP ${response.status}`);
+      throw new Error(`${label}: ${profile.label} HTTP ${response.status} ${errText}`)
+    }
+    let text="";
+    const contentType=(response.headers.get("content-type")||"").toLowerCase();
+    const actuallyStreaming=wantsStream&&response.body&&!contentType.includes("application/json");
+    if(actuallyStreaming){
+      if(key==="ollama")text=await consumeOllamaStream(response,t);
+      else if(key==="anthropic"||key==="openapis_anthropic")text=await consumeAnthropicStream(response,t);
+      else text=await consumeOpenAIStream(response,t)
+    }else{
+      if(wantsStream&&contentType.includes("application/json"))telemetryEvent("server returned buffered JSON to stream request",t);
+      const data=await response.json();const rk=canonicalResponseKey(key);const reasoning=extractReasoningFromObject(data,rk);if(reasoning)telemetryChunk("reasoning",reasoning,t);text=extractTextResponse(rk,data);if(text)telemetryChunk("text",text,t)
+    }
+    if(!text)throw new Error(`${label}: empty model response`);
+    providerSuccess(key,performance.now()-t.started);endTelemetry(true,String(response.status),t);return text
+  }catch(e){
+    if(key!=="ollama"&&key!=="puter"&&key!=="hf_space"&&!String(e.message||"").includes("429"))providerCooldown(key,10000,e.message);
+    endTelemetry(false,t.http||"ERR",t);throw e
+  }
+}
+function poolCandidates(){
+  const now=Date.now();return ANON_POOL_KEYS
+    .filter(k=>!(PROVIDER_DEFAULTS[k]?.excluded)&&!disabledAnonProviders.has(k))
+    .map(k=>({key:k,p:providerConfig.profiles[k]||PROVIDER_DEFAULTS[k],st:providerRuntime[k]||{}}))
+    .filter(x=>(x.st.cooldownUntil||0)<=now)
+    .sort((a,b)=>((a.st.failures||0)-(b.st.failures||0))||((b.p.trust||1)-(a.p.trust||1))||((a.st.latency??1e9)-(b.st.latency??1e9))||((a.st.lastUsed||0)-(b.st.lastUsed||0)))
+}
+function chosenPoolModel(key,p){
+  const st=providerRuntime[key]||{},models=st.models||p._models||[];
+  if(key==="opencode_free"){
+    const f=models.filter(x=>/free|big-pickle/i.test(x));return f[0]||p.model||"big-pickle"
+  }
+  return models[0]||p.model||({"llm7":"default","andy":"sweaterdog/andy-4:latest","blockrun":"nvidia/step-3.7-flash","arcrouter":"arc-router-v1","kilo":"kilo-auto/free"}[key]||"")
+}
+async function requestAnonymousPool(layer,system,user,schema,label){
+  let cs=poolCandidates();if(!cs.length){for(const k of ANON_POOL_KEYS){const st=providerRuntime[k]||(providerRuntime[k]={});st.cooldownUntil=0}cs=poolCandidates()}
+  const errors=[];
+  for(const x of cs){
+    const model=chosenPoolModel(x.key,x.p);x.st.lastUsed=Date.now();
+    try{log(`${label} · resolver → ${x.p.label} / ${model}`);return await requestSingleProvider(x.key,x.p,model,layer,system,user,schema,label)}
+    catch(e){errors.push(`${x.key}: ${e.message}`);log(`${label} · ${x.key} failed; failover`,"warn")}
+  }
+  throw new Error(`${label}: anonymous pool exhausted · ${errors.join(" | ").slice(0,1800)}`)
+}
+requestProviderText=async function(layer,system,user,schema,label){
+  const {key,profile,model}=currentProvider(layer);
+  if(key==="anonymous_pool")return requestAnonymousPool(layer,system,user,schema,label);
+  return requestSingleProvider(key,profile,model,layer,system,user,schema,label)
+};
+
+function fixedSourceChunks(text,max,overlap){
+  text=String(text||"");max=Math.max(1000,max||12000);overlap=Math.max(0,Math.min(max-100,overlap||0));if(text.length<=max)return[{content:text,path:"text"}];
+  const out=[];let at=0,n=0;while(at<text.length){let end=Math.min(text.length,at+max);if(end<text.length){let cut=text.lastIndexOf("\n",end);if(cut<at+max*.6)cut=text.lastIndexOf(". ",end);if(cut>at+max*.6)end=cut+1}out.push({content:text.slice(at,end),path:`fixed:${++n}`});if(end>=text.length)break;at=Math.max(at+1,end-overlap)}return out
+}
+const sourceChunksV4Base=sourceChunksV4;
+sourceChunksV4=function(source,userMax){
+  const mode=runtimeEl("shardMode")?.value||"auto",max=Math.max(1000,userMax||12000),overlap=Number(runtimeEl("chunkOverlap")?.value||0);
+  if(mode==="none")return[{content:String(source.content||""),path:"whole"}];
+  if(mode==="fixed")return fixedSourceChunks(source.content||"",max,overlap);
+  if(mode==="semantic"){
+    if(String(source.kind||"").toLowerCase()==="json"){try{return jsonFragmentChunks(JSON.parse(source.content||""),Math.min(max,RECOVERY_LIMITS.jsonInputCap))}catch{}}
+    return proseChunks(source.content||"",Math.min(max,RECOVERY_LIMITS.extractInputCap))
+  }
+  return sourceChunksV4Base(source,userMax)
+};
+
+function modelListFromPayload(d){
+  let arr=Array.isArray(d)?d:(d?.data||d?.models||d?.items||d?.scores||[]);
+  if(!Array.isArray(arr)&&arr&&typeof arr==="object")arr=Object.entries(arr).map(([id,v])=>({id,...(typeof v==="object"?v:{})}));
+  return (Array.isArray(arr)?arr:[]).map(x=>typeof x==="string"?x:(x?.id||x?.name||x?.model||x?.model_id)).filter(Boolean)
+}
+async function probeProviderKey(key){
+  const p=providerConfig.profiles[key]||PROVIDER_DEFAULTS[key],st=providerRuntime[key]||(providerRuntime[key]={}),started=performance.now();
+  let models=[],catalogOnly=false,networkChecked=false,networkError="";
+  try{
+    if(key==="aihorde"){
+      const tok=p.apiKey||"0000000000",h={Authorization:"Bearer "+tok,apikey:tok};let r=await fetch("https://oai.aihorde.net/v1/models",{headers:h,signal:AbortSignal.timeout(12000)});
+      if(r.ok){models=modelListFromPayload(await r.json());networkChecked=true}
+      if(!models.length){r=await fetch("https://aihorde.net/api/v2/status/models?type=text",{signal:AbortSignal.timeout(12000)});if(r.ok){models=modelListFromPayload(await r.json());networkChecked=true}}
+      if(!networkChecked)throw new Error("Horde model registries unavailable")
+    }else if(p.modelsEndpoint){
+      try{
+        const h={};if(p.auth==="shared"&&p.apiKey)h.Authorization="Bearer "+p.apiKey;
+        const r=await fetch(p.modelsEndpoint,{headers:h,signal:AbortSignal.timeout(12000)});if(!r.ok)throw new Error(`HTTP ${r.status}`);
+        models=modelListFromPayload(await r.json());networkChecked=true
+      }catch(e){
+        networkError=e.message||String(e);
+        if(Array.isArray(p.staticModels)&&p.staticModels.length){models=[...p.staticModels];catalogOnly=true}
+        else throw e
+      }
+    }else if(p.healthEndpoint){
+      const r=await fetch(p.healthEndpoint,{signal:AbortSignal.timeout(12000)});if(!r.ok)throw new Error(`health HTTP ${r.status}`);
+      networkChecked=true;models=Array.isArray(p.staticModels)?[...p.staticModels]:[]
+    }else if(Array.isArray(p.staticModels)&&p.staticModels.length){
+      models=[...p.staticModels];catalogOnly=true
+    }else throw new Error("no registry or health endpoint");
+
+    // Never surface paid Kilo models inside the anonymous resolver.
+    if(key==="kilo"){
+      const free=models.filter(x=>x==="kilo-auto/free"||x==="openrouter/free"||/:free$/i.test(x));
+      models=[...new Set(["kilo-auto/free",...free])];
+    }
+    if(key==="opencode_free"){
+      const filtered=models.filter(x=>/free|big-pickle/i.test(x));if(filtered.length)models=filtered
+    }
+    if(!models.length&&Array.isArray(p.staticModels))models=[...p.staticModels];
+    st.models=models;st.ok=true;st.catalogOnly=catalogOnly&&!networkChecked;st.latency=performance.now()-started;
+    st.lastError=networkError;st.cooldownUntil=0;p._models=models;renderPoolStatus();
+    return {key,ok:true,models,latency:st.latency,catalogOnly:st.catalogOnly,networkChecked}
+  }catch(e){
+    st.ok=false;st.catalogOnly=false;st.lastError=e.message;st.latency=performance.now()-started;renderPoolStatus();
+    return {key,ok:false,models:[],error:e.message,latency:st.latency,catalogOnly:false,networkChecked:false}
+  }
+}
+async function probeAnonymousPool(){
+  const results=await Promise.all(ANON_POOL_KEYS.map(probeProviderKey));
+  const live=results.filter(x=>x.ok&&!x.catalogOnly).length,catalog=results.filter(x=>x.ok&&x.catalogOnly).length,failed=results.length-live-catalog;
+  renderPoolStatus();
+  log(`Anonymous pool probe · ${live} live registries/health · ${catalog} catalog-only · ${failed} unavailable. Actual inference health is learned from requests.`,live||catalog?"good":"warn");
+  return results
+}
+
+const renderProviderEditorV5Base=renderProviderEditor;
+renderProviderEditor=function(){
+  renderProviderEditorV5Base();
+  for(const [key,p] of Object.entries(providerConfig.profiles)){
+    const card=document.querySelector(`[data-prof-endpoint="${key}"]`)?.closest(".provider-card");if(!card)continue;
+    if(PROVIDER_DEFAULTS[key]?.strictAnonymous){
+      const keyField=card.querySelector(`[data-prof-key="${key}"]`)?.closest(".field");if(keyField&&["none","placeholder"].includes(PROVIDER_DEFAULTS[key].auth||"none"))keyField.style.display="none";
+      const state=PROVIDER_DEFAULTS[key].excluded?"warn":"good";card.insertAdjacentHTML("beforeend",`<div class="provider-note ${state}">${PROVIDER_DEFAULTS[key].excluded?"MANUAL / EXCLUDED":"NO SIGNUP / AUTO-POOL ELIGIBLE"} · auth ${esc(PROVIDER_DEFAULTS[key].auth||"none")} · stream ${PROVIDER_DEFAULTS[key].stream===false?"buffered only":"supported/attempted"}${PROVIDER_DEFAULTS[key].rate?` · ${esc(PROVIDER_DEFAULTS[key].rate)}`:""}${PROVIDER_DEFAULTS[key].note?`<br>${esc(PROVIDER_DEFAULTS[key].note)}`:""}</div>`)
+    }
+  }
+};
+
+const connectV4=connect;
+connect=async function(){
+  syncRuntimeToConfig();const key=providerConfig.defaultProvider,p=providerConfig.profiles[key];
+  try{
+    runtimeEl("statusText").textContent="connecting";
+    if(key==="anonymous_pool"){
+      setMainModelOptions(["auto"],"auto");p.model="auto";const rs=await probeAnonymousPool();const live=rs.filter(x=>x.ok&&!x.catalogOnly).length,catalog=rs.filter(x=>x.ok&&x.catalogOnly).length,ok=live+catalog;runtimeEl("statusText").textContent=`anon pool · ${live} live + ${catalog} catalog`;runtimeEl("dot").className=ok?"dot ok":"dot";saveProviderConfig();return
+    }
+    if(["ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","openapis_anthropic","mangaai","petals","aihorde_native","kilo"].includes(key)){
+      const r=await probeProviderKey(key);let models=r.models||[];if(!models.length&&p.model)models=[p.model];setMainModelOptions(models,p.model||models[0]||"");p.model=runtimeEl("model").value||p.model;runtimeEl("statusText").textContent=`${p.label} · ${r.ok?models.length+" models":"registry unavailable"}`;runtimeEl("dot").className=r.ok?"dot ok":"dot";saveProviderConfig();return
+    }
+    await connectV4()
+  }catch(e){runtimeEl("dot").className="dot";runtimeEl("statusText").textContent="connection failed";log("Connection failed: "+e.message,"err")}
+};
+
+const syncRuntimeFromConfigV5Base=syncRuntimeFromConfig;
+syncRuntimeFromConfig=function(){
+  const key=runtimeEl("provider").value||providerConfig.defaultProvider||"ollama";providerConfig.defaultProvider=key;const p=providerConfig.profiles[key]||PROVIDER_DEFAULTS[key];
+  runtimeEl("host").value=p.endpoint||"";
+  if(key==="anonymous_pool")setMainModelOptions(["auto"],"auto");
+  else if(p._models?.length)setMainModelOptions(p._models,p.model||p._models[0]);
+  else if(key==="ollama")setMainModelOptions(p._models||[],p.model||"");
+  else setMainModelOptions(p.model?[p.model]:[],p.model||"");
+  saveProviderConfig();renderPoolStatus()
+};
+
+function initInferenceFabricUI(){
+  const defaults={responseTransport:"auto",reasoningMode:"off",shardMode:"auto",chunkOverlap:"600",shardConcurrency:"auto",maxOutputTokens:"16384",requestTimeout:"180",showReasoning:false};
+  let cfg={};try{cfg=JSON.parse(localStorage.getItem("ontologyInferenceFabric")||"{}")}catch{}
+  for(const [id,def] of Object.entries(defaults)){const el=runtimeEl(id);if(!el)continue;if(el.type==="checkbox")el.checked=cfg[id]??def;else el.value=cfg[id]??def;el.addEventListener("change",()=>{const out={};for(const k of Object.keys(defaults)){const x=runtimeEl(k);out[k]=x.type==="checkbox"?x.checked:x.value}localStorage.setItem("ontologyInferenceFabric",JSON.stringify(out));renderTelemetry()})}
+  runtimeEl("probePool").onclick=probeAnonymousPool;
+  runtimeEl("poolStatus").onclick=e=>{const chip=e.target.closest?.("[data-pool-key]");if(chip)toggleAnonProvider(chip.dataset.poolKey)};
+  renderPoolStatus();renderTelemetry()
+}
+setTimeout(initInferenceFabricUI,0);
+/* -------------- end v5 anonymous inference fabric + streaming observability -------------- */
+
+
+
 function initContextUI(){const saved=localStorage.getItem("ontologyContextMode")||"all";setContextMode(saved);$("#contextMode").onchange=e=>setContextMode(e.target.value);$("#toolbarContextMode").onchange=e=>setContextMode(e.target.value)}
-function initProviderUI(){$("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();$("#provider").onchange=async()=>{syncRuntimeFromConfig();if(["ollama","aihorde","puter","hf_space"].includes($("#provider").value))await connect()};$("#host").oninput=syncRuntimeToConfig;$("#model").onchange=syncRuntimeToConfig;$("#configBtn").onclick=openConfig;$("#closeConfig").onclick=()=>$("#configModal").classList.remove("on");$("#saveConfig").onclick=()=>{captureConfigEditor();$("#configModal").classList.remove("on");log("LLM configuration saved.","good")};$("#resetConfig").onclick=()=>{providerConfig={defaultProvider:"ollama",persistKeys:false,profiles:JSON.parse(JSON.stringify(PROVIDER_DEFAULTS)),layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""}}};prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyProviderConfig");localStorage.removeItem("ontologyWorkbenchPrompts");renderProviderEditor();$("#provider").value="ollama";syncRuntimeFromConfig();renderPromptEditor();log("LLM configuration reset.","good")};$("#persistKeys").onchange=e=>providerConfig.persistKeys=e.target.checked}
+function initProviderUI(){$("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();$("#provider").onchange=async()=>{syncRuntimeFromConfig();if(["ollama","anonymous_pool","aihorde","aihorde_native","ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","openapis_anthropic","mangaai","petals","puter","hf_space","inference_sh","kilo"].includes($("#provider").value))await connect()};$("#host").oninput=syncRuntimeToConfig;$("#model").onchange=syncRuntimeToConfig;$("#configBtn").onclick=openConfig;$("#closeConfig").onclick=()=>$("#configModal").classList.remove("on");$("#saveConfig").onclick=()=>{captureConfigEditor();$("#configModal").classList.remove("on");log("LLM configuration saved.","good")};$("#resetConfig").onclick=()=>{providerConfig={defaultProvider:"ollama",persistKeys:false,profiles:JSON.parse(JSON.stringify(PROVIDER_DEFAULTS)),layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""}}};prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyProviderConfig");localStorage.removeItem("ontologyWorkbenchPrompts");renderProviderEditor();$("#provider").value="ollama";syncRuntimeFromConfig();renderPromptEditor();log("LLM configuration reset.","good")};$("#persistKeys").onchange=e=>providerConfig.persistKeys=e.target.checked}
 function initNodeModal(){$("#closeNodeModal").onclick=()=>{$("#nodeModal").classList.remove("on");selected=null;drawGraph()};$("#nodeFocusBtn").onclick=()=>{if(!selected)return;if(focusedNodeIds.has(selected.id))focusedNodeIds.delete(selected.id);else focusedNodeIds.add(selected.id);$("#nodeFocusBtn").textContent=focusedNodeIds.has(selected.id)?"unfocus":"focus";renderFocusSummary();drawGraph()}}
 
 // Replace legacy fit/layout controls with viewport-aware graph controls.
