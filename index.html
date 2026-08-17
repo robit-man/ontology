@@ -52,7 +52,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 .edge{stroke:#6c6c6c;stroke-width:1.3;fill:none}.edge.action{stroke-dasharray:5 4}.edge.function{stroke-dasharray:2 3}
 .edge-label{font:8px ui-monospace,monospace;fill:#7c7c7c}
 .lower{border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;min-height:0;background:#0d0d0d}
-.lower>div{min-width:0;overflow:auto}.lower>div+div{border-left:1px solid var(--line)}
+.lower>.lower-pane{min-width:0;overflow:auto;padding:var(--pad)}.lower>.lower-pane+.lower-pane{border-left:1px solid var(--line)}
 .objective textarea{min-height:96px}.result{font-size:10px}
 .insight{border-left:2px solid #999;padding:6px 8px;margin:7px 0;background:#111}.insight b{font-size:10px}
 .evidence{font:8px ui-monospace,monospace;color:#777;margin-top:5px}
@@ -83,11 +83,11 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 
 .splitter{background:#3a3a3a;position:relative;z-index:12;touch-action:none;user-select:none;overflow:visible}
 .splitter:hover,.splitter.dragging{background:#d0d0d0}
-.splitter.vertical{cursor:col-resize;padding:unnset;}.splitter.horizontal{cursor:row-resize}
+.splitter.vertical{cursor:col-resize}.splitter.horizontal{cursor:row-resize}
 /* Visible divider is exactly 1px; pseudo-elements create a forgiving hit target. */
 .splitter.vertical::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:11px;transform:translateX(-50%);cursor:col-resize;background:transparent}
 .splitter.horizontal::before{content:"";position:absolute;left:0;right:0;top:50%;height:11px;transform:translateY(-50%);cursor:row-resize;background:transparent}
-#leftSplitter,#rightSplitter{border:0}
+#leftSplitter,#rightSplitter,#lowerInnerSplitter{border:0;padding:0!important;overflow:visible}
 .panel-rail{height:28px;display:flex;align-items:center;border-bottom:1px solid var(--line);background:#0b0b0b;position:sticky;top:0;z-index:8}
 .panel-rail button{border:0;width:28px;height:27px;padding:5px;display:grid;place-items:center}
 .panel-rail svg,.canvas-btn svg,.header-icon svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6}
@@ -1174,6 +1174,7 @@ function initGeoUI(){$("#graphModeBtn").onclick=()=>setCanvasMode("graph");$("#m
 class StructuredOutputError extends Error{
   constructor(message,kind="malformed",raw="",meta={}){super(message);this.name="StructuredOutputError";this.structured=true;this.kind=kind;this.raw=raw;this.meta=meta}
 }
+const structuredRouteByLabel=Object.create(null);
 const RECOVERY_LIMITS={sameShardRetries:2,maxSplitDepth:4,minShardChars:1400,extractInputCap:12000,jsonInputCap:9000};
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
@@ -1215,32 +1216,95 @@ function validateRequiredShape(value,schema,path="$"){
   if(schema.enum&&!schema.enum.includes(value))return `${path} not in enum`;
   return null
 }
+function structuredType(v){return v===null?"null":Array.isArray(v)?"array":typeof v}
+function schemaFitness(value,schema){
+  if(!schema)return 1;
+  let hit=0,total=1;
+  const walk=(v,s)=>{
+    if(!s)return;
+    total++;
+    const t=structuredType(v),expected=s.type;
+    const typeOK=!expected||(expected==="object"?t==="object":expected==="array"?t==="array":t===expected)||(expected==="integer"&&Number.isInteger(v));
+    if(typeOK)hit++;
+    if(expected==="object"&&t==="object"){
+      for(const k of s.required||[]){total++;if(k in v)hit++}
+      for(const [k,child] of Object.entries(s.properties||{}))if(k in v)walk(v[k],child)
+    }else if(expected==="array"&&t==="array"&&s.items){for(const x of v.slice(0,8))walk(x,s.items)}
+  };
+  walk(value,schema);return total?hit/total:0
+}
+function recoverStructuredCandidate(initial,schema){
+  const preferredKeys=["result","data","output","response","json","value","payload","ontology","graph","object"];
+  const queue=[{value:initial,path:"$",action:"direct root",depth:0}],seen=new Set();let best={value:initial,path:"$",action:"direct root",score:schemaFitness(initial,schema)};
+  while(queue.length){
+    const c=queue.shift(),v=c.value;
+    let sig;try{sig=structuredType(v)+":"+(typeof v==="string"?v.slice(0,300):JSON.stringify(v)?.slice(0,600))}catch{sig=structuredType(v)+":"+c.path}
+    if(seen.has(sig))continue;seen.add(sig);
+    const score=schemaFitness(v,schema);if(score>best.score)best={...c,score};
+    if(!validateRequiredShape(v,schema))return {...c,score,exact:true};
+    if(c.depth>=3)continue;
+    if(typeof v==="string"){
+      const t=v.trim();if(/^[\[{\"]/.test(t))try{queue.push({value:JSON.parse(t),path:c.path,action:"decoded JSON string root",depth:c.depth+1})}catch{}
+      const nested=firstBalancedJSON(t);if(nested!==null)queue.push({value:nested,path:c.path,action:"extracted JSON value from string root",depth:c.depth+1});
+    }else if(Array.isArray(v)){
+      if(v.length===1)queue.push({value:v[0],path:c.path+"[0]",action:"unwrapped single-item array root",depth:c.depth+1});
+      v.slice(0,12).forEach((x,i)=>{if(x&&typeof x==="object")queue.push({value:x,path:`${c.path}[${i}]`,action:`selected object candidate from array index ${i}`,depth:c.depth+1})});
+    }else if(v&&typeof v==="object"){
+      for(const k of preferredKeys)if(k in v)queue.push({value:v[k],path:`${c.path}.${k}`,action:`unwrapped wrapper key ${k}`,depth:c.depth+1});
+      for(const [k,x] of Object.entries(v))if(!preferredKeys.includes(k)&&(x&&typeof x==="object"||typeof x==="string"))queue.push({value:x,path:`${c.path}.${k}`,action:`inspected nested candidate ${k}`,depth:c.depth+1});
+    }
+  }
+  return {...best,exact:false}
+}
+function classifyShapeFailure(shapeErr,value,schema){
+  const rootExpected=schema?.type||"value",actual=structuredType(value);
+  if(/^\$ must be /.test(shapeErr||""))return {kind:"root_type",action:"root normalization",expected:rootExpected,actual,path:"$"};
+  if(/ missing$/.test(shapeErr||""))return {kind:"schema_missing",action:"schema completion",path:String(shapeErr).replace(/ missing$/,"")};
+  if(/ must be | not in enum$/.test(shapeErr||""))return {kind:"schema_type",action:"field/type correction",path:String(shapeErr).split(/ must be | not in enum/)[0]};
+  return {kind:"schema",action:"schema reconstruction",path:"$"}
+}
 function parseStructuredModelText(text,schema,label){
-  const cleaned=stripModelFences(text);
-  let value=null,directErr=null;
-  try{value=JSON.parse(cleaned)}catch(e){directErr=e}
-  if(value===null){value=firstBalancedJSON(cleaned)}
-  if(value!==null){
-    const shapeErr=validateRequiredShape(value,schema);
-    if(shapeErr)throw new StructuredOutputError(`${label}: schema-incomplete structured JSON (${shapeErr})`,"schema",cleaned,{shapeErr});
-    return value
+  const cleaned=stripModelFences(text);let value=null,directErr=null,parsed=false;
+  try{value=JSON.parse(cleaned);parsed=true}catch(e){directErr=e}
+  if(!parsed){
+    const trimmed=cleaned.trim(),startsJSON=/^[\{\[]/.test(trimmed),opens=(cleaned.match(/[\{\[]/g)||[]).length,closes=(cleaned.match(/[\}\]]/g)||[]).length;
+    const rootTruncated=startsJSON&&(opens>closes||/unterminated|unexpected end/i.test(directErr?.message||""));
+    if(rootTruncated)throw new StructuredOutputError(`${label}: invalid structured JSON (${directErr?.message||"truncated root"})`,"truncated",cleaned,{length:cleaned.length,opens,closes,action:"output compaction / closure repair"});
+    if(startsJSON)throw new StructuredOutputError(`${label}: invalid structured JSON (${directErr?.message||"malformed root"})`,"malformed",cleaned,{length:cleaned.length,opens,closes,action:"syntax reconstruction"});
+    const balanced=firstBalancedJSON(cleaned);if(balanced!==null){value=balanced;parsed=true;log(`${label} · local structured recovery → extracted JSON from surrounding prose`,"warn")}
+  }
+  if(parsed){
+    const recovered=recoverStructuredCandidate(value,schema);
+    if(recovered.exact){
+      if(recovered.action!=="direct root")log(`${label} · local structured recovery → ${recovered.action}`,"warn");
+      return recovered.value
+    }
+    const shapeErr=validateRequiredShape(recovered.value,schema)||validateRequiredShape(value,schema)||"schema mismatch";
+    const diagnosis=classifyShapeFailure(shapeErr,recovered.value,schema);
+    throw new StructuredOutputError(`${label}: schema-incomplete structured JSON (${shapeErr})`,diagnosis.kind,cleaned,{shapeErr,...diagnosis,rootType:structuredType(value),candidatePath:recovered.path,candidateScore:recovered.score});
   }
   const opens=(cleaned.match(/[\{\[]/g)||[]).length,closes=(cleaned.match(/[\}\]]/g)||[]).length;
   const truncated=opens>closes||/unterminated|unexpected end/i.test(directErr?.message||"");
-  throw new StructuredOutputError(`${label}: invalid structured JSON (${directErr?.message||"no complete JSON value"})`,truncated?"truncated":"malformed",cleaned,{length:cleaned.length,opens,closes});
+  const kind=truncated?"truncated":"malformed";
+  throw new StructuredOutputError(`${label}: invalid structured JSON (${directErr?.message||"no complete JSON value"})`,kind,cleaned,{length:cleaned.length,opens,closes,action:truncated?"output compaction / closure repair":"syntax reconstruction"});
 }
-function recoveryInstruction(kind,attempt){
-  return `
-
-STRUCTURED OUTPUT RECOVERY ${attempt}
-The previous response was ${kind==="truncated"?"cut off before the JSON object finished":kind==="schema"?"valid JSON but incomplete against the required schema":"not valid JSON"}.
-Return ONE complete JSON value matching the schema exactly.
-Do not include markdown fences or commentary.
-Reduce descriptive text aggressively before omitting required keys.
-Do not repeat source passages.
-Keep evidence anchors <= 120 characters.
-Prefer fewer high-information candidates over a response that risks truncation.
-Before ending, internally verify every opened object/array/string is closed.`;
+function correctiveActionForStructuredError(error,attempt){
+  const e=error||{},shape=e.meta?.shapeErr||"",path=e.meta?.path||"$",escalated=attempt>1;
+  if(e.kind==="root_type")return {name:escalated?"minimal object regeneration":"root normalization",instruction:`The prior JSON root had type ${e.meta?.actual||e.meta?.rootType||"unknown"}, but the schema requires ${e.meta?.expected||"object"}. Return the required schema root directly. Do NOT wrap it in an array, JSON string, result/data/output envelope, or prose.`};
+  if(e.kind==="schema_missing")return {name:escalated?"minimal schema regeneration":"schema completion",instruction:`The prior output was structurally valid JSON but omitted required field ${path}. Reconstruct ONE complete object that includes every required schema field. Preserve supported values from the prior output; derive missing values only from the supplied source/context. If a required collection has no supported members, use an empty collection of the correct type rather than omitting the key.`};
+  if(e.kind==="schema_type")return {name:escalated?"minimal schema regeneration":"field/type correction",instruction:`The prior output violated the schema at ${path}${shape?` (${shape})`:""}. Correct the incompatible field type/enum and re-emit the ENTIRE required object, not a patch or explanation.`};
+  if(e.kind==="truncated")return {name:escalated?"aggressive compact regeneration":"output compaction + closure repair",instruction:`The prior JSON was truncated. Emit a much more compact complete object: shorten descriptions/evidence, reduce optional list cardinality, preserve required keys, and close every string/object/array. Do not continue the old fragment; regenerate one complete JSON value from the beginning.`};
+  if(e.kind==="malformed")return {name:escalated?"minimal syntax regeneration":"syntax reconstruction",instruction:`The prior response was not parseable JSON. Reconstruct it as raw JSON only: double-quoted keys/strings, no comments, no trailing commas, no markdown fences, and one complete schema-conforming root value.`};
+  return {name:escalated?"minimal schema regeneration":"schema reconstruction",instruction:`The prior output failed schema validation${shape?`: ${shape}`:""}. Re-emit one complete minimal value matching the supplied schema exactly.`}
+}
+function recoveryInstruction(error,attempt){
+  const plan=correctiveActionForStructuredError(error,attempt);
+  return `\n\nAUTONOMOUS STRUCTURED-OUTPUT CORRECTION ${attempt} · ACTION: ${plan.name.toUpperCase()}\n${plan.instruction}\nDo not include markdown fences or commentary. Do not repeat long source passages. Keep evidence anchors <= 120 characters. Before ending, verify that the root type and every required field match the schema and that all opened JSON structures are closed.`
+}
+function recoveryUserContext(user,error,attempt){
+  if(!error?.raw)return user;
+  const max=attempt>1?2600:4200,raw=String(error.raw).slice(0,max);
+  return `${user}\n\nPREVIOUS INVALID OUTPUT (use only as repair evidence; do not echo it verbatim):\n${raw}\n\nVALIDATION FAILURE: ${error.meta?.shapeErr||error.message||error.kind}`
 }
 function providerModelPrompt(system,user,schema){
   const schemaText=schema?"\n\nOUTPUT JSON SCHEMA:\n"+JSON.stringify(schema):"";
@@ -1345,14 +1409,28 @@ providerRequest=async function(layer,system,user,schema,label,wantsJSON=true){
   if(!wantsJSON)return requestProviderText(layer,system,user,null,label);
   let last=null;
   for(let attempt=0;attempt<=RECOVERY_LIMITS.sameShardRetries;attempt++){
-    const sys=attempt?system+recoveryInstruction(last?.kind||"malformed",attempt):system;
+    const plan=attempt?correctiveActionForStructuredError(last,attempt):null;
+    const sys=attempt?system+recoveryInstruction(last,attempt):system;
+    const usr=attempt?recoveryUserContext(user,last,attempt):user;
+    if(attempt)log(`${label} · corrective action → ${plan.name} · ${last.meta?.shapeErr||last.kind} · retry ${attempt}/${RECOVERY_LIMITS.sameShardRetries}`,"warn");
     try{
-      const text=await requestProviderText(layer,sys,user,schema,label);
-      return parseStructuredModelText(text,schema,label)
+      const text=await requestProviderText(layer,sys,usr,schema,label);
+      const parsed=parseStructuredModelText(text,schema,label);
+      if(attempt)log(`${label} · structured recovery succeeded after ${plan.name}`,"good");
+      return parsed
     }catch(e){
       if(!e?.structured)throw e;
       last=e;
-      if(attempt<RECOVERY_LIMITS.sameShardRetries)log(`${label} · ${e.kind} structured JSON · ${(e.raw?.length||0).toLocaleString()} ch · compact retry ${attempt+1}/${RECOVERY_LIMITS.sameShardRetries}`,"warn")
+      const badRoute=structuredRouteByLabel[label];
+      if(providerConfig?.defaultProvider==="anonymous_pool"&&badRoute&&typeof providerCooldown==="function"){
+        const cool=e.kind==="truncated"?7000:e.kind==="malformed"?10000:15000;
+        providerCooldown(badRoute,cool,`structured ${e.kind}: ${e.meta?.shapeErr||e.message}`);
+        log(`${label} · provider-format failure → ${badRoute} cooled ${Math.round(cool/1000)}s; next corrective request will fail over`,"warn")
+      }
+      if(attempt<RECOVERY_LIMITS.sameShardRetries){
+        const next=correctiveActionForStructuredError(e,attempt+1);
+        log(`${label} · ${e.kind} structured JSON · ${(e.raw?.length||0).toLocaleString()} ch · next action ${next.name}`,"warn")
+      }
     }
   }
   throw last
@@ -2172,7 +2250,7 @@ async function requestAnonymousPool(layer,system,user,schema,label){
   const errors=[];
   for(const x of cs){
     const model=chosenPoolModel(x.key,x.p);x.st.lastUsed=Date.now();
-    try{log(`${label} · resolver → ${x.p.label} / ${model}`);return await requestSingleProvider(x.key,x.p,model,layer,system,user,schema,label)}
+    try{structuredRouteByLabel[label]=x.key;log(`${label} · resolver → ${x.p.label} / ${model}`);return await requestSingleProvider(x.key,x.p,model,layer,system,user,schema,label)}
     catch(e){errors.push(`${x.key}: ${e.message}`);log(`${label} · ${x.key} failed; failover`,"warn")}
   }
   throw new Error(`${label}: anonymous pool exhausted · ${errors.join(" | ").slice(0,1800)}`)
