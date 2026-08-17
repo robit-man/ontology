@@ -175,6 +175,18 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 @media(max-width:900px){.audit-row{grid-template-columns:18px minmax(90px,1fr) minmax(110px,1fr) 50px 50px 50px}.audit-row>*:nth-child(7),.audit-row>*:nth-child(8){display:none}}
 
 
+
+/* ========== debug drawer ========== */
+.debug-tools{margin-top:8px;border-top:1px solid var(--line);background:#080808}
+.debug-tools>summary{list-style:none;cursor:pointer;user-select:none;padding:8px var(--pad);font:700 9px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;color:#555;text-transform:uppercase;display:flex;align-items:center;gap:7px}
+.debug-tools>summary::-webkit-details-marker{display:none}
+.debug-tools>summary::before{content:"›";font-size:13px;line-height:8px;color:#666;transform:translateY(-1px)}
+.debug-tools[open]>summary::before{content:"⌄"}
+.debug-tools[open]>summary{color:#888;border-bottom:1px solid var(--line)}
+.debug-tools-body{padding:8px var(--pad) 10px}
+.debug-tools .debug-note{font:9px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:#555;margin-bottom:7px}
+.debug-tools .audit-panel{margin-top:7px}
+
 /* ========== v8 operational world workspace ========== */
 .workspace-mini{margin-top:7px;border:1px solid var(--line);background:#0b0b0b;padding:7px}
 .workspace-mini .health-title{display:flex;align-items:baseline;gap:8px;margin-bottom:5px}
@@ -288,21 +300,10 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
     </div>
     <div class="runtime-actions">
       <label class="check"><input id="showReasoning" type="checkbox"> show provider reasoning trace</label>
-      <div class="spacer"></div><button id="probePool" class="iconbtn" title="Probe anonymous provider registries">probe pool</button><button id="auditPool" class="iconbtn" title="Run the same mock-PDF structured extraction through every anonymous provider">burn-in all</button><button id="stopAudit" class="iconbtn" title="Abort provider burn-in" disabled>stop</button>
-    </div>
-    <div class="audit-options">
-      <label class="check"><input id="useAuditRanking" type="checkbox" checked> AUTO uses fresh burn-in evidence</label>
-      <div class="field"><label>audit workers</label><select id="auditConcurrency"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></div>
-      <div class="field"><label>audit timeout</label><input id="auditTimeout" type="number" value="45" min="15" max="180" step="5"></div>
-      <div class="field"><label>models/provider</label><select id="auditModelsPerProvider"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select></div>
+      <div class="spacer"></div><button id="probePool" class="iconbtn" title="Probe anonymous provider registries">probe pool</button>
     </div>
     <div id="poolStatus" class="small mono" style="margin-top:5px">anonymous resolver idle</div>
     <div id="poolOrder" class="pool-order small mono">AUTO order unavailable until provider state is initialized.</div>
-    <div id="providerAuditPanel" class="audit-panel">
-      <div class="audit-head"><b>mock-PDF provider burn-in</b><div class="spacer"></div><button id="exportAudit" class="iconbtn">export</button><button id="clearAudit" class="iconbtn">clear</button></div>
-      <div id="auditSummary" class="audit-summary">Not run. Burn-in parses an embedded PDF through the same PDF.js intake path, then asks every endpoint to extract a compact typed object and scores factual fidelity.</div>
-      <div id="auditRows" class="audit-table"></div>
-    </div>
     <div id="inferenceObs" class="obs">
       <div class="obs-grid">
         <div class="obs-cell"><span class="obs-k">state</span><span id="obsState" class="obs-v">idle</span></div>
@@ -360,6 +361,31 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
       <div class="workspace-actions"><button id="persistWorkspaceBtn" class="iconbtn">persist</button><button id="clearWorldBtn" class="iconbtn">clear world</button></div>
     </div>
   </div>
+
+  <details id="debugTools" class="debug-tools">
+    <summary>debug</summary>
+    <div class="debug-tools-body">
+      <div class="debug-note">Provider audit fixture. Hidden from the normal workflow; expands only for endpoint diagnostics and AUTO-routing calibration.</div>
+      <div class="runtime-actions">
+        <button id="auditPool" class="iconbtn" title="Run the embedded PDF structured-extraction fixture through every anonymous provider">run provider audit</button>
+        <button id="stopAudit" class="iconbtn" title="Abort provider audit" disabled>stop</button>
+        <div class="spacer"></div>
+        <button id="exportAudit" class="iconbtn">export</button>
+        <button id="clearAudit" class="iconbtn">clear</button>
+      </div>
+      <div class="audit-options">
+        <label class="check"><input id="useAuditRanking" type="checkbox" checked> AUTO uses fresh provider-audit evidence</label>
+        <div class="field"><label>workers</label><select id="auditConcurrency"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></div>
+        <div class="field"><label>timeout</label><input id="auditTimeout" type="number" value="45" min="15" max="180" step="5"></div>
+        <div class="field"><label>models/provider</label><select id="auditModelsPerProvider"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select></div>
+      </div>
+      <div id="providerAuditPanel" class="audit-panel">
+        <div class="audit-head"><b>provider structured-extraction audit</b><div class="spacer"></div></div>
+        <div id="auditSummary" class="audit-summary">Not run. Debug audit parses an embedded synthetic PDF through the same PDF.js intake path, exercises every endpoint, validates structured output, and measures factual fidelity.</div>
+        <div id="auditRows" class="audit-table"></div>
+      </div>
+    </div>
+  </details>
 </aside>
 <div class="splitter vertical" id="leftSplitter"></div>
 
@@ -2366,7 +2392,7 @@ function poolCandidates(layer="extract",opts={}){
 function chosenPoolModel(key,p,layer="extract"){return rankedPoolModels(key,p,layer)[0]||({"llm7":"default","andy":"sweaterdog/andy-4:latest","blockrun":"nvidia/step-3.7-flash","arcrouter":"arc-router-v1","kilo":"kilo-auto/free","peerwave":"cheapest","tangle":"gpt-4o-mini","chat_at":"gpt-4o","tiamat":"chat","dandolo":"llama-3.3-70b","vedaya":"vedaya-bypass","agentbot_demo":"xiaomi/mimo-v2-pro","mlvoca":"deepseek-r1:1.5b","helloblue_test":"test-ai","iaqa_mcp":"qwen/qwen3-32b","ailiance":"ailiance","novai_free":"glm-4.6v-flash","mimocode":"mimo-auto"}[key]||"")}
 function isModelSpecificFailure(error){const s=String(error?.message||error||"").toLowerCase();return /(model[^\n]{0,90}(not found|invalid|unsupported|unavailable|does not exist|unknown)|no workers.*model|http (400|404)[^\n]{0,160}model)/.test(s)}
 async function requestAnonymousPool(layer,system,user,schema,label){
-  let cs=poolCandidates(layer);if(!cs.length&&auditRoutingEnabled()){log(`${label} · no fresh burn-in-qualified routes; relaxing audit suppression`,`warn`);cs=poolCandidates(layer,{ignoreAudit:true})}
+  let cs=poolCandidates(layer);if(!cs.length&&auditRoutingEnabled()){log(`${label} · no fresh audit-qualified routes; relaxing audit suppression`,`warn`);cs=poolCandidates(layer,{ignoreAudit:true})}
   if(!cs.length){for(const k of ANON_POOL_KEYS){const st=providerRuntime[k]||(providerRuntime[k]={});st.cooldownUntil=0}cs=poolCandidates(layer,{ignoreAudit:true})}
   const errors=[];
   for(const x of cs){
@@ -2501,17 +2527,17 @@ function renderAuditResults(){
   rows.innerHTML=html;renderPoolOrder()
 }
 async function runProviderAudit(){
-  if(auditRunning)return;auditRunning=true;providerAuditProgress={};auditAbortController=new AbortController();const previousAborter=aborter;aborter=auditAbortController;runtimeEl("auditPool").disabled=true;runtimeEl("stopAudit").disabled=false;setBusy(true,"provider burn-in");renderAuditResults();
+  if(auditRunning)return;auditRunning=true;providerAuditProgress={};auditAbortController=new AbortController();const previousAborter=aborter;aborter=auditAbortController;runtimeEl("auditPool").disabled=true;runtimeEl("stopAudit").disabled=false;setBusy(true,"provider audit");renderAuditResults();
   try{
-    log(`Provider burn-in · parsing embedded mock PDF through PDF.js intake`);const source=await buildAuditPdfSource();log(`Provider burn-in · PDF parsed · ${source.meta} · ${source.content.length.toLocaleString()} ch`,"good");
+    log(`Provider audit · parsing embedded synthetic PDF through PDF.js intake`);const source=await buildAuditPdfSource();log(`Provider audit · PDF parsed · ${source.meta} · ${source.content.length.toLocaleString()} ch`,"good");
     const concurrency=Math.max(1,Math.min(4,Number(runtimeEl("auditConcurrency")?.value||2))),keys=[...ANON_POOL_KEYS];let cursor=0,done=0;for(const k of keys)providerAuditProgress[k]={status:"pending",model:"",detail:"queued"};renderAuditResults();
-    const worker=async id=>{while(true){const idx=cursor++;if(idx>=keys.length)return;const key=keys[idx];try{const r=await auditOneProvider(key,source);providerAuditProgress[key]={status:r.status,model:r.model||"",detail:r.error||r.failureClass||`fidelity ${Math.round((r.semanticScore||0)*100)}%`};log(`burn-in ${key} · ${r.status} · ${r.model||"—"} · fidelity ${Math.round((r.semanticScore||0)*100)}% · ${(r.latencyMs/1000).toFixed(1)}s`,r.status==="pass"?"good":r.status==="degraded"?"warn":"err")}catch(e){if(e?.name==="AbortError")throw e;providerAuditProgress[key]={status:"fail",model:"",detail:String(e.message||e)};log(`burn-in ${key} · ${e.message||e}`,"err")}finally{done++;log(`Provider burn-in progress · ${done}/${keys.length}`);renderAuditResults()}}};
-    await Promise.all(Array.from({length:Math.min(concurrency,keys.length)},(_,i)=>worker(i+1)));auditSave();renderPoolStatus();const ps=ANON_POOL_KEYS.filter(k=>auditDisposition(k).kind==="proven").length,dg=ANON_POOL_KEYS.filter(k=>auditDisposition(k).kind==="degraded").length,tr=ANON_POOL_KEYS.filter(k=>auditDisposition(k).kind==="transient").length,fl=ANON_POOL_KEYS.filter(k=>["origin_blocked","hard_fail","model_stale","failed"].includes(auditDisposition(k).kind)).length;log(`Provider burn-in complete · ${ps} proven · ${dg} degraded · ${tr} transient · ${fl} suppressed · AUTO order updated from observed browser execution.`,ps?"good":"warn")
-  }catch(e){if(e?.name==="AbortError")log("Provider burn-in aborted.","warn");else log(`Provider burn-in failed: ${e.message||e}`,"err")}
+    const worker=async id=>{while(true){const idx=cursor++;if(idx>=keys.length)return;const key=keys[idx];try{const r=await auditOneProvider(key,source);providerAuditProgress[key]={status:r.status,model:r.model||"",detail:r.error||r.failureClass||`fidelity ${Math.round((r.semanticScore||0)*100)}%`};log(`burn-in ${key} · ${r.status} · ${r.model||"—"} · fidelity ${Math.round((r.semanticScore||0)*100)}% · ${(r.latencyMs/1000).toFixed(1)}s`,r.status==="pass"?"good":r.status==="degraded"?"warn":"err")}catch(e){if(e?.name==="AbortError")throw e;providerAuditProgress[key]={status:"fail",model:"",detail:String(e.message||e)};log(`burn-in ${key} · ${e.message||e}`,"err")}finally{done++;log(`Provider audit progress · ${done}/${keys.length}`);renderAuditResults()}}};
+    await Promise.all(Array.from({length:Math.min(concurrency,keys.length)},(_,i)=>worker(i+1)));auditSave();renderPoolStatus();const ps=ANON_POOL_KEYS.filter(k=>auditDisposition(k).kind==="proven").length,dg=ANON_POOL_KEYS.filter(k=>auditDisposition(k).kind==="degraded").length,tr=ANON_POOL_KEYS.filter(k=>auditDisposition(k).kind==="transient").length,fl=ANON_POOL_KEYS.filter(k=>["origin_blocked","hard_fail","model_stale","failed"].includes(auditDisposition(k).kind)).length;log(`Provider audit complete · ${ps} proven · ${dg} degraded · ${tr} transient · ${fl} suppressed · AUTO order updated from observed browser execution.`,ps?"good":"warn")
+  }catch(e){if(e?.name==="AbortError")log("Provider audit aborted.","warn");else log(`Provider audit failed: ${e.message||e}`,"err")}
   finally{auditRunning=false;auditAbortController=null;aborter=previousAborter;runtimeEl("auditPool").disabled=false;runtimeEl("stopAudit").disabled=true;setBusy(false);renderAuditResults();renderPoolStatus()}
 }
 function stopProviderAudit(){auditAbortController?.abort()}
-function clearProviderAudit(){providerAuditResults={};providerAuditProgress={};auditPdfMeta=null;auditSave();renderAuditResults();renderPoolStatus();log("Provider burn-in evidence cleared.","good")}
+function clearProviderAudit(){providerAuditResults={};providerAuditProgress={};auditPdfMeta=null;auditSave();renderAuditResults();renderPoolStatus();log("Provider audit evidence cleared.","good")}
 function exportProviderAudit(){const completeResults=Object.fromEntries(ANON_POOL_KEYS.map(k=>[k,providerAuditResults[k]||{key:k,label:(providerConfig.profiles[k]||PROVIDER_DEFAULTS[k])?.label||k,status:"untested",failureClass:"untested",timestamp:Date.now(),origin:currentAuditOrigin(),attempts:[]}])) ;const payload={generated_at:new Date().toISOString(),origin:currentAuditOrigin(),mock_pdf:auditPdfMeta,ranking:{extract:poolCandidates("extract",{ignoreAudit:false}).map(x=>({provider:x.key,model:chosenPoolModel(x.key,x.p,"extract"),score:Math.round(providerCandidateScore(x.key,x.p,x.st,"extract"))})),compile:poolCandidates("compile",{ignoreAudit:false}).map(x=>({provider:x.key,model:chosenPoolModel(x.key,x.p,"compile"),score:Math.round(providerCandidateScore(x.key,x.p,x.st,"compile"))}))},results:completeResults};saveBlob(`ontology-provider-burnin-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(payload,null,2),"application/json")}
 
 const renderProviderEditorV5Base=renderProviderEditor;
@@ -2532,7 +2558,7 @@ connect=async function(){
   try{
     runtimeEl("statusText").textContent="connecting";
     if(key==="anonymous_pool"){
-      setMainModelOptions(["auto"],"auto");p.model="auto";const rs=await probeAnonymousPool();const live=rs.filter(x=>x.ok&&!x.catalogOnly).length,catalog=rs.filter(x=>x.ok&&x.catalogOnly).length,ok=live+catalog;const audited=ANON_POOL_KEYS.filter(k=>auditResultFor(k)?.status==="pass").length;runtimeEl("statusText").textContent=`anon pool · ${live} live + ${catalog} catalog · ${audited} burn-in pass`;runtimeEl("dot").className=ok?"dot ok":"dot";saveProviderConfig();return
+      setMainModelOptions(["auto"],"auto");p.model="auto";const rs=await probeAnonymousPool();const live=rs.filter(x=>x.ok&&!x.catalogOnly).length,catalog=rs.filter(x=>x.ok&&x.catalogOnly).length,ok=live+catalog;const audited=ANON_POOL_KEYS.filter(k=>auditResultFor(k)?.status==="pass").length;runtimeEl("statusText").textContent=`anon pool · ${live} live + ${catalog} catalog · ${audited} verified pass`;runtimeEl("dot").className=ok?"dot ok":"dot";saveProviderConfig();return
     }
     if(["ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","openapis_anthropic","mangaai","petals","aihorde_native","kilo","peerwave","tangle","chat_at","tiamat","distil_sn97","ailiance","novai_free","mimocode","dandolo","vedaya","agentbot_demo","mlvoca","helloblue_test","iaqa_mcp"].includes(key)){
       const r=await probeProviderKey(key);let models=r.models||[];if(!models.length&&p.model)models=[p.model];setMainModelOptions(models,p.model||models[0]||"");p.model=runtimeEl("model").value||p.model;runtimeEl("statusText").textContent=`${p.label} · ${r.ok?models.length+" models":"registry unavailable"}`;runtimeEl("dot").className=r.ok?"dot ok":"dot";saveProviderConfig();return
