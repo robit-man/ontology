@@ -83,7 +83,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 
 .splitter{background:#3a3a3a;position:relative;z-index:12;touch-action:none;user-select:none;overflow:visible}
 .splitter:hover,.splitter.dragging{background:#d0d0d0}
-.splitter.vertical{cursor:col-resize;padding:unset}.splitter.horizontal{cursor:row-resize}
+.splitter.vertical{cursor:col-resize;padding:unnset;}.splitter.horizontal{cursor:row-resize}
 /* Visible divider is exactly 1px; pseudo-elements create a forgiving hit target. */
 .splitter.vertical::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:11px;transform:translateX(-50%);cursor:col-resize;background:transparent}
 .splitter.horizontal::before{content:"";position:absolute;left:0;right:0;top:50%;height:11px;transform:translateY(-50%);cursor:row-resize;background:transparent}
@@ -200,6 +200,20 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 <option value="blockrun">BlockRun · free reasoning · anonymous</option>
 <option value="arcrouter">ArcRouter · free smart route · anonymous</option>
 <option value="kilo">Kilo Gateway · anonymous free</option>
+<option value="peerwave">Peerwave · decentralized anonymous</option>
+<option value="tangle">Tangle Router · anonymous free tier</option>
+<option value="chat_at">ch.at · universal basic chat</option>
+<option value="tiamat">TIAMAT · anonymous streaming chat</option>
+<option value="distil_sn97">Distil SN97 · public Bittensor king</option>
+<option value="ailiance">Ailiance · public sovereign gateway</option>
+<option value="novai_free">NovAI · free GLM playground</option>
+<option value="mimocode">Xiaomi MiMo Code · anonymous bootstrap</option>
+<option value="dandolo">Dandolo · anonymous 50/day</option>
+<option value="vedaya">Vedaya · direct LLM bypass · anonymous</option>
+<option value="agentbot_demo">Agentbot Demo · no-auth models</option>
+<option value="mlvoca">MLvoca · public Ollama inference</option>
+<option value="helloblue_test">Helloblue · public test inference</option>
+<option value="iaqa_mcp">IA-QA · remote MCP LLM</option>
 <option value="unclose_hermes">uncloseai · Hermes community</option>
 <option value="unclose_qwen">uncloseai · Qwen Coder community</option>
 <option value="openapis">OpenAPIs beta · shared public credential</option>
@@ -920,7 +934,12 @@ connect=async function(){
 
 function renderProviderEditor(){
   $("#persistKeys").checked=providerConfig.persistKeys;const root=$("#providerEditor");root.innerHTML="";
-  for(const [key,p] of Object.entries(providerConfig.profiles)){const d=document.createElement("div");d.className="provider-card";d.innerHTML=`<h4>${esc(p.label)}</h4><div class="field"><label>endpoint</label><input data-prof-endpoint="${key}" value="${esc(p.endpoint||"")}"></div><div class="field"><label>default model</label><input data-prof-model="${key}" value="${esc(p.model||"")}" placeholder="model name"></div>${["ollama","puter"].includes(key)?"":`<div class="field"><label>${key==="aihorde"?"API key · anonymous default":key==="hf_space"?"HF token · optional":"API key"}</label><input data-prof-key="${key}" type="password" value="${esc(p.apiKey||"")}" placeholder="${key==="aihorde"?"0000000000":key==="hf_space"?"public Spaces work without token":"not persisted unless enabled"}"></div>`}`;root.appendChild(d)}
+  for(const [key,p] of Object.entries(providerConfig.profiles)){
+    const d=document.createElement("div"),showKey=!p.strictAnonymous&&!['ollama','puter'].includes(key)&&p.auth!=="bootstrap";
+    d.className="provider-card";
+    d.innerHTML=`<h4>${esc(p.label)}</h4><div class="field"><label>endpoint</label><input data-prof-endpoint="${key}" value="${esc(p.endpoint||"")}"></div><div class="field"><label>default model</label><input data-prof-model="${key}" value="${esc(p.model||"")}" placeholder="model name"></div>${showKey?`<div class="field"><label>${key==="hf_space"?"HF token · optional":"API key"}</label><input data-prof-key="${key}" type="password" value="${esc(p.apiKey||"")}" placeholder="${key==="hf_space"?"public Spaces work without token":"not persisted unless enabled"}"></div>`:`<div class="small">zero-setup authentication · no user credential required</div>`}`;
+    root.appendChild(d)
+  }
   const lr=$("#layerEditor");lr.innerHTML="";for(const [key,l] of Object.entries(LAYERS)){const cfg=providerConfig.layers[key]||{provider:"default",model:""},d=document.createElement("div");d.className="layer-card";d.innerHTML=`<h4>${esc(l.name)}</h4><div class="row"><div class="field grow"><label>provider</label><select data-layer-provider="${key}"><option value="default">default</option>${Object.keys(PROVIDER_DEFAULTS).map(k=>`<option value="${k}" ${cfg.provider===k?"selected":""}>${PROVIDER_DEFAULTS[k].label}</option>`).join("")}</select></div><div class="field grow"><label>model override</label><input data-layer-model="${key}" value="${esc(cfg.model||"")}" placeholder="inherit"></div></div><div class="field"><label>system message</label><textarea data-layer-system="${key}"></textarea></div><div class="field"><label>user template</label><textarea data-layer-user="${key}"></textarea></div><button data-reset-layer="${key}">reset layer</button>`;d.querySelector(`[data-layer-system="${key}"]`).value=prompts[l.systemKey];d.querySelector(`[data-layer-user="${key}"]`).value=prompts[l.userKey];lr.appendChild(d)}
   lr.querySelectorAll("[data-reset-layer]").forEach(b=>b.onclick=()=>{const k=b.dataset.resetLayer,l=LAYERS[k];prompts[l.systemKey]=DEFAULT_PROMPTS[l.systemKey];prompts[l.userKey]=DEFAULT_PROMPTS[l.userKey];providerConfig.layers[k]={provider:"default",model:""};renderProviderEditor()})
 }
@@ -1523,6 +1542,20 @@ Object.assign(PROVIDER_DEFAULTS,{
   petals:{label:"Petals · public research swarm",endpoint:"https://chat.petals.dev/api/v1/generate",wsEndpoint:"wss://chat.petals.dev/api/v2/generate",model:"stabilityai/StableBeluga2",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["stabilityai/StableBeluga2","meta-llama/Llama-2-70b-chat-hf","bigscience/bloomz"],stream:true,reasoning:"model",strictAnonymous:true,trust:2,experimental:true,rate:"public research/dev gateway · limited throughput",note:"Distributed public Petals swarm. WebSocket is preferred for token streaming; public gateway may pause or stop and is not recommended for production. Default-disabled in AUTO."},
   inference_sh:{label:"inference.sh · public embedded agent",endpoint:"https://api.inference.sh/embed/agents/run",model:"namespace/name",apiKey:"",auth:"none",modelsEndpoint:"",stream:true,reasoning:"model",strictAnonymous:true,excluded:true,note:"No Authorization header for published agents; requires a public agent ref and publisher-allowed browser Origin. Manual route, not auto pool."},
   kilo:{label:"Kilo Gateway · anonymous free",endpoint:"https://api.kilo.ai/api/gateway/chat/completions",model:"kilo-auto/free",apiKey:"",auth:"none",modelsEndpoint:"https://api.kilo.ai/api/gateway/models",staticModels:["kilo-auto/free","openrouter/free","stepfun/step-3.7-flash:free","poolside/laguna-m.1:free","nvidia/nemotron-3-ultra-550b-a55b:free"],stream:true,reasoning:"best-effort",strictAnonymous:true,trust:3,rate:"200 requests/hour/IP · free models only",note:"Official anonymous gateway lane. Only free model IDs are eligible without auth; Auto Free can route through providers that log prompts/outputs, so do not send personal or confidential data."},
+  peerwave:{label:"Peerwave · decentralized anonymous",endpoint:"https://api.peerwave.ai/api/chat",streamEndpoint:"https://api.peerwave.ai/api/chat/stream",model:"cheapest",apiKey:"",auth:"none",modelsEndpoint:"https://api.peerwave.ai/api/models",staticModels:["cheapest","fastest"],stream:true,reasoning:"model",strictAnonymous:true,trust:3,rate:"anonymous credit balance · periodically refreshed",note:"Official browser-oriented anonymous API. Streaming is newline-delimited JSON. If anonymous credits are exhausted (HTTP 402), AUTO cools this route and fails over instead of redirecting to signup."},
+  tangle:{label:"Tangle Router · anonymous free tier",endpoint:"https://router.tangle.tools/v1/chat/completions",model:"deepseek/deepseek-v4-flash",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["deepseek/deepseek-v4-flash","deepseek/deepseek-chat","groq/llama-3.1-8b-instant","google/gemini-2.5-flash-lite","openai/gpt-4o-mini","anthropic/claude-haiku-4-5-20251001"],stream:true,reasoning:"best-effort",strictAnonymous:true,trust:3,rate:"anonymous: 10 req/min · 5 req/day · free models only",note:"Official Tangle anonymous tier. Free model allow-list is pinned locally so AUTO cannot accidentally select a paid route."},
+  chat_at:{label:"ch.at · universal basic chat",endpoint:"https://ch.at/v1/chat/completions",model:"gpt-4o",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["gpt-4o"],stream:true,reasoning:"model",strictAnonymous:true,trust:2,rate:"basic IP rate limiting",note:"Public OpenAI-compatible endpoint with no accounts or authentication. Production model is currently GPT-4o; browser CORS availability is learned at runtime and failures fail over cleanly."},
+  tiamat:{label:"TIAMAT · anonymous streaming chat",endpoint:"https://tiamat.live/chat",model:"chat",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["chat"],stream:true,reasoning:"model",strictAnonymous:true,trust:2,rate:"5 anonymous chat calls/day",note:"Official no-signup evaluation endpoint. Custom {message} request shape with streaming SSE/text response. Quota exhaustion is treated as cooldown, never as a signup redirect."},
+  distil_sn97:{label:"Distil SN97 · public Bittensor king",endpoint:"https://api.arbos.life/v1/chat/completions",model:"",apiKey:"",auth:"none",modelsEndpoint:"https://api.arbos.life/v1/models",healthEndpoint:"https://api.arbos.life/api/health",staticModels:[],stream:false,reasoning:"model",strictAnonymous:true,trust:3,rate:"public SN97 king · no authentication",note:"Official Distil SN97 public OpenAI-compatible endpoint. The live king model ID changes over time; Connect discovers it from /v1/models instead of pinning a stale model."},
+  ailiance:{label:"Ailiance · sovereign public gateway",endpoint:"https://gateway.ailiance.fr/v1/chat/completions",model:"ailiance",apiKey:"",auth:"none",modelsEndpoint:"https://gateway.ailiance.fr/v1/models",staticModels:["ailiance","ailiance-qwen","ailiance-mistral","ailiance-eurollm"],stream:true,reasoning:"model",strictAnonymous:true,trust:3,rate:"public community gateway · no authentication",note:"Official public OpenAI-compatible gateway. The `ailiance` alias auto-routes across the live fleet; streaming responses can expose the route decision."},
+  novai_free:{label:"NovAI · free GLM playground",endpoint:"https://aiapi-pro.com/v1/chat/completions",model:"glm-4.6v-flash",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["glm-4.6v-flash"],stream:true,reasoning:"model",strictAnonymous:true,trust:1,experimental:true,rate:"official free playground · IP limited",note:"Official docs explicitly state the GLM-4.6V-Flash playground works with no signup and no API key, but the general API documentation otherwise describes authenticated calls. Default-disabled in AUTO until this origin proves the no-auth path live."},
+  mimocode:{label:"Xiaomi MiMo Code · anonymous bootstrap",endpoint:"https://api.xiaomimimo.com/api/free-ai/openai/chat",bootstrapEndpoint:"https://api.xiaomimimo.com/api/free-ai/bootstrap",model:"mimo-auto",apiKey:"",auth:"bootstrap",modelsEndpoint:"",staticModels:["mimo-auto"],stream:true,reasoning:"native",strictAnonymous:true,trust:2,experimental:true,rate:"free-for-limited-time anonymous MiMo Auto",note:"Official MiMo Code documents MiMo Auto as an anonymous zero-configuration channel. The adapter obtains and refreshes the ephemeral JWT automatically; no user key or login is requested. Default-disabled in AUTO because upstream bootstrap has shown intermittent 401/403 behavior."},
+  dandolo:{label:"Dandolo · anonymous inference",endpoint:"https://api.dandolo.ai/api/v1/chat/completions",model:"llama-3.3-70b",apiKey:"",auth:"none",modelsEndpoint:"https://api.dandolo.ai/api/v1/models",staticModels:["llama-3.3-70b","deepseek-v3.2","qwen3-235b-a22b-instruct-2507","mistral-31-24b","venice-uncensored","kimi-k2-thinking"],stream:true,reasoning:"best-effort",strictAnonymous:true,trust:2,rate:"anonymous mode · 50 requests/day",note:"Official site states API key is optional and empty-key requests use anonymous mode. Model registry/CORS are learned at runtime; static model fallbacks keep the dropdown usable if registry discovery is blocked."},
+  vedaya:{label:"Vedaya · anonymous direct LLM",endpoint:"https://vedaya-kge.fly.dev/v1/chat/completions",model:"vedaya-bypass",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["vedaya-bypass","vedaya-hybrid","vedaya-naive","vedaya-local","vedaya-global"],stream:false,reasoning:"model",strictAnonymous:true,trust:2,rate:"no authentication · public RAG/direct-LLM API",note:"Use vedaya-bypass for direct LLM generation. Official docs say no authentication is required and streaming may return 404, so this adapter intentionally uses buffered responses."},
+  agentbot_demo:{label:"Agentbot Demo · anonymous",endpoint:"https://agentbot.sh/api/demo/chat",model:"xiaomi/mimo-v2-pro",apiKey:"",auth:"none",modelsEndpoint:"https://agentbot.sh/api/demo/chat",staticModels:["xiaomi/mimo-v2-pro","anthropic/claude-sonnet-4.5","openai/gpt-4o","google/gemini-2.5-flash","deepseek/deepseek-r1","minimax/minimax-chat"],stream:false,reasoning:"model",strictAnonymous:true,trust:2,experimental:true,rate:"IP rate-limited · fixed 1024-token output cap",note:"Official demo API requires no authentication and no signup. Buffered only with a server-fixed 1024-token cap, so it is default-disabled in AUTO but remains directly selectable."},
+  mlvoca:{label:"MLvoca · public Ollama inference",endpoint:"https://mlvoca.com/api/generate",model:"deepseek-r1:1.5b",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["deepseek-r1:1.5b","tinyllama"],stream:true,reasoning:"model",strictAnonymous:true,trust:1,experimental:true,rate:"no key / no published rate limit · limited hardware",note:"Public Ollama-compatible /api/generate surface. Supports NDJSON streaming and JSON-schema format, but only small models and non-commercial usage is stated; default-disabled in AUTO."},
+  helloblue_test:{label:"Helloblue · no-auth test inference",endpoint:"https://helloblue.ai/api/test-ai",model:"test-ai",apiKey:"",auth:"none",modelsEndpoint:"",healthEndpoint:"https://helloblue.ai/api/health",staticModels:["test-ai","test-simple"],stream:false,reasoning:"model",strictAnonymous:true,trust:1,experimental:true,rate:"documented public test endpoints · production API requires key",note:"Official docs explicitly expose /api/test-ai and /api/test-simple without authentication. This is a test surface, not the authenticated production API, so it is default-disabled in AUTO."},
+  iaqa_mcp:{label:"IA-QA · remote MCP LLM",endpoint:"https://ia-qa.com/mcp/call",model:"qwen/qwen3-32b",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["qwen/qwen3-32b","llama-3.3-70b-versatile","meta-llama/llama-4-scout-17b-16e-instruct","llama-3.1-8b-instant","Qwen/Qwen3-32B","meta-llama/Llama-3.3-70B-Instruct","deepseek-ai/DeepSeek-R1","google/gemma-3-27b-it"],stream:false,reasoning:"model",strictAnonymous:true,trust:2,experimental:true,rate:"remote MCP llm_generate · no user key",note:"Direct documented /mcp/call surface for llm_generate. No API key or signup; the server funds upstream inference. Browser CORS is learned on first request, so this remains default-disabled in AUTO until proven live from the current origin."},
   pollinations_legacy:{label:"Pollinations legacy · probe only",endpoint:"https://text.pollinations.ai/openai",model:"openai",apiKey:"",auth:"none",modelsEndpoint:"",stream:true,reasoning:"model",strictAnonymous:true,excluded:true,note:"Current official gen.pollinations.ai API requires a key. Some independent catalogs still report the legacy text surface as anonymous; because those sources conflict, this route remains manual and never auto-routed."}
 });
 
@@ -1532,6 +1565,8 @@ Object.assign(PROVIDER_DEFAULTS.ovh,{trust:3});
 Object.assign(PROVIDER_DEFAULTS.arcrouter,{trust:3});
 Object.assign(PROVIDER_DEFAULTS.opencode_free,{trust:3});
 Object.assign(PROVIDER_DEFAULTS.kilo,{trust:3});
+Object.assign(PROVIDER_DEFAULTS.peerwave,{trust:3});
+Object.assign(PROVIDER_DEFAULTS.tangle,{trust:3});
 Object.assign(PROVIDER_DEFAULTS.llm7,{trust:2});
 Object.assign(PROVIDER_DEFAULTS.andy,{trust:2});
 Object.assign(PROVIDER_DEFAULTS.unclose_hermes,{trust:2});
@@ -1544,16 +1579,23 @@ for(const [k,v] of Object.entries(PROVIDER_DEFAULTS)){
   if(!providerConfig.profiles[k])providerConfig.profiles[k]={...v};
   else providerConfig.profiles[k]={...v,...providerConfig.profiles[k]};
 }
+// Migrate IA-QA profiles persisted by builds that used the older run.tools MCP host.
+if(providerConfig.profiles?.iaqa_mcp?.endpoint==="https://api-ia-qa.run.tools"){
+  providerConfig.profiles.iaqa_mcp.endpoint="https://ia-qa.com/mcp/call";
+  providerConfig.profiles.iaqa_mcp.model="qwen/qwen3-32b";
+}
 if(!providerConfig.profiles.aihorde.apiKey)providerConfig.profiles.aihorde.apiKey="0000000000";
 if(!providerConfig.profiles.aihorde_native.apiKey)providerConfig.profiles.aihorde_native.apiKey="0000000000";
 
-const ANON_POOL_KEYS=["blockrun","arcrouter","kilo","ovh","openapis","llm7","opencode_free","andy","unclose_hermes","unclose_qwen","aihorde","aihorde_native","mangaai","petals"];
+const ANON_POOL_KEYS=["blockrun","arcrouter","kilo","peerwave","tangle","chat_at","tiamat","distil_sn97","ailiance","dandolo","vedaya","ovh","openapis","llm7","opencode_free","andy","unclose_hermes","unclose_qwen","aihorde","aihorde_native","novai_free","mimocode","agentbot_demo","mlvoca","helloblue_test","iaqa_mcp","mangaai","petals"];
 const providerRuntime={};
 let disabledAnonProviders=new Set();
 try{
   const savedDisabled=localStorage.getItem("ontologyAnonPoolDisabled");
-  disabledAnonProviders=savedDisabled===null?new Set(["mangaai","petals"]):new Set(JSON.parse(savedDisabled||"[]"));
-}catch{disabledAnonProviders=new Set(["mangaai","petals"])}
+  disabledAnonProviders=savedDisabled===null?new Set(["mangaai","petals","agentbot_demo","mlvoca","helloblue_test","iaqa_mcp","novai_free","mimocode"]):new Set(JSON.parse(savedDisabled||"[]"));
+  const poolVersion=Number(localStorage.getItem("ontologyAnonPoolVersion")||0);
+  if(poolVersion<8){["agentbot_demo","mlvoca","helloblue_test","iaqa_mcp","novai_free","mimocode"].forEach(k=>disabledAnonProviders.add(k));localStorage.setItem("ontologyAnonPoolDisabled",JSON.stringify([...disabledAnonProviders]));localStorage.setItem("ontologyAnonPoolVersion","8")}
+}catch{disabledAnonProviders=new Set(["mangaai","petals","agentbot_demo","mlvoca","helloblue_test","iaqa_mcp","novai_free","mimocode"])}
 let currentTelemetry=null,telemetryHistory=[];
 const MAX_TELEMETRY_HISTORY=80;
 
@@ -1741,14 +1783,14 @@ function nativeReasoningControl(key,body){
     else if(mode!=="auto")body.think=mode==="max"?"high":mode;
     return true
   }
-  const openAIish=["openai","openai_compatible","ovh","opencode_free","llm7","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","mangaai","kilo"];
+  const openAIish=["openai","openai_compatible","ovh","opencode_free","llm7","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","mangaai","kilo","tangle","chat_at","dandolo","vedaya","distil_sn97","ailiance","novai_free"];
   if(openAIish.includes(key)){
     if(mode==="off"){body.reasoning_effort="none";if(key==="openai_compatible")body.chat_template_kwargs={enable_thinking:false};return true}
     if(["low","medium","high","max"].includes(mode)){body.reasoning_effort=mode==="max"?"high":mode;if(key==="openai_compatible")body.chat_template_kwargs={enable_thinking:true};return true}
   }
   return false
 }
-function canonicalResponseKey(key){if(key==="openapis_anthropic")return"anthropic";return key==="aihorde"||["ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","mangaai","kilo","pollinations_legacy"].includes(key)?"openai_compatible":key}
+function canonicalResponseKey(key){if(key==="openapis_anthropic")return"anthropic";return key==="aihorde"||["ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","mangaai","kilo","tangle","chat_at","dandolo","vedaya","distil_sn97","ailiance","novai_free","pollinations_legacy"].includes(key)?"openai_compatible":key}
 function shouldStream(key,profile){
   const mode=transportMode();if(mode==="buffered")return false;if(profile?.stream===false)return false;return mode==="stream"||mode==="auto"
 }
@@ -1756,6 +1798,61 @@ function applyAuth(key,profile,headers){
   if(["aihorde","aihorde_native"].includes(key)){const tok=profile.apiKey||"0000000000";headers.Authorization="Bearer "+tok;headers.apikey=tok}
   else if(profile?.auth==="placeholder"){if(profile.apiKey)headers.Authorization="Bearer "+profile.apiKey}
   else if(profile?.apiKey)headers.Authorization="Bearer "+profile.apiKey
+}
+
+async function consumePeerwaveNDJSON(response,t=currentTelemetry){
+  const reader=response.body?.getReader();if(!reader)return"";
+  const dec=new TextDecoder(),parts=[];let buf="";
+  const ingest=raw=>{
+    const line=String(raw||"").trim();if(!line)return;
+    let d;try{d=JSON.parse(line)}catch{return}
+    const txt=d?.message?.content||d?.content||"";
+    if(txt){parts.push(String(txt));telemetryChunk("text",String(txt),t)}
+    if(d?.done)telemetryEvent(`peerwave done · ${d.done_reason||"stop"}`,t);
+    if(d?.credits!==undefined)telemetryEvent(`peerwave credits · ${d.credits}`,t);
+    if(d?.model)telemetryEvent(`peerwave model · ${d.model}`,t)
+  };
+  while(true){const {done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});let i;while((i=buf.indexOf("\n"))>=0){ingest(buf.slice(0,i));buf=buf.slice(i+1)}}
+  buf+=dec.decode();if(buf.trim())ingest(buf);return parts.join("")
+}
+async function consumeLooseSSE(response,t=currentTelemetry){
+  const reader=response.body?.getReader();if(!reader)return"";
+  const dec=new TextDecoder(),parts=[];let buf="";
+  const ingest=raw=>{
+    let line=String(raw||"").trimEnd();if(!line||line.startsWith("event:")||line.startsWith(":"))return;
+    if(line.startsWith("data:"))line=line.slice(5).trimStart();
+    if(!line||line==="[DONE]")return;
+    let txt=line;
+    try{const d=JSON.parse(line);txt=d?.choices?.[0]?.delta?.content??d?.choices?.[0]?.message?.content??d?.delta?.text??d?.text??d?.content??d?.message?.content??""}catch{}
+    if(txt){txt=String(txt);parts.push(txt);telemetryChunk("text",txt,t)}
+  };
+  while(true){const {done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});let i;while((i=buf.indexOf("\n"))>=0){ingest(buf.slice(0,i));buf=buf.slice(i+1)}}
+  buf+=dec.decode();if(buf.trim())ingest(buf);return parts.join("")
+}
+async function requestPeerwave(profile,model,system,user,schema,label,t,wantsStream){
+  const endpoint=wantsStream?(profile.streamEndpoint||profile.endpoint.replace(/\/?$/,"/stream")):profile.endpoint;
+  const messages=[{role:"system",content:system+(schema?`\n\nReturn JSON matching this schema:\n${JSON.stringify(schema)}`:"")},{role:"user",content:user}];
+  const body={model:model||"cheapest",messages};if(schema)body.format="json";
+  telemetryEvent(`${wantsStream?"peerwave NDJSON stream":"peerwave buffered"} · anonymous`,t);
+  const r=await fetchObserved(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},redirect:"manual",body:JSON.stringify(body)},label,"peerwave",2,t);
+  if(r.status===402){providerCooldown("peerwave",15*60*1000,"anonymous credits exhausted");throw new Error(`${label}: Peerwave anonymous credits exhausted (HTTP 402)`)}
+  if(!r.ok)throw new Error(`${label}: Peerwave HTTP ${r.status} ${(await r.text()).slice(0,700)}`);
+  let text="";const ct=String(r.headers.get("content-type")||"").toLowerCase();
+  if(wantsStream&&r.body&&!ct.includes("application/json"))text=await consumePeerwaveNDJSON(r,t);
+  else{const d=await r.json();text=d?.message?.content||d?.choices?.[0]?.message?.content||d?.content||"";if(text)telemetryChunk("text",String(text),t)}
+  if(!text)throw new Error(`${label}: Peerwave returned no text`);providerSuccess("peerwave",performance.now()-t.started);endTelemetry(true,String(r.status),t);return String(text)
+}
+async function requestTiamat(profile,system,user,schema,label,t,wantsStream){
+  const combined=(system||"")+(schema?`\n\nReturn JSON matching this schema:\n${JSON.stringify(schema)}`:"")+"\n\n"+(user||"");
+  telemetryEvent(`TIAMAT ${wantsStream?"stream":"response"} · anonymous evaluation`,t);
+  const r=await fetchObserved(profile.endpoint,{method:"POST",headers:{"Content-Type":"application/json","Accept":wantsStream?"text/event-stream":"application/json, text/plain;q=0.9"},body:JSON.stringify({message:combined})},label,"tiamat",1,t);
+  if(r.status===402||r.status===429){providerCooldown("tiamat",24*60*60*1000,`quota HTTP ${r.status}`);throw new Error(`${label}: TIAMAT anonymous daily quota unavailable (HTTP ${r.status})`)}
+  if(!r.ok)throw new Error(`${label}: TIAMAT HTTP ${r.status} ${(await r.text()).slice(0,700)}`);
+  const ct=String(r.headers.get("content-type")||"").toLowerCase();let text="";
+  if(r.body&&(wantsStream||ct.includes("text/event-stream")))text=await consumeLooseSSE(r,t);
+  else if(ct.includes("application/json")){const d=await r.json();text=d?.response||d?.message?.content||d?.text||d?.content||"";if(text)telemetryChunk("text",String(text),t)}
+  else{text=await r.text();if(text)telemetryChunk("text",text,t)}
+  if(!text)throw new Error(`${label}: TIAMAT returned no text`);providerSuccess("tiamat",performance.now()-t.started);endTelemetry(true,String(r.status),t);return String(text)
 }
 
 async function requestAIHordeNative(profile,model,combined,temp,ctx,maxOut,label,t){
@@ -1876,12 +1973,121 @@ async function requestPetals(profile,model,combined,temp,maxOut,label,t,wantsStr
   providerSuccess("petals",performance.now()-t.started);endTelemetry(true,String(r.status),t);return text
 }
 
+
+async function requestAgentbotDemo(profile,model,combined,label,t){
+  telemetryEvent(`Agentbot demo · ${model||"xiaomi/mimo-v2-pro"} · buffered · server max 1024`,t);
+  const r=await fetchObserved(profile.endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:combined,model:model||"xiaomi/mimo-v2-pro"})},label,"agentbot_demo",1,t);
+  if(!r.ok){if(r.status===429)providerCooldown("agentbot_demo",60*60*1000,"IP demo rate limit");throw new Error(`${label}: Agentbot Demo HTTP ${r.status} ${(await r.text()).slice(0,700)}`)}
+  const d=await r.json(),text=String(d?.message||d?.response||d?.text||"");
+  if(!text)throw new Error(`${label}: Agentbot Demo returned no text`);
+  if(d?.usage)telemetryEvent(`usage ${d.usage.prompt_tokens??"?"}→${d.usage.completion_tokens??"?"}`,t);
+  telemetryChunk("text",text,t);providerSuccess("agentbot_demo",performance.now()-t.started);endTelemetry(true,String(r.status),t);return text
+}
+async function requestMLvoca(profile,model,system,user,schema,label,t,wantsStream,temp,maxOut){
+  const body={model:model||"deepseek-r1:1.5b",prompt:user,system:system,stream:wantsStream,options:{temperature:temp,num_predict:Math.min(maxOut,8192)}};
+  if(schema)body.format=schema;
+  telemetryEvent(`MLvoca Ollama generate · ${wantsStream?"NDJSON stream":"buffered"}`,t);
+  const r=await fetchObserved(profile.endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)},label,"mlvoca",1,t);
+  if(!r.ok)throw new Error(`${label}: MLvoca HTTP ${r.status} ${(await r.text()).slice(0,700)}`);
+  let text="";const ct=String(r.headers.get("content-type")||"").toLowerCase();
+  if(wantsStream&&r.body&&!ct.includes("application/json"))text=await consumeOllamaStream(r,t);
+  else{const d=await r.json();text=String(d?.response||d?.message?.content||d?.text||"");const reasoning=d?.thinking||d?.message?.thinking||"";if(reasoning)telemetryChunk("reasoning",reasoning,t);if(text)telemetryChunk("text",text,t)}
+  if(!text)throw new Error(`${label}: MLvoca returned no text`);providerSuccess("mlvoca",performance.now()-t.started);endTelemetry(true,String(r.status),t);return text
+}
+async function requestHelloblueTest(profile,model,system,user,schema,label,t){
+  const endpoint=(model==="test-simple")?"https://helloblue.ai/api/test-simple":profile.endpoint;
+  const schemaText=schema?`\n\nReturn JSON matching this schema:\n${JSON.stringify(schema)}`:"";
+  telemetryEvent(`Helloblue ${model||"test-ai"} · documented no-auth test route`,t);
+  const r=await fetchObserved(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[{role:"system",content:system+schemaText},{role:"user",content:user}]})},label,"helloblue_test",1,t);
+  if(!r.ok)throw new Error(`${label}: Helloblue test HTTP ${r.status} ${(await r.text()).slice(0,700)}`);
+  const ct=String(r.headers.get("content-type")||"").toLowerCase();let text="";
+  if(ct.includes("text/event-stream")&&r.body)text=await consumeLooseSSE(r,t);else{const d=await r.json();text=d?.response||d?.text||d?.message?.content||d?.message||d?.data?.response||d?.data?.text||d?.result||"";if(typeof text!=="string")text=JSON.stringify(text);if(text)telemetryChunk("text",text,t)}
+  if(!text)throw new Error(`${label}: Helloblue test returned no text`);providerSuccess("helloblue_test",performance.now()-t.started);endTelemetry(true,String(r.status),t);return text
+}
+async function readMCPEnvelope(r,t){
+  const ct=String(r.headers.get("content-type")||"").toLowerCase();
+  if(ct.includes("text/event-stream")){
+    const raw=await r.text();let last=null;
+    for(const line of raw.split(/\r?\n/)){if(!line.startsWith("data:"))continue;const x=line.slice(5).trim();if(!x)continue;try{last=JSON.parse(x)}catch{}}
+    telemetryEvent(`MCP SSE ${raw.length.toLocaleString()} ch`,t);return last
+  }
+  return await r.json()
+}
+function mcpText(result){
+  const c=result?.result?.content||result?.content||[];
+  if(Array.isArray(c)){const texts=c.map(x=>typeof x==="string"?x:(x?.text||"")).filter(Boolean);if(texts.length)return texts.join("\n")}
+  const structured=result?.result?.structuredContent||result?.structuredContent;
+  if(structured!==undefined)return typeof structured==="string"?structured:JSON.stringify(structured);
+  return result?.result?.text||result?.text||""
+}
+async function mcpPost(profile,payload,label,t,sessionId=""){
+  const headers={"Content-Type":"application/json","Accept":"application/json, text/event-stream"};if(sessionId)headers["Mcp-Session-Id"]=sessionId;
+  const r=await fetchObserved(profile.endpoint,{method:"POST",headers,body:JSON.stringify(payload)},label,"iaqa_mcp",1,t);
+  if(!r.ok)throw new Error(`${label}: IA-QA MCP HTTP ${r.status} ${(await r.text()).slice(0,700)}`);
+  return {r,data:await readMCPEnvelope(r,t),session:r.headers.get("Mcp-Session-Id")||sessionId}
+}
+async function requestIAQAMCP(profile,model,system,user,schema,label,t,temp,maxOut){
+  const prompt=(system||"")+(schema?`\n\nReturn JSON matching this schema:\n${JSON.stringify(schema)}`:"")+`\n\nUSER INPUT:\n${user||""}`;
+  const chosen=model&&model!=="auto"?model:"qwen/qwen3-32b";
+  telemetryEvent(`IA-QA /mcp/call · llm_generate · ${chosen}`,t);
+  const payload={name:"llm_generate",parameters:{model:chosen,prompt,max_tokens:Math.min(4096,maxOut),temperature:temp}};
+  const r=await fetchObserved(profile.endpoint,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload)},label,"iaqa_mcp",1,t);
+  if(!r.ok)throw new Error(`${label}: IA-QA HTTP ${r.status} ${(await r.text()).slice(0,700)}`);
+  const d=await r.json();
+  let text=d?.text||d?.response||d?.answer||d?.output||d?.result?.text||d?.result?.response||d?.result?.output||d?.result?.content||d?.content||"";
+  if(Array.isArray(text))text=text.map(x=>typeof x==="string"?x:(x?.text||x?.content||"")).join("\n");
+  if(text&&typeof text==="object")text=text.text||text.content||JSON.stringify(text);
+  text=String(text||"");if(!text)throw new Error(`${label}: IA-QA llm_generate returned no text`);
+  telemetryChunk("text",text,t);providerSuccess("iaqa_mcp",performance.now()-t.started);endTelemetry(true,String(r.status),t);return text
+}
+
+function mimoClientId(){
+  let id="";try{id=localStorage.getItem("ontologyMimoClientId")||""}catch{}
+  if(!id){id=`ontology-workbench-${globalThis.crypto?.randomUUID?.()||uid("mimo")}`;try{localStorage.setItem("ontologyMimoClientId",id)}catch{}}
+  return id
+}
+async function mimoBootstrap(profile,label,t,force=false){
+  const st=providerRuntime.mimocode||(providerRuntime.mimocode={});
+  if(!force&&st.jwt&&Date.now()<(st.jwtExp||0)-60000)return st.jwt;
+  telemetryEvent("MiMo bootstrap · anonymous ephemeral credential",t);
+  const payload=JSON.stringify({client:mimoClientId()});
+  let r=await fetchObserved(profile.bootstrapEndpoint,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer anonymous"},body:payload},label,"mimocode",0,t);
+  if((r.status===401||r.status===403)){telemetryEvent(`MiMo bootstrap ${r.status} · retry without placeholder auth`,t);r=await fetchObserved(profile.bootstrapEndpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:payload},label,"mimocode",0,t)}
+  if(!r.ok)throw new Error(`${label}: MiMo bootstrap HTTP ${r.status} ${(await r.text()).slice(0,700)}`);
+  const d=await r.json();if(!d?.jwt)throw new Error(`${label}: MiMo bootstrap returned no JWT`);
+  st.jwt=d.jwt;let exp=Number(d.exp||d.expires_at||0);if(exp&&exp<1e12)exp*=1000;st.jwtExp=exp||Date.now()+45*60*1000;return st.jwt
+}
+async function requestMiMoCode(profile,model,system,user,schema,label,t,wantsStream,temp,maxOut){
+  const {schemaText}=providerModelPrompt(system,user,schema),chosen=model||"mimo-auto";let jwt=await mimoBootstrap(profile,label,t,false);
+  for(let attempt=0;attempt<2;attempt++){
+    const session=`ses_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+    const headers={"Content-Type":"application/json","Authorization":`Bearer ${jwt}`,"X-Mimo-Source":"mimocode-cli-free","x-session-affinity":session,"Accept":wantsStream?"text/event-stream":"application/json"};
+    const body={model:chosen,messages:[{role:"system",content:system+schemaText},{role:"user",content:user}],stream:wantsStream,max_tokens:maxOut,temperature:temp};
+    telemetryEvent(`MiMo ${wantsStream?"SSE":"buffered"} · ${chosen}`,t);
+    const r=await fetchObserved(profile.endpoint,{method:"POST",headers,body:JSON.stringify(body)},label,"mimocode",1,t);
+    if((r.status===401||r.status===403)&&attempt===0){telemetryEvent(`MiMo chat ${r.status} · refresh bootstrap`,t);const st=providerRuntime.mimocode||(providerRuntime.mimocode={});delete st.jwt;st.jwtExp=0;jwt=await mimoBootstrap(profile,label,t,true);continue}
+    if(!r.ok)throw new Error(`${label}: MiMo HTTP ${r.status} ${(await r.text()).slice(0,900)}`);
+    let text="";const ct=String(r.headers.get("content-type")||"").toLowerCase();
+    if(wantsStream&&r.body&&!ct.includes("application/json"))text=await consumeOpenAIStream(r,t);
+    else{const d=await r.json();const reasoning=extractReasoningFromObject(d,"openai_compatible");if(reasoning)telemetryChunk("reasoning",reasoning,t);text=extractTextResponse("openai_compatible",d);if(text)telemetryChunk("text",text,t)}
+    if(!text)throw new Error(`${label}: MiMo returned no text`);providerSuccess("mimocode",performance.now()-t.started);endTelemetry(true,String(r.status),t);return text
+  }
+  throw new Error(`${label}: MiMo anonymous bootstrap exhausted`)
+}
+
 async function requestSingleProvider(key,profile,model,layer,system,user,schema,label){
   const temp=Number(runtimeEl("temp")?.value||0),ctx=Number(runtimeEl("ctx")?.value||65536),maxOut=maxOutputTokens(layer);
   const {schemaText,combined}=providerModelPrompt(system,user,schema);const wantsStream=shouldStream(key,profile);
   const t=beginTelemetry(key,profile,model,label,wantsStream?"stream":"buffered");let url=profile.endpoint,headers={"Content-Type":"application/json"},body;
   try{
     if(key==="aihorde_native")return await requestAIHordeNative(profile,model,combined,temp,ctx,maxOut,label,t);
+    if(key==="peerwave")return await requestPeerwave(profile,model,system,user,schema,label,t,wantsStream);
+    if(key==="tiamat")return await requestTiamat(profile,system,user,schema,label,t,wantsStream);
+    if(key==="agentbot_demo")return await requestAgentbotDemo(profile,model,combined,label,t);
+    if(key==="mlvoca")return await requestMLvoca(profile,model,system,user,schema,label,t,wantsStream,temp,maxOut);
+    if(key==="helloblue_test")return await requestHelloblueTest(profile,model,system,user,schema,label,t);
+    if(key==="iaqa_mcp")return await requestIAQAMCP(profile,model,system,user,schema,label,t,temp,maxOut);
+    if(key==="mimocode")return await requestMiMoCode(profile,model,system,user,schema,label,t,wantsStream,temp,maxOut);
     if(key==="inference_sh")return await requestInferenceSh(profile,model,combined,label,t,wantsStream);
     if(key==="petals")return await requestPetals(profile,model,combined,temp,maxOut,label,t,wantsStream);
     if(key==="puter"){
@@ -1900,6 +2106,7 @@ async function requestSingleProvider(key,profile,model,layer,system,user,schema,
       if(!poll.ok)throw new Error(`${label}: ${profile.label} event HTTP ${poll.status} ${await poll.text()}`);
       const text=await consumeGradioEvents(poll,t);if(!text)throw new Error(`${label}: empty Gradio result`);providerSuccess(key,performance.now()-t.started);endTelemetry(true,String(poll.status),t);return text
     }
+    if(key==="distil_sn97"&&!model){const pr=await probeProviderKey("distil_sn97");model=pr.models?.[0]||"";if(model){profile.model=model;telemetryEvent(`Distil live king · ${model}`,t)}}
     if(!model)throw new Error(`${label}: configure a model for ${profile.label}.`);
     if(key==="ollama"){
       url=(url||"http://127.0.0.1:11434").replace(/\/+$/,"")+"/api/chat";
@@ -1907,7 +2114,7 @@ async function requestSingleProvider(key,profile,model,layer,system,user,schema,
     }else if(key==="openapis_anthropic"){
       headers["x-api-key"]=profile.apiKey||"admin";headers["anthropic-version"]="2023-06-01";
       body={model,max_tokens:maxOut,temperature:temp,system:system+schemaText,messages:[{role:"user",content:user}],stream:wantsStream}
-    }else if(["aihorde","ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","mangaai","kilo","pollinations_legacy","openai","openai_compatible"].includes(key)){
+    }else if(["aihorde","ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","mangaai","kilo","tangle","chat_at","dandolo","vedaya","distil_sn97","ailiance","novai_free","pollinations_legacy","openai","openai_compatible"].includes(key)){
       applyAuth(key,profile,headers);body={model,temperature:temp,max_tokens:maxOut,stream:wantsStream,messages:[{role:"system",content:system+schemaText},{role:"user",content:user}]};
       if(key==="arcrouter")body.budget="free";
       if(key==="openai"){delete body.max_tokens;body.max_completion_tokens=maxOut;if(schema)body.response_format={type:"json_schema",json_schema:{name:"workbench_result",strict:true,schema}}}
@@ -1925,7 +2132,7 @@ async function requestSingleProvider(key,profile,model,layer,system,user,schema,
       response=await fetchObserved(url,{method:"POST",headers,body:JSON.stringify(body)},label,key,1,t)
     }
     if(!response.ok){
-      const errText=(await response.text()).slice(0,900);if(response.status===429)providerCooldown(key,retryDelay(response,1),`HTTP 429`);else if(response.status>=500)providerCooldown(key,15000,`HTTP ${response.status}`);
+      const errText=(await response.text()).slice(0,900);if(response.status===429)providerCooldown(key,retryDelay(response,1),`HTTP 429`);else if(response.status===402&&PROVIDER_DEFAULTS[key]?.strictAnonymous)providerCooldown(key,6*60*60*1000,`anonymous quota/payment boundary HTTP 402`);else if(response.status>=500)providerCooldown(key,15000,`HTTP ${response.status}`);
       throw new Error(`${label}: ${profile.label} HTTP ${response.status} ${errText}`)
     }
     let text="";
@@ -1958,7 +2165,7 @@ function chosenPoolModel(key,p){
   if(key==="opencode_free"){
     const f=models.filter(x=>/free|big-pickle/i.test(x));return f[0]||p.model||"big-pickle"
   }
-  return models[0]||p.model||({"llm7":"default","andy":"sweaterdog/andy-4:latest","blockrun":"nvidia/step-3.7-flash","arcrouter":"arc-router-v1","kilo":"kilo-auto/free"}[key]||"")
+  return models[0]||p.model||({"llm7":"default","andy":"sweaterdog/andy-4:latest","blockrun":"nvidia/step-3.7-flash","arcrouter":"arc-router-v1","kilo":"kilo-auto/free","peerwave":"cheapest","tangle":"deepseek/deepseek-v4-flash","chat_at":"gpt-4o","tiamat":"chat","dandolo":"llama-3.3-70b","vedaya":"vedaya-bypass","agentbot_demo":"xiaomi/mimo-v2-pro","mlvoca":"deepseek-r1:1.5b","helloblue_test":"test-ai","iaqa_mcp":"qwen/qwen3-32b","ailiance":"ailiance","novai_free":"glm-4.6v-flash","mimocode":"mimo-auto"}[key]||"")
 }
 async function requestAnonymousPool(layer,system,user,schema,label){
   let cs=poolCandidates();if(!cs.length){for(const k of ANON_POOL_KEYS){const st=providerRuntime[k]||(providerRuntime[k]={});st.cooldownUntil=0}cs=poolCandidates()}
@@ -2054,7 +2261,7 @@ renderProviderEditor=function(){
   for(const [key,p] of Object.entries(providerConfig.profiles)){
     const card=document.querySelector(`[data-prof-endpoint="${key}"]`)?.closest(".provider-card");if(!card)continue;
     if(PROVIDER_DEFAULTS[key]?.strictAnonymous){
-      const keyField=card.querySelector(`[data-prof-key="${key}"]`)?.closest(".field");if(keyField&&["none","placeholder"].includes(PROVIDER_DEFAULTS[key].auth||"none"))keyField.style.display="none";
+      const keyField=card.querySelector(`[data-prof-key="${key}"]`)?.closest(".field");if(keyField&&["none","placeholder","bootstrap"].includes(PROVIDER_DEFAULTS[key].auth||"none"))keyField.style.display="none";
       const state=PROVIDER_DEFAULTS[key].excluded?"warn":"good";card.insertAdjacentHTML("beforeend",`<div class="provider-note ${state}">${PROVIDER_DEFAULTS[key].excluded?"MANUAL / EXCLUDED":"NO SIGNUP / AUTO-POOL ELIGIBLE"} · auth ${esc(PROVIDER_DEFAULTS[key].auth||"none")} · stream ${PROVIDER_DEFAULTS[key].stream===false?"buffered only":"supported/attempted"}${PROVIDER_DEFAULTS[key].rate?` · ${esc(PROVIDER_DEFAULTS[key].rate)}`:""}${PROVIDER_DEFAULTS[key].note?`<br>${esc(PROVIDER_DEFAULTS[key].note)}`:""}</div>`)
     }
   }
@@ -2068,7 +2275,7 @@ connect=async function(){
     if(key==="anonymous_pool"){
       setMainModelOptions(["auto"],"auto");p.model="auto";const rs=await probeAnonymousPool();const live=rs.filter(x=>x.ok&&!x.catalogOnly).length,catalog=rs.filter(x=>x.ok&&x.catalogOnly).length,ok=live+catalog;runtimeEl("statusText").textContent=`anon pool · ${live} live + ${catalog} catalog`;runtimeEl("dot").className=ok?"dot ok":"dot";saveProviderConfig();return
     }
-    if(["ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","openapis_anthropic","mangaai","petals","aihorde_native","kilo"].includes(key)){
+    if(["ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","openapis_anthropic","mangaai","petals","aihorde_native","kilo","peerwave","tangle","chat_at","tiamat","distil_sn97","ailiance","novai_free","mimocode","dandolo","vedaya","agentbot_demo","mlvoca","helloblue_test","iaqa_mcp"].includes(key)){
       const r=await probeProviderKey(key);let models=r.models||[];if(!models.length&&p.model)models=[p.model];setMainModelOptions(models,p.model||models[0]||"");p.model=runtimeEl("model").value||p.model;runtimeEl("statusText").textContent=`${p.label} · ${r.ok?models.length+" models":"registry unavailable"}`;runtimeEl("dot").className=r.ok?"dot ok":"dot";saveProviderConfig();return
     }
     await connectV4()
@@ -2100,7 +2307,7 @@ setTimeout(initInferenceFabricUI,0);
 
 
 function initContextUI(){const saved=localStorage.getItem("ontologyContextMode")||"all";setContextMode(saved);$("#contextMode").onchange=e=>setContextMode(e.target.value);$("#toolbarContextMode").onchange=e=>setContextMode(e.target.value)}
-function initProviderUI(){$("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();$("#provider").onchange=async()=>{syncRuntimeFromConfig();if(["ollama","anonymous_pool","aihorde","aihorde_native","ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","openapis_anthropic","mangaai","petals","puter","hf_space","inference_sh","kilo"].includes($("#provider").value))await connect()};$("#host").oninput=syncRuntimeToConfig;$("#model").onchange=syncRuntimeToConfig;$("#configBtn").onclick=openConfig;$("#closeConfig").onclick=()=>$("#configModal").classList.remove("on");$("#saveConfig").onclick=()=>{captureConfigEditor();$("#configModal").classList.remove("on");log("LLM configuration saved.","good")};$("#resetConfig").onclick=()=>{providerConfig={defaultProvider:"ollama",persistKeys:false,profiles:JSON.parse(JSON.stringify(PROVIDER_DEFAULTS)),layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""}}};prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyProviderConfig");localStorage.removeItem("ontologyWorkbenchPrompts");renderProviderEditor();$("#provider").value="ollama";syncRuntimeFromConfig();renderPromptEditor();log("LLM configuration reset.","good")};$("#persistKeys").onchange=e=>providerConfig.persistKeys=e.target.checked}
+function initProviderUI(){$("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();$("#provider").onchange=async()=>{syncRuntimeFromConfig();if(["ollama","anonymous_pool","aihorde","aihorde_native","ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","openapis_anthropic","mangaai","petals","puter","hf_space","inference_sh","kilo","peerwave","tangle","chat_at","tiamat","distil_sn97","ailiance","novai_free","mimocode","dandolo","vedaya","agentbot_demo","mlvoca","helloblue_test","iaqa_mcp"].includes($("#provider").value))await connect()};$("#host").oninput=syncRuntimeToConfig;$("#model").onchange=syncRuntimeToConfig;$("#configBtn").onclick=openConfig;$("#closeConfig").onclick=()=>$("#configModal").classList.remove("on");$("#saveConfig").onclick=()=>{captureConfigEditor();$("#configModal").classList.remove("on");log("LLM configuration saved.","good")};$("#resetConfig").onclick=()=>{providerConfig={defaultProvider:"ollama",persistKeys:false,profiles:JSON.parse(JSON.stringify(PROVIDER_DEFAULTS)),layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""}}};prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyProviderConfig");localStorage.removeItem("ontologyWorkbenchPrompts");renderProviderEditor();$("#provider").value="ollama";syncRuntimeFromConfig();renderPromptEditor();log("LLM configuration reset.","good")};$("#persistKeys").onchange=e=>providerConfig.persistKeys=e.target.checked}
 function initNodeModal(){$("#closeNodeModal").onclick=()=>{$("#nodeModal").classList.remove("on");selected=null;drawGraph()};$("#nodeFocusBtn").onclick=()=>{if(!selected)return;if(focusedNodeIds.has(selected.id))focusedNodeIds.delete(selected.id);else focusedNodeIds.add(selected.id);$("#nodeFocusBtn").textContent=focusedNodeIds.has(selected.id)?"unfocus":"focus";renderFocusSummary();drawGraph()}}
 
 // Replace legacy fit/layout controls with viewport-aware graph controls.
