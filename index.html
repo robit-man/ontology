@@ -166,6 +166,13 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 .provider-note.good{border-color:#8a8;color:#bdb}.provider-note.warn{border-color:#a86;color:#cba}
 .pool-chip{display:inline-block;border:1px solid #333;padding:1px 4px;margin:1px 2px 1px 0;color:#999;font-size:8px}
 .pool-chip.ok{border-color:#596;color:#bdb}.pool-chip.bad{border-color:#744;color:#c99}.pool-chip.cool{border-color:#765;color:#ca9}.pool-chip.off{opacity:.38;text-decoration:line-through;border-style:dashed;cursor:pointer}.pool-chip:not(.off){cursor:pointer}
+.audit-options{display:grid;grid-template-columns:minmax(0,1fr) 72px 72px 72px;gap:5px;margin-top:6px;align-items:end}
+.audit-options .field{margin:0}.audit-options .check{margin:0 0 5px 0;white-space:normal}
+.pool-order{margin-top:4px;padding:4px 0;border-top:1px dotted #242424;color:#888;white-space:normal;line-height:1.45}
+.audit-panel{display:none;margin-top:7px;border:1px solid #2b2b2b;background:#070707}.audit-panel.on{display:block}
+.audit-head{display:flex;align-items:center;gap:6px;padding:6px;border-bottom:1px solid #222}.audit-summary{font:8px/1.45 ui-monospace,monospace;color:#999;padding:6px;border-bottom:1px solid #222}
+.audit-table{max-height:260px;overflow:auto;font:8px/1.35 ui-monospace,monospace}.audit-row{display:grid;grid-template-columns:18px minmax(85px,1.2fr) minmax(110px,1.5fr) 55px 52px 55px 55px minmax(105px,1.4fr);gap:5px;padding:4px 6px;border-bottom:1px solid #171717;align-items:center}.audit-row.head{position:sticky;top:0;background:#111;color:#777;text-transform:uppercase;z-index:2}.audit-row.pass{background:#09100b}.audit-row.degraded{background:#100e08}.audit-row.fail{background:#100909}.audit-row.running{background:#0b0d12}.audit-cell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.audit-status{font-weight:bold}.audit-row.pass .audit-status{color:#9cba9c}.audit-row.degraded .audit-status{color:#c8ad78}.audit-row.fail .audit-status{color:#c98e8e}.audit-row.running .audit-status{color:#91a7c9}
+@media(max-width:900px){.audit-options{grid-template-columns:1fr 1fr}.audit-row{grid-template-columns:18px minmax(90px,1fr) minmax(110px,1fr) 50px 50px 50px}.audit-row>*:nth-child(7),.audit-row>*:nth-child(8){display:none}}
 
 </style>
 </head>
@@ -247,9 +254,21 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
     </div>
     <div class="runtime-actions">
       <label class="check"><input id="showReasoning" type="checkbox"> show provider reasoning trace</label>
-      <div class="spacer"></div><button id="probePool" class="iconbtn" title="Probe anonymous provider registries">probe pool</button>
+      <div class="spacer"></div><button id="probePool" class="iconbtn" title="Probe anonymous provider registries">probe pool</button><button id="auditPool" class="iconbtn" title="Run the same mock-PDF structured extraction through every anonymous provider">burn-in all</button><button id="stopAudit" class="iconbtn" title="Abort provider burn-in" disabled>stop</button>
+    </div>
+    <div class="audit-options">
+      <label class="check"><input id="useAuditRanking" type="checkbox" checked> AUTO uses fresh burn-in evidence</label>
+      <div class="field"><label>audit workers</label><select id="auditConcurrency"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></div>
+      <div class="field"><label>audit timeout</label><input id="auditTimeout" type="number" value="45" min="15" max="180" step="5"></div>
+      <div class="field"><label>models/provider</label><select id="auditModelsPerProvider"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select></div>
     </div>
     <div id="poolStatus" class="small mono" style="margin-top:5px">anonymous resolver idle</div>
+    <div id="poolOrder" class="pool-order small mono">AUTO order unavailable until provider state is initialized.</div>
+    <div id="providerAuditPanel" class="audit-panel">
+      <div class="audit-head"><b>mock-PDF provider burn-in</b><div class="spacer"></div><button id="exportAudit" class="iconbtn">export</button><button id="clearAudit" class="iconbtn">clear</button></div>
+      <div id="auditSummary" class="audit-summary">Not run. Burn-in parses an embedded PDF through the same PDF.js intake path, then asks every endpoint to extract a compact typed object and scores factual fidelity.</div>
+      <div id="auditRows" class="audit-table"></div>
+    </div>
     <div id="inferenceObs" class="obs">
       <div class="obs-grid">
         <div class="obs-cell"><span class="obs-k">state</span><span id="obsState" class="obs-v">idle</span></div>
@@ -1610,7 +1629,7 @@ Object.assign(PROVIDER_DEFAULTS,{
   llm7:{label:"LLM7 · anonymous",endpoint:"https://api.llm7.io/v1/chat/completions",model:"default",apiKey:"",auth:"placeholder",modelsEndpoint:"https://api.llm7.io/v1/models",stream:true,reasoning:"model",strictAnonymous:true,rate:"basic anonymous tier"},
   opencode_free:{label:"OpenCode Console · free anonymous",endpoint:"https://console.opencode.ai/inference/openai/v1/chat/completions",model:"big-pickle",apiKey:"",auth:"none",modelsEndpoint:"https://console.opencode.ai/inference/openai/v1/models",stream:true,reasoning:"best-effort",strictAnonymous:true,rate:"free-model lane"},
   andy:{label:"Andy distributed pool · anonymous",endpoint:"https://andy.mindcraft-ce.com/api/v1/chat/completions",model:"sweaterdog/andy-4:latest",apiKey:"",auth:"none",modelsEndpoint:"https://andy.mindcraft-ce.com/api/v1/models",healthEndpoint:"https://andy.mindcraft-ce.com/api/ping",stream:false,reasoning:"model",strictAnonymous:true,rate:"server 3 RPM/100 day; pool 6 RPM/1000 day"},
-  blockrun:{label:"BlockRun · free reasoning",endpoint:"https://blockrun.ai/api/v1/chat/completions",model:"nvidia/step-3.7-flash",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["nvidia/step-3.7-flash","nvidia/gpt-oss-120b"],stream:true,reasoning:"native",strictAnonymous:true,trust:3,rate:"free NVIDIA-backed route · 128 KB request cap",note:"No API key, wallet, or signup for free models. Also supports nvidia/gpt-oss-120b."},
+  blockrun:{label:"BlockRun · free reasoning",endpoint:"https://blockrun.ai/api/v1/chat/completions",model:"nvidia/step-3.7-flash",apiKey:"",auth:"none",modelsEndpoint:"https://blockrun.ai/api/v1/models",staticModels:["nvidia/step-3.7-flash","nvidia/gpt-oss-120b","nvidia/mistral-nemotron","nvidia/mistral-large-3-675b","nvidia/deepseek-v4-flash","nvidia/seed-oss-36b","nvidia/nemotron-3-nano-omni-30b-a3b-reasoning","nvidia/nemotron-nano-9b-v2"],stream:true,reasoning:"native",strictAnonymous:true,trust:3,rate:"free NVIDIA-backed route · 128 KB request cap",note:"No API key, wallet, or signup for free models. Also supports nvidia/gpt-oss-120b."},
   arcrouter:{label:"ArcRouter · free smart route",endpoint:"https://api.arcrouter.com/v1/chat/completions",model:"arc-router-v1",apiKey:"",auth:"none",modelsEndpoint:"https://api.arcrouter.com/v1/models/scores",healthEndpoint:"https://api.arcrouter.com/health",stream:true,reasoning:"router",strictAnonymous:true,rate:"20 requests/hour/IP · free models only",note:"Requests are pinned to budget=free; SSE supported."},
   unclose_hermes:{label:"uncloseai · Hermes community",endpoint:"https://hermes.ai.unturf.com/v1/chat/completions",model:"adamo1139/Hermes-3-Llama-3.1-8B-FP8-Dynamic",apiKey:"",auth:"none",modelsEndpoint:"https://hermes.ai.unturf.com/v1/models",stream:true,reasoning:"model",strictAnonymous:true,rate:"community inference · no account",note:"Public-domain community endpoint; browser client documented."},
   unclose_qwen:{label:"uncloseai · Qwen Coder community",endpoint:"https://qwen.ai.unturf.com/v1/chat/completions",model:"hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q4_K_M",apiKey:"",auth:"none",modelsEndpoint:"https://qwen.ai.unturf.com/v1/models",stream:true,reasoning:"model",strictAnonymous:true,trust:2,rate:"community inference · no account",note:"Public-domain community endpoint; browser client documented."},
@@ -1621,7 +1640,7 @@ Object.assign(PROVIDER_DEFAULTS,{
   inference_sh:{label:"inference.sh · public embedded agent",endpoint:"https://api.inference.sh/embed/agents/run",model:"namespace/name",apiKey:"",auth:"none",modelsEndpoint:"",stream:true,reasoning:"model",strictAnonymous:true,excluded:true,note:"No Authorization header for published agents; requires a public agent ref and publisher-allowed browser Origin. Manual route, not auto pool."},
   kilo:{label:"Kilo Gateway · anonymous free",endpoint:"https://api.kilo.ai/api/gateway/chat/completions",model:"kilo-auto/free",apiKey:"",auth:"none",modelsEndpoint:"https://api.kilo.ai/api/gateway/models",staticModels:["kilo-auto/free","openrouter/free","stepfun/step-3.7-flash:free","poolside/laguna-m.1:free","nvidia/nemotron-3-ultra-550b-a55b:free"],stream:true,reasoning:"best-effort",strictAnonymous:true,trust:3,rate:"200 requests/hour/IP · free models only",note:"Official anonymous gateway lane. Only free model IDs are eligible without auth; Auto Free can route through providers that log prompts/outputs, so do not send personal or confidential data."},
   peerwave:{label:"Peerwave · decentralized anonymous",endpoint:"https://api.peerwave.ai/api/chat",streamEndpoint:"https://api.peerwave.ai/api/chat/stream",model:"cheapest",apiKey:"",auth:"none",modelsEndpoint:"https://api.peerwave.ai/api/models",staticModels:["cheapest","fastest"],stream:true,reasoning:"model",strictAnonymous:true,trust:3,rate:"anonymous credit balance · periodically refreshed",note:"Official browser-oriented anonymous API. Streaming is newline-delimited JSON. If anonymous credits are exhausted (HTTP 402), AUTO cools this route and fails over instead of redirecting to signup."},
-  tangle:{label:"Tangle Router · anonymous free tier",endpoint:"https://router.tangle.tools/v1/chat/completions",model:"deepseek/deepseek-v4-flash",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["deepseek/deepseek-v4-flash","deepseek/deepseek-chat","groq/llama-3.1-8b-instant","google/gemini-2.5-flash-lite","openai/gpt-4o-mini","anthropic/claude-haiku-4-5-20251001"],stream:true,reasoning:"best-effort",strictAnonymous:true,trust:3,rate:"anonymous: 10 req/min · 5 req/day · free models only",note:"Official Tangle anonymous tier. Free model allow-list is pinned locally so AUTO cannot accidentally select a paid route."},
+  tangle:{label:"Tangle Router · anonymous free tier",endpoint:"https://router.tangle.tools/v1/chat/completions",model:"gpt-4o-mini",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["gpt-4o-mini","claude-3-5-haiku-20241022","llama-3.1-8b-instant","llama-3.2-3b-preview","llama-3.2-1b-preview","gemini-2.0-flash-lite","cerebras/llama-3.1-8b","deepseek-chat"],stream:true,reasoning:"best-effort",strictAnonymous:true,trust:3,rate:"anonymous: 10 req/min · 5 req/day · free models only",note:"Official Tangle anonymous tier. Free model allow-list is pinned locally so AUTO cannot accidentally select a paid route."},
   chat_at:{label:"ch.at · universal basic chat",endpoint:"https://ch.at/v1/chat/completions",model:"gpt-4o",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["gpt-4o"],stream:true,reasoning:"model",strictAnonymous:true,trust:2,rate:"basic IP rate limiting",note:"Public OpenAI-compatible endpoint with no accounts or authentication. Production model is currently GPT-4o; browser CORS availability is learned at runtime and failures fail over cleanly."},
   tiamat:{label:"TIAMAT · anonymous streaming chat",endpoint:"https://tiamat.live/chat",model:"chat",apiKey:"",auth:"none",modelsEndpoint:"",staticModels:["chat"],stream:true,reasoning:"model",strictAnonymous:true,trust:2,rate:"5 anonymous chat calls/day",note:"Official no-signup evaluation endpoint. Custom {message} request shape with streaming SSE/text response. Quota exhaustion is treated as cooldown, never as a signup redirect."},
   distil_sn97:{label:"Distil SN97 · public Bittensor king",endpoint:"https://api.arbos.life/v1/chat/completions",model:"",apiKey:"",auth:"none",modelsEndpoint:"https://api.arbos.life/v1/models",healthEndpoint:"https://api.arbos.life/api/health",staticModels:[],stream:false,reasoning:"model",strictAnonymous:true,trust:3,rate:"public SN97 king · no authentication",note:"Official Distil SN97 public OpenAI-compatible endpoint. The live king model ID changes over time; Connect discovers it from /v1/models instead of pinning a stale model."},
@@ -1666,6 +1685,12 @@ if(!providerConfig.profiles.aihorde.apiKey)providerConfig.profiles.aihorde.apiKe
 if(!providerConfig.profiles.aihorde_native.apiKey)providerConfig.profiles.aihorde_native.apiKey="0000000000";
 
 const ANON_POOL_KEYS=["blockrun","arcrouter","kilo","peerwave","tangle","chat_at","tiamat","distil_sn97","ailiance","dandolo","vedaya","ovh","openapis","llm7","opencode_free","andy","unclose_hermes","unclose_qwen","aihorde","aihorde_native","novai_free","mimocode","agentbot_demo","mlvoca","helloblue_test","iaqa_mcp","mangaai","petals"];
+const PROVIDER_AUDIT_SCHEMA={type:"object",additionalProperties:false,required:["project","owner","status","priority","deadline","activation_minutes","coordination_threshold","coordination_percent","network_access_required","host_provides_gateway","concepts"],properties:{project:{type:"string"},owner:{type:"string"},status:{type:"string"},priority:{type:"string"},deadline:{type:"string"},activation_minutes:{type:"integer"},coordination_threshold:{type:"integer"},coordination_percent:{type:"integer"},network_access_required:{type:"boolean"},host_provides_gateway:{type:"boolean"},concepts:{type:"array",items:{type:"string"}}}};
+const PROVIDER_AUDIT_SYSTEM="You are a provider compatibility evaluator. Read the supplied PDF-extracted source text and return only one JSON object matching the supplied schema. Extract exact source facts; do not infer missing facts, add prose, or wrap the JSON.";
+const MOCK_PROVIDER_AUDIT_PDF_B64="JVBERi0xLjMKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMSAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL0NvbnRlbnRzIDcgMCBSIC9NZWRpYUJveCBbIDAgMCA2MTIgNzkyIF0gL1BhcmVudCA2IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9QYWdlTW9kZSAvVXNlTm9uZSAvUGFnZXMgNiAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0F1dGhvciAoYW5vbnltb3VzKSAvQ3JlYXRpb25EYXRlIChEOjIwMjYwODE3MTk0MDIyKzAwJzAwJykgL0NyZWF0b3IgKGFub255bW91cykgL0tleXdvcmRzICgpIC9Nb2REYXRlIChEOjIwMjYwODE3MTk0MDIyKzAwJzAwJykgL1Byb2R1Y2VyIChSZXBvcnRMYWIgUERGIExpYnJhcnkgLSBcKG9wZW5zb3VyY2VcKSkgCiAgL1N1YmplY3QgKHVuc3BlY2lmaWVkKSAvVGl0bGUgKHVudGl0bGVkKSAvVHJhcHBlZCAvRmFsc2UKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0NvdW50IDEgL0tpZHMgWyAzIDAgUiBdIC9UeXBlIC9QYWdlcwo+PgplbmRvYmoKNyAwIG9iago8PAovRmlsdGVyIFsgL0FTQ0lJODVEZWNvZGUgL0ZsYXRlRGVjb2RlIF0gL0xlbmd0aCA2ODIKPj4Kc3RyZWFtCkdhcm5UZ01ZTHAmOk8iS2JbV3JsWWg5RE4rSFRiVCFmPkAqNy5CUSYtYkheLWxzTW1vbyhTKlZEMz9LRC4kNjkrazAwNUxGcDwjOlpNNiJlSkJKIiNJKipSOTVaJ2hVOGxuaTpLcmEzbGo0T05WXW4wPi9mMjBzZUEvOjxORjpqVnRcKDJOaVU0aixURE00bnMuSW9XLFskIVBxaTdhRmlFNzpLQVBnS3NuL1JlO1xNRU1bIitoV0E2Ty86MV1TJEBHKl1XY0AxOShcMTtvOiZMTWMpMmZqTUwlZ0NwVk9CbExQc1UwIUpnMEgtIkMoTCVcSUlJKW88W284ND1HPD1OaFI3QkNlJ2dDamRNaiVZKGxzWXQiK2Q1Klg8OjRKYy4sI11TaTpHXCQzQCtzKCEmJClRJFVFIyo0VCQ4dSEoTV1kVkctb21oMFohSyM5USc0JUhVbyE9KyolXjhMUEFXT3BDIUR0TyxUYG1QRFVgRENKMUU7aFtNRlFlUnQsL2plWyUvPyxNUTInMkZcVDg4S1NsV1xTbiNMNlZWOVEqUSQpXSYnXSpOJVFtN2k5XEc6JUQ+XTdoY28vYTk6YD1hcGxvZS1AVSlTZVVldDhKMlBqKFsrWkJXVl8oImtXJzUtXSVVWlhCOzpJKjlnKyRsZixQXUc1TjBzNURbJllZPSFcPixxRUghZVhlPF5sJmRES2QxdTFyb05KQ0dIYV1MPWlvNyI9UmZgNyIvUy9QJ0tJcU87bipVSm1AXVJYLF5WNTZcJ3NgKy4/a19YSlRUQGVmI0FAXig+WCdvT21oUlpfYWZgPEkoRzdsZ0hNLjYmZlt0cz8pZ3FbXHAvUmJCUFZZQjNFaF8yW0w5QykjO1pPRSdURCMqayFxcjpmIy0vXy9lcUdGfj5lbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA4CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMDkyIDAwMDAwIG4gCjAwMDAwMDAxOTkgMDAwMDAgbiAKMDAwMDAwMDM5MiAwMDAwMCBuIAowMDAwMDAwNDYwIDAwMDAwIG4gCjAwMDAwMDA3MjEgMDAwMDAgbiAKMDAwMDAwMDc4MCAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9JRCAKWzxiMGRiOTdmZjY4YzU5OWMwMTM2NzhlYWY0YmJmYjA0Mz48YjBkYjk3ZmY2OGM1OTljMDEzNjc4ZWFmNGJiZmIwNDM+XQolIFJlcG9ydExhYiBnZW5lcmF0ZWQgUERGIGRvY3VtZW50IC0tIGRpZ2VzdCAob3BlbnNvdXJjZSkKCi9JbmZvIDUgMCBSCi9Sb290IDQgMCBSCi9TaXplIDgKPj4Kc3RhcnR4cmVmCjE1NTIKJSVFT0YK";
+const AUDIT_FRESH_MS=6*60*60*1000;
+let providerAuditResults={},providerAuditProgress={},auditAbortController=null,auditRunning=false,auditPdfMeta=null;
+try{providerAuditResults=JSON.parse(localStorage.getItem("ontologyProviderAuditResults")||"{}")||{}}catch{providerAuditResults={}}
 const providerRuntime={};
 let disabledAnonProviders=new Set();
 try{
@@ -1731,19 +1756,26 @@ function providerCooldown(key,ms,why){
 function providerSuccess(key,latency){
   const st=providerRuntime[key]||(providerRuntime[key]={});st.ok=true;st.catalogOnly=false;st.lastSuccess=Date.now();st.latency=latency;st.failures=Math.max(0,(st.failures||0)-1);st.cooldownUntil=0;renderPoolStatus()
 }
+function currentAuditOrigin(){return location.origin&&location.origin!=="null"?location.origin:`file://${location.pathname||"local"}`}
+function auditResultFor(key,allowStale=false){const r=providerAuditResults[key];if(!r)return null;if(r.origin!==currentAuditOrigin())return allowStale?r:null;if(!allowStale&&Date.now()-Number(r.timestamp||0)>AUDIT_FRESH_MS)return null;return r}
+function auditRoutingEnabled(){const el=runtimeEl("useAuditRanking");return el?el.checked:true}
+function auditRoutingRejects(key,layer){if(!auditRoutingEnabled())return false;const r=auditResultFor(key);if(!r)return false;if(r.status==="fail")return true;if(layer==="compile"&&r.status==="degraded")return true;return false}
+function providerLayerBias(key,p,layer){let b=0;if(p.experimental)b-=130;if(p.stream===false&&layer==="extract")b-=25;const rate=String(p.rate||"").toLowerCase(),note=String(p.note||"").toLowerCase();if(/5 .*\/day|5 req\/day|5 anonymous/.test(rate))b-=180;if(layer==="compile"&&(/1024-token|1024 token|max_length is capped/.test(note+" "+rate)||key==="aihorde_native"))b-=520;if(layer==="compile"&&["mlvoca","helloblue_test","agentbot_demo","petals"].includes(key))b-=380;return b}
+function providerCandidateScore(key,p,st,layer){let score=(p.trust||1)*130+providerLayerBias(key,p,layer)-(st.failures||0)*170-(st.latency?Math.min(250,st.latency/40):0);if(st.lastSuccess)score+=70;if(st.catalogOnly)score-=25;const a=auditResultFor(key);if(a){if(a.status==="pass")score+=2600;else if(a.status==="degraded")score+=650;else score-=5000;score+=(a.semanticScore||0)*900;if(a.schemaOk)score+=300;score-=Math.min(500,(a.latencyMs||0)/35);score-=Number(a.repairCount||0)*180;if(a.streamObserved)score+=35}return score}
+function renderPoolOrder(){const el=runtimeEl("poolOrder");if(!el)return;const fmt=layer=>poolCandidates(layer,{forDisplay:true}).slice(0,10).map((x,i)=>`${i+1}.${x.key}${auditResultFor(x.key)?.model?`[${auditResultFor(x.key).model}]`:""}`).join(" → ")||"none";el.textContent=`AUTO extract → ${fmt("extract")}\nAUTO compile → ${fmt("compile")}`}
 function renderPoolStatus(){
   const el=runtimeEl("poolStatus");if(!el)return;
   const enabled=ANON_POOL_KEYS.filter(k=>!disabledAnonProviders.has(k)).length;
-  const chips=ANON_POOL_KEYS.map(k=>{const st=providerRuntime[k]||{},p=providerConfig.profiles[k]||PROVIDER_DEFAULTS[k];const off=disabledAnonProviders.has(k),cool=(st.cooldownUntil||0)>Date.now(),cls=off?"off":st.ok&&!cool?"ok":cool?"cool":st.lastError&&!st.catalogOnly?"bad":"";const detail=off?"disabled":cool?`cool ${Math.ceil((st.cooldownUntil-Date.now())/1000)}s`:st.catalogOnly?"catalog":st.latency?`${Math.round(st.latency)}ms`:st.lastError?"fail":"unprobed";const flag=p.experimental?" · exp":"";return `<span class="pool-chip ${cls}" data-pool-key="${esc(k)}" title="click to ${off?"enable":"disable"} · trust ${p.trust||1}/3 · ${st.catalogOnly?"catalog only; health learned on first inference · ":""}${esc(st.lastError||p.rate||"")}">${esc(k)}${flag} · ${esc(detail)}</span>`}).join("");
-  el.innerHTML=`pool ${enabled}/${ANON_POOL_KEYS.length} enabled · ${chips}`
+  const chips=ANON_POOL_KEYS.map(k=>{const st=providerRuntime[k]||{},p=providerConfig.profiles[k]||PROVIDER_DEFAULTS[k],a=auditResultFor(k,true);const off=disabledAnonProviders.has(k),cool=(st.cooldownUntil||0)>Date.now(),fresh=a&&a.origin===currentAuditOrigin()&&Date.now()-Number(a.timestamp||0)<=AUDIT_FRESH_MS;let cls=off?"off":fresh&&a.status==="pass"?"ok":fresh&&a.status==="fail"?"bad":st.ok&&!cool?"ok":cool?"cool":st.lastError&&!st.catalogOnly?"bad":"";const auditTag=fresh?` · audit ${a.status}${a.semanticScore!==undefined?` ${Math.round(a.semanticScore*100)}%`:""}`:(a?" · audit stale":"");const detail=off?"disabled":cool?`cool ${Math.ceil((st.cooldownUntil-Date.now())/1000)}s`:st.catalogOnly?"catalog":st.latency?`${Math.round(st.latency)}ms`:st.lastError?"fail":"unprobed";const flag=p.experimental?" · exp":"";return `<span class="pool-chip ${cls}" data-pool-key="${esc(k)}" title="click to ${off?"enable":"disable"} · trust ${p.trust||1}/3${auditTag} · ${st.catalogOnly?"catalog only; health learned on first inference · ":""}${esc(st.lastError||p.rate||"")}">${esc(k)}${flag} · ${esc(detail)}${esc(auditTag)}</span>`}).join("");
+  el.innerHTML=`pool ${enabled}/${ANON_POOL_KEYS.length} enabled · ${chips}`;renderPoolOrder()
 }
 function toggleAnonProvider(key){
   if(!ANON_POOL_KEYS.includes(key))return;
   if(disabledAnonProviders.has(key))disabledAnonProviders.delete(key);else disabledAnonProviders.add(key);
   localStorage.setItem("ontologyAnonPoolDisabled",JSON.stringify([...disabledAnonProviders]));renderPoolStatus()
 }
-function timeoutSignal(){
-  const sigs=[];if(aborter?.signal)sigs.push(aborter.signal);if(globalThis.AbortSignal?.timeout)sigs.push(AbortSignal.timeout(requestTimeoutMs()));
+function timeoutSignal(t=currentTelemetry){
+  const sigs=[],limit=Math.max(1000,Number(t?.timeoutMs||requestTimeoutMs()));if(aborter?.signal)sigs.push(aborter.signal);if(globalThis.AbortSignal?.timeout)sigs.push(AbortSignal.timeout(limit));
   if(sigs.length===1)return sigs[0];if(sigs.length>1&&AbortSignal.any)return AbortSignal.any(sigs);return sigs[0]
 }
 function retryDelay(response,attempt){
@@ -1756,7 +1788,7 @@ async function fetchObserved(url,opts,label,key,maxRetries=2,t=currentTelemetry)
     if(t)t.retries=attempt;
     const started=performance.now();
     try{
-      const r=await fetch(url,{...opts,signal:opts.signal||timeoutSignal()});if(t)t.http=String(r.status);
+      const r=await fetch(url,{...opts,signal:opts.signal||timeoutSignal(t)});if(t)t.http=String(r.status);
       if(![408,425,429,500,502,503,504].includes(r.status)||attempt===maxRetries)return r;
       const wait=retryDelay(r,attempt);telemetryEvent(`HTTP ${r.status}; retry in ${wait}ms`,t);if(r.status===429)providerCooldown(key,wait,`HTTP 429`);await sleep(wait);last=r
     }catch(e){
@@ -1950,7 +1982,7 @@ async function requestAIHordeNative(profile,model,combined,temp,ctx,maxOut,label
   if(!submit.ok)throw new Error(`${label}: native Horde submit HTTP ${submit.status} ${(await submit.text()).slice(0,700)}`);
   const accepted=await submit.json(),id=accepted?.id;if(!id)throw new Error(`${label}: native Horde returned no request id`);
   telemetryEvent(`Horde job ${String(id).slice(0,8)}…`,t);
-  const deadline=Date.now()+requestTimeoutMs();let lastQueue=null,polls=0;
+  const deadline=Date.now()+Math.max(10000,Number(t?.timeoutMs||requestTimeoutMs()));let lastQueue=null,polls=0;
   while(Date.now()<deadline){
     await sleep(polls?Math.min(2500,900+polls*120):450);polls++;
     const statusUrl=`https://aihorde.net/api/v2/generate/text/status/${encodeURIComponent(id)}`;
@@ -1965,7 +1997,7 @@ async function requestAIHordeNative(profile,model,combined,temp,ctx,maxOut,label
     if(d.faulted)throw new Error(`${label}: native Horde job faulted`)
   }
   try{await fetch(`https://aihorde.net/api/v2/generate/text/status/${encodeURIComponent(id)}`,{method:"DELETE",headers:{apikey:token}})}catch{}
-  throw new Error(`${label}: native Horde timed out after ${Math.round(requestTimeoutMs()/1000)}s`)
+  throw new Error(`${label}: native Horde timed out after ${Math.round(Math.max(10000,Number(t?.timeoutMs||requestTimeoutMs()))/1000)}s`)
 }
 
 async function consumeInferenceShStream(response,t=currentTelemetry){
@@ -2016,7 +2048,7 @@ async function requestPetals(profile,model,combined,temp,maxOut,label,t,wantsStr
     telemetryEvent(`Petals websocket · max_new ${maxNew} · session ${maxLength}`,t);
     return await new Promise((resolve,reject)=>{
       const ws=new WebSocket(profile.wsEndpoint);let text="",lastChunk="",settled=false;
-      const timer=setTimeout(()=>finish(new Error(`${label}: Petals websocket timed out`)),requestTimeoutMs());
+      const timer=setTimeout(()=>finish(new Error(`${label}: Petals websocket timed out`)),Math.max(10000,Number(t?.timeoutMs||requestTimeoutMs())));
       const abortHandler=()=>finish(new DOMException("Aborted","AbortError"));
       if(aborter?.signal)aborter.signal.addEventListener("abort",abortHandler,{once:true});
       function finish(err,value){if(settled)return;settled=true;clearTimeout(timer);try{ws.close()}catch{};if(aborter?.signal)aborter.signal.removeEventListener("abort",abortHandler);if(err){endTelemetry(false,t.http||"WS",t);reject(err)}else{providerSuccess("petals",performance.now()-t.started);endTelemetry(true,"WS",t);resolve(value)}}
@@ -2153,10 +2185,10 @@ async function requestMiMoCode(profile,model,system,user,schema,label,t,wantsStr
   throw new Error(`${label}: MiMo anonymous bootstrap exhausted`)
 }
 
-async function requestSingleProvider(key,profile,model,layer,system,user,schema,label){
-  const temp=Number(runtimeEl("temp")?.value||0),ctx=Number(runtimeEl("ctx")?.value||65536),maxOut=maxOutputTokens(layer);
-  const {schemaText,combined}=providerModelPrompt(system,user,schema);const wantsStream=shouldStream(key,profile);
-  const t=beginTelemetry(key,profile,model,label,wantsStream?"stream":"buffered");let url=profile.endpoint,headers={"Content-Type":"application/json"},body;
+async function requestSingleProvider(key,profile,model,layer,system,user,schema,label,requestOptions={}){
+  const temp=requestOptions.temp??Number(runtimeEl("temp")?.value||0),ctx=requestOptions.ctx??Number(runtimeEl("ctx")?.value||65536),maxOut=requestOptions.maxOut??maxOutputTokens(layer);
+  const {schemaText,combined}=providerModelPrompt(system,user,schema);const wantsStream=requestOptions.stream??shouldStream(key,profile);
+  const t=beginTelemetry(key,profile,model,label,wantsStream?"stream":"buffered");if(requestOptions.timeoutMs)t.timeoutMs=requestOptions.timeoutMs;if(requestOptions.audit)t.audit=true;let url=profile.endpoint,headers={"Content-Type":"application/json"},body;
   try{
     if(key==="aihorde_native")return await requestAIHordeNative(profile,model,combined,temp,ctx,maxOut,label,t);
     if(key==="peerwave")return await requestPeerwave(profile,model,system,user,schema,label,t,wantsStream);
@@ -2231,27 +2263,37 @@ async function requestSingleProvider(key,profile,model,layer,system,user,schema,
     endTelemetry(false,t.http||"ERR",t);throw e
   }
 }
-function poolCandidates(){
+function modelPreferenceScore(key,model,layer="extract"){
+  const m=String(model||"").toLowerCase();let s=0;const a=auditResultFor(key);if(a?.model===model)s+=10000;if(/auto\/free|arc-router|cheapest|ailiance$|default$/.test(m))s+=650;
+  const size=m.match(/(?:^|[^0-9])(\d{1,3})(?:\.?\d*)b(?:[^a-z]|$)/);if(size)s+=Math.min(500,Number(size[1])*4);if(/397b|675b|235b|120b|70b|49b|32b|30b|24b/.test(m))s+=240;if(/step-3\.7|qwen3|llama-3\.3|deepseek|mistral|nemotron|gpt-oss|hermes|glm/.test(m))s+=120;if(layer==="compile"&&/tiny|1\.5b|1b|3b/.test(m))s-=700;if(/vision|vlm|guard|safety/.test(m)&&layer!=="insight")s-=150;return s
+}
+function rankedPoolModels(key,p,layer="extract"){
+  const st=providerRuntime[key]||{},a=auditResultFor(key),list=[];const add=x=>{if(x&&!list.includes(x))list.push(x)};
+  add(a?.model);add(st.lastModelSuccess);add(p.model);(st.models||[]).forEach(add);(p._models||[]).forEach(add);(p.staticModels||[]).forEach(add);
+  let out=list.filter(Boolean);if(key==="kilo")out=out.filter(x=>x==="kilo-auto/free"||x==="openrouter/free"||/:free$/i.test(x));if(key==="opencode_free")out=out.filter(x=>/free|big-pickle/i.test(x));
+  return out.sort((a,b)=>modelPreferenceScore(key,b,layer)-modelPreferenceScore(key,a,layer))
+}
+function poolCandidates(layer="extract",opts={}){
   const now=Date.now();return ANON_POOL_KEYS
     .filter(k=>!(PROVIDER_DEFAULTS[k]?.excluded)&&!disabledAnonProviders.has(k))
     .map(k=>({key:k,p:providerConfig.profiles[k]||PROVIDER_DEFAULTS[k],st:providerRuntime[k]||{}}))
     .filter(x=>(x.st.cooldownUntil||0)<=now)
-    .sort((a,b)=>((a.st.failures||0)-(b.st.failures||0))||((b.p.trust||1)-(a.p.trust||1))||((a.st.latency??1e9)-(b.st.latency??1e9))||((a.st.lastUsed||0)-(b.st.lastUsed||0)))
+    .filter(x=>opts.ignoreAudit||!auditRoutingRejects(x.key,layer))
+    .sort((a,b)=>providerCandidateScore(b.key,b.p,b.st,layer)-providerCandidateScore(a.key,a.p,a.st,layer)||((a.st.lastUsed||0)-(b.st.lastUsed||0)))
 }
-function chosenPoolModel(key,p){
-  const st=providerRuntime[key]||{},models=st.models||p._models||[];
-  if(key==="opencode_free"){
-    const f=models.filter(x=>/free|big-pickle/i.test(x));return f[0]||p.model||"big-pickle"
-  }
-  return models[0]||p.model||({"llm7":"default","andy":"sweaterdog/andy-4:latest","blockrun":"nvidia/step-3.7-flash","arcrouter":"arc-router-v1","kilo":"kilo-auto/free","peerwave":"cheapest","tangle":"deepseek/deepseek-v4-flash","chat_at":"gpt-4o","tiamat":"chat","dandolo":"llama-3.3-70b","vedaya":"vedaya-bypass","agentbot_demo":"xiaomi/mimo-v2-pro","mlvoca":"deepseek-r1:1.5b","helloblue_test":"test-ai","iaqa_mcp":"qwen/qwen3-32b","ailiance":"ailiance","novai_free":"glm-4.6v-flash","mimocode":"mimo-auto"}[key]||"")
-}
+function chosenPoolModel(key,p,layer="extract"){return rankedPoolModels(key,p,layer)[0]||({"llm7":"default","andy":"sweaterdog/andy-4:latest","blockrun":"nvidia/step-3.7-flash","arcrouter":"arc-router-v1","kilo":"kilo-auto/free","peerwave":"cheapest","tangle":"gpt-4o-mini","chat_at":"gpt-4o","tiamat":"chat","dandolo":"llama-3.3-70b","vedaya":"vedaya-bypass","agentbot_demo":"xiaomi/mimo-v2-pro","mlvoca":"deepseek-r1:1.5b","helloblue_test":"test-ai","iaqa_mcp":"qwen/qwen3-32b","ailiance":"ailiance","novai_free":"glm-4.6v-flash","mimocode":"mimo-auto"}[key]||"")}
+function isModelSpecificFailure(error){const s=String(error?.message||error||"").toLowerCase();return /(model[^\n]{0,90}(not found|invalid|unsupported|unavailable|does not exist|unknown)|no workers.*model|http (400|404)[^\n]{0,160}model)/.test(s)}
 async function requestAnonymousPool(layer,system,user,schema,label){
-  let cs=poolCandidates();if(!cs.length){for(const k of ANON_POOL_KEYS){const st=providerRuntime[k]||(providerRuntime[k]={});st.cooldownUntil=0}cs=poolCandidates()}
+  let cs=poolCandidates(layer);if(!cs.length&&auditRoutingEnabled()){log(`${label} · no fresh burn-in-qualified routes; relaxing audit suppression`,`warn`);cs=poolCandidates(layer,{ignoreAudit:true})}
+  if(!cs.length){for(const k of ANON_POOL_KEYS){const st=providerRuntime[k]||(providerRuntime[k]={});st.cooldownUntil=0}cs=poolCandidates(layer,{ignoreAudit:true})}
   const errors=[];
   for(const x of cs){
-    const model=chosenPoolModel(x.key,x.p);x.st.lastUsed=Date.now();
-    try{structuredRouteByLabel[label]=x.key;log(`${label} · resolver → ${x.p.label} / ${model}`);return await requestSingleProvider(x.key,x.p,model,layer,system,user,schema,label)}
-    catch(e){errors.push(`${x.key}: ${e.message}`);log(`${label} · ${x.key} failed; failover`,"warn")}
+    const models=rankedPoolModels(x.key,x.p,layer);if(!models.length)models.push(chosenPoolModel(x.key,x.p,layer));const tryModels=models.filter(Boolean).slice(0,3);x.st.lastUsed=Date.now();
+    for(let mi=0;mi<tryModels.length;mi++){
+      const model=tryModels[mi];
+      try{structuredRouteByLabel[label]=x.key;log(`${label} · resolver → ${x.p.label} / ${model}${mi?` · model fallback ${mi+1}/${tryModels.length}`:""}`);const out=await requestSingleProvider(x.key,x.p,model,layer,system,user,schema,label);x.st.lastModelSuccess=model;renderPoolStatus();return out}
+      catch(e){errors.push(`${x.key}/${model}: ${e.message}`);if(isModelSpecificFailure(e)&&mi<tryModels.length-1){log(`${label} · ${x.key} model ${model} rejected; trying ${tryModels[mi+1]}`,"warn");continue}log(`${label} · ${x.key} failed; failover`,"warn");break}
+    }
   }
   throw new Error(`${label}: anonymous pool exhausted · ${errors.join(" | ").slice(0,1800)}`)
 }
@@ -2333,6 +2375,63 @@ async function probeAnonymousPool(){
   return results
 }
 
+
+function auditSave(){try{localStorage.setItem("ontologyProviderAuditResults",JSON.stringify(providerAuditResults))}catch{}}
+function auditB64Bytes(b64){const bin=atob(b64),out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out}
+async function buildAuditPdfSource(){const started=performance.now(),file=new File([auditB64Bytes(MOCK_PROVIDER_AUDIT_PDF_B64)],"provider-audit-mock.pdf",{type:"application/pdf"}),src=await parseFile(file);auditPdfMeta={name:src.name,kind:src.kind,chars:String(src.content||"").length,meta:src.meta,parseMs:performance.now()-started};return src}
+function auditSemanticScore(v){if(!v||typeof v!=="object")return 0;const norm=x=>String(x??"").trim().toLowerCase(),arr=Array.isArray(v.concepts)?v.concepts.map(norm):[];const checks=[norm(v.project)==="northstar relay",norm(v.owner)==="operations team",norm(v.status)==="active",norm(v.priority)==="high",norm(v.deadline)==="2026-09-15",Number(v.activation_minutes)===30,Number(v.coordination_threshold)===4,Number(v.coordination_percent)===12,v.network_access_required===true,v.host_provides_gateway===true,["project","site","activation request","requirement","readiness state"].filter(x=>arr.some(y=>y.includes(x))).length>=4];return checks.filter(Boolean).length/checks.length}
+function auditFailureClass(e){const s=String(e?.message||e||"").toLowerCase();if(e?.structured)return `structured:${e.kind||"schema"}`;if(/abort|timeout|timed out/.test(s))return"timeout";if(/failed to fetch|networkerror|load failed|cors/.test(s))return"cors/network";if(/http 401|http 403|unauthor|forbidden/.test(s))return"auth";if(/http 402|credits exhausted|insufficient/.test(s))return"quota";if(/http 429|rate limit/.test(s))return"rate";if(isModelSpecificFailure(e))return"model";if(/http 5\d\d/.test(s))return"upstream";return"transport"}
+function auditTelemetryFor(label,key){return telemetryHistory.find(x=>x.label===label&&x.key===key)||null}
+function auditBestAttempt(attempts){return [...attempts].sort((a,b)=>({pass:3,degraded:2,fail:1}[b.status]-({pass:3,degraded:2,fail:1}[a.status]))||(b.semanticScore||0)-(a.semanticScore||0)||(a.latencyMs||1e9)-(b.latencyMs||1e9))[0]||null}
+async function auditOneProvider(key,source){
+  const p=providerConfig.profiles[key]||PROVIDER_DEFAULTS[key],baseTimeout=Math.max(15,Number(runtimeEl("auditTimeout")?.value||45))*1000,maxModels=Math.max(1,Math.min(3,Number(runtimeEl("auditModelsPerProvider")?.value||2)));providerAuditProgress[key]={status:"probing",model:"",detail:"registry"};renderAuditResults();
+  try{await probeProviderKey(key)}catch{}
+  let models=rankedPoolModels(key,p,"extract");if(!models.length){const m=chosenPoolModel(key,p,"extract");if(m)models=[m]}models=models.slice(0,maxModels);
+  if(!models.length){const result={key,label:p.label,status:"fail",schemaOk:false,semanticScore:0,failureClass:"model",error:"No model candidate available",timestamp:Date.now(),origin:currentAuditOrigin(),attempts:[]};providerAuditResults[key]=result;auditSave();return result}
+  const attempts=[];const user=`SOURCE NAME: ${source.name}\nSOURCE KIND: ${source.kind}\nPDF EXTRACTION META: ${source.meta}\n\nPDF-EXTRACTED TEXT:\n${source.content}`;
+  for(const model of models){
+    let lastStructured=null;
+    for(let repair=0;repair<=1;repair++){
+      if(auditAbortController?.signal.aborted)throw new DOMException("Audit aborted","AbortError");
+      const label=`burn-in ${key} · ${model} · ${repair?"repair":"raw"}`;providerAuditProgress[key]={status:"running",model,detail:repair?`corrective ${lastStructured?.kind||"schema"}`:"mock PDF"};renderAuditResults();
+      const sys=repair&&lastStructured?PROVIDER_AUDIT_SYSTEM+recoveryInstruction(lastStructured,1):PROVIDER_AUDIT_SYSTEM,usr=repair&&lastStructured?recoveryUserContext(user,lastStructured,1):user;
+      const started=performance.now();
+      try{
+        const timeout=key==="aihorde_native"||key==="petals"?Math.max(baseTimeout,75000):baseTimeout;
+        const text=await requestSingleProvider(key,p,model,"extract",sys,usr,PROVIDER_AUDIT_SCHEMA,label,{temp:0,maxOut:640,stream:true,timeoutMs:timeout,audit:true});
+        const tel=auditTelemetryFor(label,key),parsed=parseStructuredModelText(text,PROVIDER_AUDIT_SCHEMA,label),semanticScore=auditSemanticScore(parsed),schemaOk=!validateRequiredShape(parsed,PROVIDER_AUDIT_SCHEMA),status=schemaOk&&semanticScore>=.82?"pass":schemaOk&&semanticScore>=.55?"degraded":"fail";
+        const a={model,status,schemaOk,semanticScore,repairCount:repair,latencyMs:tel?Math.round((tel.ended-tel.started)||performance.now()-started):Math.round(performance.now()-started),ttftMs:tel?.ttft?Math.round(tel.ttft):null,chunks:tel?.chunks||0,chars:tel?.chars||String(text).length,reasoningChars:tel?.reasoningChars||0,http:tel?.http||"200",streamObserved:(tel?.chunks||0)>1,error:"",failureClass:status==="fail"?"semantic":"",timestamp:Date.now()};attempts.push(a);lastStructured=null;if(status==="pass")break;if(status==="degraded")break;break
+      }catch(e){
+        const tel=auditTelemetryFor(label,key);attempts.push({model,status:"fail",schemaOk:false,semanticScore:0,repairCount:repair,latencyMs:tel?.ended?Math.round(tel.ended-tel.started):Math.round(performance.now()-started),ttftMs:tel?.ttft?Math.round(tel.ttft):null,chunks:tel?.chunks||0,chars:tel?.chars||0,reasoningChars:tel?.reasoningChars||0,http:tel?.http||"ERR",streamObserved:(tel?.chunks||0)>1,error:String(e?.message||e).slice(0,900),failureClass:auditFailureClass(e),timestamp:Date.now()});
+        if(e?.name==="AbortError")throw e;if(e?.structured&&repair===0){lastStructured=e;continue}break
+      }
+    }
+    const bestForModel=auditBestAttempt(attempts.filter(x=>x.model===model));if(bestForModel?.status==="pass")break
+  }
+  const best=auditBestAttempt(attempts)||{status:"fail",schemaOk:false,semanticScore:0,error:"No completed attempt",failureClass:"transport"};const result={key,label:p.label,...best,attempts,timestamp:Date.now(),origin:currentAuditOrigin(),pdfChars:auditPdfMeta?.chars||0,pdfParseMs:Math.round(auditPdfMeta?.parseMs||0)};providerAuditResults[key]=result;
+  const st=providerRuntime[key]||(providerRuntime[key]={});st.auditStatus=result.status;st.auditScore=result.semanticScore;st.auditAt=result.timestamp;if(result.status==="pass"){st.lastModelSuccess=result.model;st.failures=Math.max(0,(st.failures||0)-1)}else if(result.status==="fail")st.failures=(st.failures||0)+1;auditSave();renderPoolStatus();return result
+}
+function renderAuditResults(){
+  const panel=runtimeEl("providerAuditPanel"),rows=runtimeEl("auditRows"),summary=runtimeEl("auditSummary");if(!panel||!rows||!summary)return;const has=Object.keys(providerAuditResults).length||auditRunning;panel.classList.toggle("on",!!has);const now=Date.now(),pass=ANON_POOL_KEYS.filter(k=>auditResultFor(k)?.status==="pass").length,degraded=ANON_POOL_KEYS.filter(k=>auditResultFor(k)?.status==="degraded").length,fail=ANON_POOL_KEYS.filter(k=>auditResultFor(k)?.status==="fail").length,pending=ANON_POOL_KEYS.filter(k=>!providerAuditResults[k]&&!providerAuditProgress[k]).length;summary.textContent=`${auditRunning?"RUNNING · ":""}mock PDF ${auditPdfMeta?`${auditPdfMeta.chars} ch · parse ${Math.round(auditPdfMeta.parseMs)} ms · `:""}${pass} pass · ${degraded} degraded · ${fail} fail · ${pending} untested · evidence freshness 6h · origin ${currentAuditOrigin()}`;
+  const ranked=[...ANON_POOL_KEYS].sort((a,b)=>providerCandidateScore(b,providerConfig.profiles[b]||PROVIDER_DEFAULTS[b],providerRuntime[b]||{},"compile")-providerCandidateScore(a,providerConfig.profiles[a]||PROVIDER_DEFAULTS[a],providerRuntime[a]||{},"compile"));const rank=Object.fromEntries(ranked.map((k,i)=>[k,i+1]));
+  let html='<div class="audit-row head"><div>#</div><div>provider</div><div>model</div><div>state</div><div>fidelity</div><div>ttft</div><div>total</div><div>detail</div></div>';
+  for(const key of ANON_POOL_KEYS){const p=providerConfig.profiles[key]||PROVIDER_DEFAULTS[key],prog=providerAuditProgress[key],r=providerAuditResults[key],fresh=r&&r.origin===currentAuditOrigin()&&now-Number(r.timestamp||0)<=AUDIT_FRESH_MS,state=prog?.status==="running"||prog?.status==="probing"?"running":r?.status||"pending",model=prog?.model||r?.model||chosenPoolModel(key,p,"extract")||"—",detail=prog?.detail||(r?(fresh?(r.error||r.failureClass||`${r.repairCount?"repaired · ":""}${r.schemaOk?"schema ok":"schema fail"}`):"stale result"):(disabledAnonProviders.has(key)?"manual disabled":"not tested")),fidelity=r?`${Math.round((r.semanticScore||0)*100)}%`:"—",ttft=r?.ttftMs?`${r.ttftMs}ms`:"—",total=r?.latencyMs?`${(r.latencyMs/1000).toFixed(1)}s`:"—";html+=`<div class="audit-row ${state}"><div class="audit-cell">${rank[key]||"—"}</div><div class="audit-cell" title="${esc(p.label)}">${esc(key)}</div><div class="audit-cell" title="${esc(model)}">${esc(model)}</div><div class="audit-cell audit-status">${esc(state)}</div><div class="audit-cell">${esc(fidelity)}</div><div class="audit-cell">${esc(ttft)}</div><div class="audit-cell">${esc(total)}</div><div class="audit-cell" title="${esc(detail)}">${esc(detail)}</div></div>`}
+  rows.innerHTML=html;renderPoolOrder()
+}
+async function runProviderAudit(){
+  if(auditRunning)return;auditRunning=true;providerAuditProgress={};auditAbortController=new AbortController();const previousAborter=aborter;aborter=auditAbortController;runtimeEl("auditPool").disabled=true;runtimeEl("stopAudit").disabled=false;setBusy(true,"provider burn-in");renderAuditResults();
+  try{
+    log(`Provider burn-in · parsing embedded mock PDF through PDF.js intake`);const source=await buildAuditPdfSource();log(`Provider burn-in · PDF parsed · ${source.meta} · ${source.content.length.toLocaleString()} ch`,"good");
+    const concurrency=Math.max(1,Math.min(4,Number(runtimeEl("auditConcurrency")?.value||2))),keys=[...ANON_POOL_KEYS];let cursor=0,done=0;for(const k of keys)providerAuditProgress[k]={status:"pending",model:"",detail:"queued"};renderAuditResults();
+    const worker=async id=>{while(true){const idx=cursor++;if(idx>=keys.length)return;const key=keys[idx];try{const r=await auditOneProvider(key,source);providerAuditProgress[key]={status:r.status,model:r.model||"",detail:r.error||r.failureClass||`fidelity ${Math.round((r.semanticScore||0)*100)}%`};log(`burn-in ${key} · ${r.status} · ${r.model||"—"} · fidelity ${Math.round((r.semanticScore||0)*100)}% · ${(r.latencyMs/1000).toFixed(1)}s`,r.status==="pass"?"good":r.status==="degraded"?"warn":"err")}catch(e){if(e?.name==="AbortError")throw e;providerAuditProgress[key]={status:"fail",model:"",detail:String(e.message||e)};log(`burn-in ${key} · ${e.message||e}`,"err")}finally{done++;log(`Provider burn-in progress · ${done}/${keys.length}`);renderAuditResults()}}};
+    await Promise.all(Array.from({length:Math.min(concurrency,keys.length)},(_,i)=>worker(i+1)));auditSave();renderPoolStatus();const ps=ANON_POOL_KEYS.filter(k=>auditResultFor(k)?.status==="pass").length,dg=ANON_POOL_KEYS.filter(k=>auditResultFor(k)?.status==="degraded").length,fl=ANON_POOL_KEYS.filter(k=>auditResultFor(k)?.status==="fail").length;log(`Provider burn-in complete · ${ps} pass · ${dg} degraded · ${fl} fail · AUTO order updated from observed browser execution.`,ps?"good":"warn")
+  }catch(e){if(e?.name==="AbortError")log("Provider burn-in aborted.","warn");else log(`Provider burn-in failed: ${e.message||e}`,"err")}
+  finally{auditRunning=false;auditAbortController=null;aborter=previousAborter;runtimeEl("auditPool").disabled=false;runtimeEl("stopAudit").disabled=true;setBusy(false);renderAuditResults();renderPoolStatus()}
+}
+function stopProviderAudit(){auditAbortController?.abort()}
+function clearProviderAudit(){providerAuditResults={};providerAuditProgress={};auditPdfMeta=null;auditSave();renderAuditResults();renderPoolStatus();log("Provider burn-in evidence cleared.","good")}
+function exportProviderAudit(){const payload={generated_at:new Date().toISOString(),origin:currentAuditOrigin(),mock_pdf:auditPdfMeta,ranking:{extract:poolCandidates("extract",{ignoreAudit:false}).map(x=>({provider:x.key,model:chosenPoolModel(x.key,x.p,"extract"),score:Math.round(providerCandidateScore(x.key,x.p,x.st,"extract"))})),compile:poolCandidates("compile",{ignoreAudit:false}).map(x=>({provider:x.key,model:chosenPoolModel(x.key,x.p,"compile"),score:Math.round(providerCandidateScore(x.key,x.p,x.st,"compile"))}))},results:providerAuditResults};saveBlob(`ontology-provider-burnin-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(payload,null,2),"application/json")}
+
 const renderProviderEditorV5Base=renderProviderEditor;
 renderProviderEditor=function(){
   renderProviderEditorV5Base();
@@ -2351,7 +2450,7 @@ connect=async function(){
   try{
     runtimeEl("statusText").textContent="connecting";
     if(key==="anonymous_pool"){
-      setMainModelOptions(["auto"],"auto");p.model="auto";const rs=await probeAnonymousPool();const live=rs.filter(x=>x.ok&&!x.catalogOnly).length,catalog=rs.filter(x=>x.ok&&x.catalogOnly).length,ok=live+catalog;runtimeEl("statusText").textContent=`anon pool · ${live} live + ${catalog} catalog`;runtimeEl("dot").className=ok?"dot ok":"dot";saveProviderConfig();return
+      setMainModelOptions(["auto"],"auto");p.model="auto";const rs=await probeAnonymousPool();const live=rs.filter(x=>x.ok&&!x.catalogOnly).length,catalog=rs.filter(x=>x.ok&&x.catalogOnly).length,ok=live+catalog;const audited=ANON_POOL_KEYS.filter(k=>auditResultFor(k)?.status==="pass").length;runtimeEl("statusText").textContent=`anon pool · ${live} live + ${catalog} catalog · ${audited} burn-in pass`;runtimeEl("dot").className=ok?"dot ok":"dot";saveProviderConfig();return
     }
     if(["ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","openapis_anthropic","mangaai","petals","aihorde_native","kilo","peerwave","tangle","chat_at","tiamat","distil_sn97","ailiance","novai_free","mimocode","dandolo","vedaya","agentbot_demo","mlvoca","helloblue_test","iaqa_mcp"].includes(key)){
       const r=await probeProviderKey(key);let models=r.models||[];if(!models.length&&p.model)models=[p.model];setMainModelOptions(models,p.model||models[0]||"");p.model=runtimeEl("model").value||p.model;runtimeEl("statusText").textContent=`${p.label} · ${r.ok?models.length+" models":"registry unavailable"}`;runtimeEl("dot").className=r.ok?"dot ok":"dot";saveProviderConfig();return
@@ -2372,12 +2471,12 @@ syncRuntimeFromConfig=function(){
 };
 
 function initInferenceFabricUI(){
-  const defaults={responseTransport:"auto",reasoningMode:"off",shardMode:"auto",chunkOverlap:"600",shardConcurrency:"auto",maxOutputTokens:"16384",requestTimeout:"180",showReasoning:false};
+  const defaults={responseTransport:"auto",reasoningMode:"off",shardMode:"auto",chunkOverlap:"600",shardConcurrency:"auto",maxOutputTokens:"16384",requestTimeout:"180",showReasoning:false,useAuditRanking:true,auditConcurrency:"2",auditTimeout:"45",auditModelsPerProvider:"2"};
   let cfg={};try{cfg=JSON.parse(localStorage.getItem("ontologyInferenceFabric")||"{}")}catch{}
   for(const [id,def] of Object.entries(defaults)){const el=runtimeEl(id);if(!el)continue;if(el.type==="checkbox")el.checked=cfg[id]??def;else el.value=cfg[id]??def;el.addEventListener("change",()=>{const out={};for(const k of Object.keys(defaults)){const x=runtimeEl(k);out[k]=x.type==="checkbox"?x.checked:x.value}localStorage.setItem("ontologyInferenceFabric",JSON.stringify(out));renderTelemetry()})}
-  runtimeEl("probePool").onclick=probeAnonymousPool;
+  runtimeEl("probePool").onclick=probeAnonymousPool;runtimeEl("auditPool").onclick=runProviderAudit;runtimeEl("stopAudit").onclick=stopProviderAudit;runtimeEl("exportAudit").onclick=exportProviderAudit;runtimeEl("clearAudit").onclick=clearProviderAudit;
   runtimeEl("poolStatus").onclick=e=>{const chip=e.target.closest?.("[data-pool-key]");if(chip)toggleAnonProvider(chip.dataset.poolKey)};
-  renderPoolStatus();renderTelemetry()
+  runtimeEl("useAuditRanking").addEventListener("change",()=>{renderPoolStatus();renderAuditResults()});renderPoolStatus();renderTelemetry();renderAuditResults()
 }
 setTimeout(initInferenceFabricUI,0);
 /* -------------- end v5 anonymous inference fabric + streaming observability -------------- */
