@@ -74,6 +74,58 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;place-items:center;z-index:50}.modal.on{display:grid}
 .modal-card{width:min(760px,calc(100vw - 40px));max-height:80vh;overflow:auto;background:#111;border:1px solid #777;padding:14px}
 @media(max-width:1150px){.main{grid-template-columns:290px 1fr}.right{display:none}}
+
+/* v2 workspace */
+*{scrollbar-width:none;-ms-overflow-style:none}*::-webkit-scrollbar{width:0;height:0;display:none}
+:root{--left-w:320px;--right-w:390px;--lower-h:230px;--lower-left-w:50%}
+.main{grid-template-columns:var(--left-w) 5px minmax(0,1fr) 5px var(--right-w);overflow:hidden}
+.left,.right{min-width:0;overflow:auto;position:relative}
+.splitter{background:#151515;position:relative;z-index:8;touch-action:none;user-select:none}
+.splitter:hover,.splitter.dragging{background:#555}
+.splitter.vertical{cursor:col-resize}.splitter.horizontal{cursor:row-resize}
+#leftSplitter,#rightSplitter{border-left:1px solid #202020;border-right:1px solid #202020}
+.panel-rail{height:28px;display:flex;align-items:center;border-bottom:1px solid var(--line);background:#0b0b0b;position:sticky;top:0;z-index:8}
+.panel-rail button{border:0;width:28px;height:27px;padding:5px;display:grid;place-items:center}
+.panel-rail svg,.canvas-btn svg,.header-icon svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6}
+.left.minimized,.right.minimized{overflow:hidden}
+.left.minimized>:not(.panel-rail),.right.minimized>:not(.panel-rail){display:none!important}
+.left.minimized .panel-rail,.right.minimized .panel-rail{height:100%;align-items:flex-start;justify-content:center;border-bottom:0}
+.left.minimized .panel-rail button,.right.minimized .panel-rail button{margin-top:4px}
+.center{grid-template-rows:40px minmax(0,1fr) 5px var(--lower-h);overflow:hidden}
+.view{overflow:hidden;position:relative;background:#090909;cursor:grab}
+.view.panning{cursor:grabbing}
+#graphCanvas{display:block;width:100%;height:100%;position:absolute;inset:0;touch-action:none}
+#minimapCanvas{position:absolute;right:8px;bottom:8px;width:154px;height:104px;border:1px solid #555;background:#0b0b0b;z-index:6;touch-action:none}
+.canvas-controls{position:absolute;left:8px;bottom:8px;z-index:7;display:flex;border:1px solid #444;background:#0b0b0b}
+.canvas-btn{width:27px;height:27px;padding:5px;border:0;border-right:1px solid #333;display:grid;place-items:center}
+.canvas-btn:last-child{border-right:0}
+.empty{pointer-events:none}
+.lower{position:relative;grid-template-columns:minmax(160px,var(--lower-left-w)) 5px minmax(160px,1fr);border-top:0;overflow:hidden}
+.lower>.lower-pane{min-width:0;overflow:auto;padding:var(--pad)}
+.lower>.lower-pane+.splitter,.lower>.splitter+.lower-pane{border-left:0}
+.lower-toggle{position:absolute;right:0;top:0;z-index:9;width:28px;height:28px;padding:5px;border-width:0 0 1px 1px}
+.lower.minimized{display:block;overflow:hidden}
+.lower.minimized>:not(.lower-toggle){display:none!important}
+.lower.minimized .lower-toggle{position:static;float:right;border:0}
+.context-select{width:auto;min-width:155px;height:27px;padding:4px 7px;font-size:9px}
+.focus-toggle{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.05em}
+.focus-toggle input{width:auto;margin:0}
+.source-card.focused{border-color:#ddd}.source-card.focused .card-head{background:#171717}
+.node-focus-list{display:flex;flex-wrap:wrap;gap:4px;max-height:96px;overflow:auto}
+.node-focus-pill{border:1px solid #444;padding:3px 5px;font:8px ui-monospace,monospace;background:#111}
+.node-modal-card{width:min(900px,calc(100vw - 36px));max-height:86vh}
+.node-modal-grid{display:grid;grid-template-columns:130px minmax(0,1fr);gap:0;border-top:1px solid #333}
+.node-modal-grid>div{padding:8px;border-bottom:1px solid #282828}.node-modal-grid>div:nth-child(odd){font:8px ui-monospace,monospace;text-transform:uppercase;color:#777;border-right:1px solid #282828}
+.config-card{width:min(1040px,calc(100vw - 30px));height:min(88vh,900px);display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding:0}
+.config-head,.config-foot{padding:10px;border-bottom:1px solid #444;display:flex;gap:6px;align-items:center}.config-foot{border-bottom:0;border-top:1px solid #444}
+.config-body{overflow:auto;padding:12px}.config-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.provider-card,.layer-card{border:1px solid #333;padding:10px;background:#0c0c0c}.provider-card h4,.layer-card h4{margin:0 0 8px;font-size:9px;text-transform:uppercase;letter-spacing:.1em}
+.layer-card textarea{min-height:150px;font:9px/1.45 ui-monospace,monospace}.provider-card input,.provider-card select,.layer-card input,.layer-card select{font-size:10px}
+.config-note{border-left:2px solid #777;padding:7px 9px;color:#999;font-size:9px;margin-bottom:10px}
+#provider{width:auto;min-width:130px}.model-input{min-width:130px}
+.header-icon{width:29px;height:27px;padding:5px;display:grid;place-items:center}
+@media(max-width:1150px){.main{grid-template-columns:var(--left-w) 5px minmax(0,1fr) 5px var(--right-w)}.right{display:block}}
+
 </style>
 </head>
 <body>
@@ -84,16 +136,21 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
   <button id="connectBtn">connect</button>
   <button id="compileBtn">compile</button>
   <button id="analyzeBtn">analyze</button>
+  <button id="configBtn" class="header-icon" title="LLM configuration" aria-label="LLM configuration"><svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M4 13.5v-3l2.1-.7.8-1.9-1-2 2.1-2.1 2 1 1.9-.8.7-2.1h3l.7 2.1 1.9.8 2-1 2.1 2.1-1 2 .8 1.9 2.1.7v3l-2.1.7-.8 1.9 1 2-2.1 2.1-2-1-1.9.8-.7 2.1h-3l-.7-2.1-1.9-.8-2 1-2.1-2.1 1-2-.8-1.9L4 13.5Z"/></svg></button>
   <div class="spacer"></div>
   <div class="status"><span id="dot" class="dot"></span><span id="statusText">local</span></div>
 </header>
 
 <div class="main">
-<aside class="left">
+<aside class="left side-panel" id="leftPanel">
+  <div class="panel-rail"><button id="toggleLeft" title="Collapse left panel"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button></div>
   <div class="sec">
     <div class="sec-head"><b>runtime</b></div>
-    <div class="field"><label>ollama</label><input id="host" value="http://127.0.0.1:11434"></div>
-    <div class="field"><label>model</label><select id="model"><option value="">connect first</option></select></div>
+    <div class="row">
+      <div class="field grow"><label>provider</label><select id="provider"><option value="ollama">ollama</option><option value="openai_compatible">openai-compatible</option><option value="openai">openai</option><option value="anthropic">anthropic</option><option value="gemini">gemini</option></select></div>
+      <div class="field grow"><label>model</label><input id="model" class="model-input" list="modelList" placeholder="model name"><datalist id="modelList"></datalist></div>
+    </div>
+    <div class="field"><label>endpoint</label><input id="host" value="http://127.0.0.1:11434"></div>
     <div class="row">
       <div class="field grow"><label>temp</label><input id="temp" type="number" value="0" step=".1"></div>
       <div class="field grow"><label>context</label><input id="ctx" type="number" value="65536" step="1024"></div>
@@ -115,6 +172,14 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
   <div class="sec">
     <div class="sec-head"><b>model controls</b></div>
     <div class="field"><label>scope / intent</label><textarea id="scope" placeholder="What operational world should be modeled? Leave blank for automatic scope discovery."></textarea></div>
+    <div class="field"><label>LLM context</label><select id="contextMode">
+      <option value="all">all sources + full graph</option>
+      <option value="focused_sources">focused sources only</option>
+      <option value="focused_nodes">focused nodes only</option>
+      <option value="focused_neighbors">focused nodes + 1-hop</option>
+      <option value="focused_combined">focused sources + focused nodes</option>
+    </select></div>
+    <div id="focusSummary" class="small">0 focused sources · 0 focused nodes</div>
     <div class="field"><label>authority policy</label>
       <select id="authorityPolicy">
         <option value="strict">strict — source authority wins</option>
@@ -127,11 +192,15 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
     <label class="check"><input id="inferPolicies" type="checkbox" checked> infer governance + approvals</label>
   </div>
 </aside>
+<div class="splitter vertical" id="leftSplitter"></div>
 
 <main class="center">
   <div class="toolbar">
     <button id="fitBtn">fit</button>
     <button id="layoutBtn">layout</button>
+    <select id="toolbarContextMode" class="context-select" title="LLM context focus">
+      <option value="all">context · all</option><option value="focused_sources">context · sources</option><option value="focused_nodes">context · nodes</option><option value="focused_neighbors">context · nodes+1</option><option value="focused_combined">context · combined</option>
+    </select>
     <button id="jsonBtn">json</button>
     <button id="saveBtn">save model</button>
     <button id="loadModelBtn">load model</button>
@@ -141,15 +210,21 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
   </div>
 
   <div id="view" class="view">
-    <div id="stage" class="stage">
-      <svg id="edges" class="edges"></svg>
-      <div id="nodes"></div>
-      <div id="empty" class="empty">DROP DATA → COMPILE</div>
+    <canvas id="graphCanvas"></canvas>
+    <canvas id="minimapCanvas" title="Graph minimap"></canvas>
+    <div class="canvas-controls">
+      <button id="resetViewBtn" class="canvas-btn" title="Reset view"><svg viewBox="0 0 24 24"><path d="M4 4v6h6"/><path d="M5.5 9A8 8 0 1 1 6 17"/></svg></button>
+      <button id="fitGraphBtn" class="canvas-btn" title="Fit full graph"><svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg></button>
+      <button id="zoomOutBtn" class="canvas-btn" title="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+      <button id="zoomInBtn" class="canvas-btn" title="Zoom in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
     </div>
+    <div id="empty" class="empty">DROP DATA → COMPILE</div>
   </div>
+  <div class="splitter horizontal" id="lowerSplitter"></div>
 
-  <div class="lower">
-    <div class="objective">
+  <div class="lower" id="lowerPanel">
+    <button id="toggleLower" class="lower-toggle" title="Collapse lower panel"><svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6"><path d="m5 15 7-7 7 7"/></svg></button>
+    <div class="objective lower-pane">
       <div class="sec-head"><b>objective</b><div class="spacer"></div><button id="clearAnalysis">clear</button></div>
       <textarea id="objective" placeholder="Ask for an operational insight, decision, risk, anomaly, plan, dependency, optimization target, root cause, forecast implication, next-best action..."></textarea>
       <div class="row">
@@ -166,14 +241,17 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
       <div class="hrule"></div>
       <div id="logs"></div>
     </div>
-    <div>
+    <div class="splitter vertical" id="lowerInnerSplitter"></div>
+    <div class="lower-pane">
       <div class="sec-head"><b>result</b><div class="spacer"></div><span id="analysisScore" class="small"></span></div>
       <div id="result" class="result"><span class="small">No analysis.</span></div>
     </div>
   </div>
 </main>
+<div class="splitter vertical" id="rightSplitter"></div>
 
-<aside class="right">
+<aside class="right side-panel" id="rightPanel">
+  <div class="panel-rail" style="justify-content:flex-start"><button id="toggleRight" title="Collapse right panel"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
   <div class="tabs">
     <button class="tab on" data-pane="inspectPane">inspect</button>
     <button class="tab" data-pane="sourcePane">lineage</button>
@@ -208,7 +286,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
         <option value="graphql">GraphQL SDL</option>
         <option value="csv">CSV schema inventory</option>
         <option value="markdown">Markdown model spec</option>
-        <option value="custom">Custom via Ollama</option>
+        <option value="custom">Custom via configured LLM</option>
       </select>
     </div>
     <div id="customFormatWrap" class="field" style="display:none"><label>custom contract</label><textarea id="customFormat" placeholder="Describe exact target syntax/schema/format."></textarea></div>
@@ -234,6 +312,27 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
   <div class="modal-card">
     <div class="row" style="margin-bottom:8px"><b class="mono">MODEL JSON</b><div class="spacer"></div><button id="applyJson">apply</button><button id="closeJson">close</button></div>
     <textarea id="ontologyJson" spellcheck="false"></textarea>
+  </div>
+</div>
+
+<div id="nodeModal" class="modal">
+  <div class="modal-card node-modal-card">
+    <div class="row" style="margin-bottom:8px"><span id="nodeModalKind" class="badge">node</span><b id="nodeModalTitle" class="mono"></b><div class="spacer"></div><button id="nodeFocusBtn">focus</button><button id="closeNodeModal">close</button></div>
+    <div id="nodeModalBody"></div>
+  </div>
+</div>
+
+<div id="configModal" class="modal">
+  <div class="modal-card config-card">
+    <div class="config-head"><b class="mono">LLM CONFIG</b><div class="spacer"></div><label class="check"><input id="persistKeys" type="checkbox"> persist API keys locally</label><button id="closeConfig">close</button></div>
+    <div class="config-body">
+      <div class="config-note">Browser-direct external API keys are visible to this page. Persistence is off by default. For deployed or shared use, point the OpenAI-compatible profile at a trusted local/server-side proxy instead of storing provider secrets in the browser.</div>
+      <div class="sec-head"><b>providers</b></div>
+      <div id="providerEditor" class="config-grid"></div>
+      <div class="sec-head" style="margin-top:14px"><b>LLM layers</b></div>
+      <div id="layerEditor" class="config-grid"></div>
+    </div>
+    <div class="config-foot"><button id="saveConfig">save</button><button id="resetConfig">reset all</button><div class="spacer"></div><span class="small">Ollama remains the default.</span></div>
   </div>
 </div>
 
@@ -511,9 +610,181 @@ function jsonld(){const ctx={id:"@id",type:"@type",label:"http://www.w3.org/2000
 async function renderOutput(){if(!ontology){log("No model to translate.","err");return}const f=$("#format").value;let out="";if(f==="json"){out=JSON.stringify(ontology,null,2);outputExt="json"}else if(f==="jsonld"){out=jsonld();outputExt="jsonld"}else if(f==="yaml"){out=yaml(ontology);outputExt="yaml"}else if(f==="mermaid"){out=mermaid();outputExt="mmd"}else if(f==="cypher"){out=cypher();outputExt="cypher"}else if(f==="sql"){out=sql();outputExt="sql"}else if(f==="graphql"){out=graphql();outputExt="graphql"}else if(f==="csv"){out=csv();outputExt="csv"}else if(f==="markdown"){out=markdown();outputExt="md"}else{const contract=$("#customFormat").value.trim();if(!contract){log("Describe the custom output contract.","err");return}setBusy(true,"translating");try{out=await ollamaText(prompts.custom_output_system,tpl(prompts.custom_output_user,{FORMAT:contract,ONTOLOGY:JSON.stringify(ontology)}),"custom output");outputExt="txt"}finally{setBusy(false)}}$("#outputText").value=out}
 function renderPromptEditor(){const r=$("#promptEditor");r.innerHTML="";Object.entries(prompts).forEach(([k,v])=>{const d=document.createElement("div");d.className="field";d.innerHTML=`<label>${esc(k)}</label><textarea data-prompt="${esc(k)}" style="min-height:170px;font:9px/1.45 ui-monospace,monospace"></textarea>`;d.querySelector("textarea").value=v;r.appendChild(d)})}
 
+
+/* ---------------- v2 interaction/runtime layer ---------------- */
+const PROVIDER_DEFAULTS={
+  ollama:{label:"Ollama",endpoint:"http://127.0.0.1:11434",model:"",apiKey:""},
+  openai_compatible:{label:"OpenAI-compatible",endpoint:"http://127.0.0.1:8000/v1/chat/completions",model:"",apiKey:""},
+  openai:{label:"OpenAI",endpoint:"https://api.openai.com/v1/chat/completions",model:"",apiKey:""},
+  anthropic:{label:"Anthropic",endpoint:"https://api.anthropic.com/v1/messages",model:"",apiKey:""},
+  gemini:{label:"Gemini",endpoint:"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",model:"",apiKey:""}
+};
+const LAYERS={extract:{name:"source extraction",systemKey:"extract_system",userKey:"extract_user"},compile:{name:"ontology compilation",systemKey:"compile_system",userKey:"compile_user"},insight:{name:"operational analysis",systemKey:"insight_system",userKey:"insight_user"},custom_output:{name:"custom translation",systemKey:"custom_output_system",userKey:"custom_output_user"}};
+let providerConfig=loadProviderConfig();
+let focusedNodeIds=new Set(JSON.parse(localStorage.getItem("ontologyFocusedNodes")||"[]"));
+let layoutState=loadLayoutState();
+let graphView=loadGraphView();
+let nodePositions=JSON.parse(localStorage.getItem("ontologyNodePositions")||"{}");
+let canvasNodes=[];
+
+function loadProviderConfig(){
+  let stored={};try{stored=JSON.parse(localStorage.getItem("ontologyProviderConfig")||"{}")||{}}catch{}
+  const profiles={};for(const [k,v] of Object.entries(PROVIDER_DEFAULTS))profiles[k]={...v,...(stored.profiles?.[k]||{})};
+  // Keys are only restored when the user explicitly opted into persistence.
+  const persist=!!stored.persistKeys;if(!persist)Object.values(profiles).forEach(x=>x.apiKey="");
+  return {defaultProvider:stored.defaultProvider||"ollama",persistKeys:persist,profiles,layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""},...(stored.layers||{})}};
+}
+function saveProviderConfig(){
+  const out=JSON.parse(JSON.stringify(providerConfig));if(!out.persistKeys)Object.values(out.profiles).forEach(x=>x.apiKey="");localStorage.setItem("ontologyProviderConfig",JSON.stringify(out));
+}
+function loadLayoutState(){try{return {...{leftW:320,rightW:390,lowerH:230,lowerLeftW:420,leftMin:false,rightMin:false,lowerMin:false,leftPrev:320,rightPrev:390,lowerPrev:230},...JSON.parse(localStorage.getItem("ontologyLayoutState")||"{}")}}catch{return {leftW:320,rightW:390,lowerH:230,lowerLeftW:420,leftMin:false,rightMin:false,lowerMin:false,leftPrev:320,rightPrev:390,lowerPrev:230}}}
+function saveLayoutState(){localStorage.setItem("ontologyLayoutState",JSON.stringify(layoutState))}
+function loadGraphView(){try{return {...{x:50,y:45,scale:1},...JSON.parse(localStorage.getItem("ontologyGraphView")||"{}")}}catch{return{x:50,y:45,scale:1}}}
+function saveGraphView(){localStorage.setItem("ontologyGraphView",JSON.stringify(graphView))}
+function svgArrow(side,collapsed){return side==="left"?(collapsed?'<path d="m9 5 7 7-7 7"/>':'<path d="m15 5-7 7 7 7"/>'):(collapsed?'<path d="m15 5-7 7 7 7"/>':'<path d="m9 5 7 7-7 7"/>')}
+function applyLayoutState(){
+  const root=document.documentElement;root.style.setProperty("--left-w",(layoutState.leftMin?28:layoutState.leftW)+"px");root.style.setProperty("--right-w",(layoutState.rightMin?28:layoutState.rightW)+"px");root.style.setProperty("--lower-h",(layoutState.lowerMin?28:layoutState.lowerH)+"px");root.style.setProperty("--lower-left-w",Math.max(160,layoutState.lowerLeftW)+"px");
+  $("#leftPanel").classList.toggle("minimized",layoutState.leftMin);$("#rightPanel").classList.toggle("minimized",layoutState.rightMin);$("#lowerPanel").classList.toggle("minimized",layoutState.lowerMin);
+  $("#toggleLeft").querySelector("svg").innerHTML=svgArrow("left",layoutState.leftMin);$("#toggleRight").querySelector("svg").innerHTML=svgArrow("right",layoutState.rightMin);
+  $("#toggleLower").querySelector("svg").innerHTML=layoutState.lowerMin?'<path d="m5 9 7 7 7-7"/>':'<path d="m5 15 7-7 7 7"/>';
+  requestAnimationFrame(()=>{resizeCanvas();drawGraph()});
+}
+function bindResize(el,axis,onMove,onEnd){el.addEventListener("pointerdown",e=>{e.preventDefault();el.setPointerCapture(e.pointerId);el.classList.add("dragging");const sx=e.clientX,sy=e.clientY;const move=ev=>onMove(ev.clientX-sx,ev.clientY-sy);const up=()=>{el.classList.remove("dragging");el.removeEventListener("pointermove",move);el.removeEventListener("pointerup",up);el.removeEventListener("pointercancel",up);saveLayoutState();onEnd?.()};el.addEventListener("pointermove",move);el.addEventListener("pointerup",up);el.addEventListener("pointercancel",up)})}
+function initPanelLayout(){
+  applyLayoutState();
+  bindResize($("#leftSplitter"),"x",dx=>{let w=(layoutState.leftMin?layoutState.leftPrev:layoutState.leftW)+dx;if(w<65){layoutState.leftMin=true}else{layoutState.leftMin=false;layoutState.leftW=Math.min(720,Math.max(180,w));layoutState.leftPrev=layoutState.leftW}applyLayoutState()});
+  bindResize($("#rightSplitter"),"x",dx=>{let w=(layoutState.rightMin?layoutState.rightPrev:layoutState.rightW)-dx;if(w<65){layoutState.rightMin=true}else{layoutState.rightMin=false;layoutState.rightW=Math.min(760,Math.max(200,w));layoutState.rightPrev=layoutState.rightW}applyLayoutState()});
+  bindResize($("#lowerSplitter"),"y",(dx,dy)=>{let h=(layoutState.lowerMin?layoutState.lowerPrev:layoutState.lowerH)-dy;if(h<55){layoutState.lowerMin=true}else{layoutState.lowerMin=false;layoutState.lowerH=Math.min(window.innerHeight*.72,Math.max(120,h));layoutState.lowerPrev=layoutState.lowerH}applyLayoutState()});
+  bindResize($("#lowerInnerSplitter"),"x",dx=>{const lower=$("#lowerPanel");layoutState.lowerLeftW=Math.min(lower.clientWidth-180,Math.max(160,layoutState.lowerLeftW+dx));applyLayoutState()});
+  $("#toggleLeft").onclick=()=>{if(layoutState.leftMin){layoutState.leftMin=false;layoutState.leftW=layoutState.leftPrev||320}else{layoutState.leftPrev=layoutState.leftW;layoutState.leftMin=true}saveLayoutState();applyLayoutState()};
+  $("#toggleRight").onclick=()=>{if(layoutState.rightMin){layoutState.rightMin=false;layoutState.rightW=layoutState.rightPrev||390}else{layoutState.rightPrev=layoutState.rightW;layoutState.rightMin=true}saveLayoutState();applyLayoutState()};
+  $("#toggleLower").onclick=()=>{if(layoutState.lowerMin){layoutState.lowerMin=false;layoutState.lowerH=layoutState.lowerPrev||230}else{layoutState.lowerPrev=layoutState.lowerH;layoutState.lowerMin=true}saveLayoutState();applyLayoutState()};
+}
+
+function currentProvider(layer="compile"){
+  const lc=providerConfig.layers[layer]||{provider:"default",model:""};const key=lc.provider&&lc.provider!=="default"?lc.provider:(providerConfig.defaultProvider||"ollama");const profile=providerConfig.profiles[key]||providerConfig.profiles.ollama;
+  return {key,profile,model:lc.model||profile.model||$("#model").value.trim()};
+}
+function syncRuntimeFromConfig(){const key=$("#provider").value||providerConfig.defaultProvider||"ollama";providerConfig.defaultProvider=key;const p=providerConfig.profiles[key];$("#host").value=p.endpoint||"";$("#model").value=p.model||"";saveProviderConfig()}
+function syncRuntimeToConfig(){const key=$("#provider").value||"ollama";providerConfig.defaultProvider=key;providerConfig.profiles[key].endpoint=$("#host").value.trim();providerConfig.profiles[key].model=$("#model").value.trim();saveProviderConfig()}
+
+function extractTextResponse(key,data){
+  if(key==="ollama")return data?.message?.content||"";
+  if(key==="openai"||key==="openai_compatible")return data?.choices?.[0]?.message?.content||"";
+  if(key==="anthropic")return (data?.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("\n");
+  if(key==="gemini")return (data?.candidates?.[0]?.content?.parts||[]).map(x=>x.text||"").join("\n");return"";
+}
+async function providerRequest(layer,system,user,schema,label,wantsJSON=true){
+  const {key,profile,model}=currentProvider(layer);if(!model)throw new Error(`${label}: configure a model for ${profile.label}.`);const temp=Number($("#temp").value||0);let url=profile.endpoint,headers={"Content-Type":"application/json"},body;
+  const schemaText=schema?"\n\nOUTPUT JSON SCHEMA:\n"+JSON.stringify(schema):"";
+  if(key==="ollama"){
+    url=(url||"http://127.0.0.1:11434").replace(/\/+$/,'')+"/api/chat";body={model,stream:false,options:{temperature:temp,num_ctx:Number($("#ctx").value||65536)},messages:[{role:"system",content:system+schemaText},{role:"user",content:user}]};if(schema)body.format=schema;
+  }else if(key==="openai"||key==="openai_compatible"){
+    if(profile.apiKey)headers.Authorization="Bearer "+profile.apiKey;body={model,temperature:temp,messages:[{role:"system",content:system+schemaText},{role:"user",content:user}]};if(schema&&key==="openai")body.response_format={type:"json_schema",json_schema:{name:"workbench_result",strict:true,schema}};
+  }else if(key==="anthropic"){
+    headers["x-api-key"]=profile.apiKey||"";headers["anthropic-version"]="2023-06-01";body={model,max_tokens:8192,temperature:temp,system:system+schemaText,messages:[{role:"user",content:user}]};
+  }else if(key==="gemini"){
+    headers["x-goog-api-key"]=profile.apiKey||"";url=(url||PROVIDER_DEFAULTS.gemini.endpoint).replace("{model}",encodeURIComponent(model));body={systemInstruction:{parts:[{text:system+schemaText}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:{temperature:temp}};if(schema)body.generationConfig.responseMimeType="application/json";
+  }
+  log(`${label} · ${profile.label}`);let response=await fetch(url,{method:"POST",headers,signal:aborter?.signal,body:JSON.stringify(body)});
+  // OpenAI schema mode fallback for models/endpoints that reject response_format.
+  if(!response.ok&&key==="openai"&&schema&&response.status===400){delete body.response_format;response=await fetch(url,{method:"POST",headers,signal:aborter?.signal,body:JSON.stringify(body)})}
+  if(!response.ok)throw new Error(`${label}: ${profile.label} HTTP ${response.status} ${await response.text()}`);const data=await response.json(),text=extractTextResponse(key,data);if(!text)throw new Error(`${label}: empty model response`);if(!wantsJSON)return text;try{return JSON.parse(text)}catch(e){const match=text.match(/\{[\s\S]*\}/);if(match)try{return JSON.parse(match[0])}catch{}throw new Error(`${label}: invalid structured JSON (${e.message})`)}
+}
+function layerFromLabel(label){label=String(label).toLowerCase();if(label.includes("extract"))return"extract";if(label.includes("compile"))return"compile";if(label.includes("analysis")||label.includes("decision"))return"insight";return"custom_output"}
+ollamaJSON=async function(system,user,schema,label){const t=performance.now(),x=await providerRequest(layerFromLabel(label),system,user,schema,label,true);log(`${label} · ${((performance.now()-t)/1000).toFixed(1)}s`,"good");return x};
+ollamaText=async function(system,user,label){return providerRequest("custom_output",system,user,null,label,false)};
+connect=async function(){
+  syncRuntimeToConfig();const key=providerConfig.defaultProvider,p=providerConfig.profiles[key];try{$("#statusText").textContent="connecting";if(key==="ollama"){const r=await fetch((p.endpoint||"http://127.0.0.1:11434").replace(/\/+$/,'')+"/api/tags",{signal:AbortSignal.timeout(8000)});if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json(),list=$("#modelList");list.innerHTML="";(d.models||[]).forEach(m=>{const o=document.createElement("option");o.value=m.name||m.model;list.appendChild(o)});if(!$("#model").value&&(d.models||[])[0])$("#model").value=(d.models[0].name||d.models[0].model);p.model=$("#model").value;$("#statusText").textContent=`ollama · ${(d.models||[]).length} models`}else{$("#statusText").textContent=`${p.label} configured`}$("#dot").className="dot ok";saveProviderConfig();log(`${p.label} ready.`,"good")}catch(e){$("#dot").className="dot";$("#statusText").textContent="connection failed";log("Connection failed: "+e.message,"err")}
+};
+
+function renderProviderEditor(){
+  $("#persistKeys").checked=providerConfig.persistKeys;const root=$("#providerEditor");root.innerHTML="";
+  for(const [key,p] of Object.entries(providerConfig.profiles)){const d=document.createElement("div");d.className="provider-card";d.innerHTML=`<h4>${esc(p.label)}</h4><div class="field"><label>endpoint</label><input data-prof-endpoint="${key}" value="${esc(p.endpoint||"")}"></div><div class="field"><label>default model</label><input data-prof-model="${key}" value="${esc(p.model||"")}" placeholder="model name"></div>${key==="ollama"?"":`<div class="field"><label>API key</label><input data-prof-key="${key}" type="password" value="${esc(p.apiKey||"")}" placeholder="not persisted unless enabled"></div>`}`;root.appendChild(d)}
+  const lr=$("#layerEditor");lr.innerHTML="";for(const [key,l] of Object.entries(LAYERS)){const cfg=providerConfig.layers[key]||{provider:"default",model:""},d=document.createElement("div");d.className="layer-card";d.innerHTML=`<h4>${esc(l.name)}</h4><div class="row"><div class="field grow"><label>provider</label><select data-layer-provider="${key}"><option value="default">default</option>${Object.keys(PROVIDER_DEFAULTS).map(k=>`<option value="${k}" ${cfg.provider===k?"selected":""}>${PROVIDER_DEFAULTS[k].label}</option>`).join("")}</select></div><div class="field grow"><label>model override</label><input data-layer-model="${key}" value="${esc(cfg.model||"")}" placeholder="inherit"></div></div><div class="field"><label>system message</label><textarea data-layer-system="${key}"></textarea></div><div class="field"><label>user template</label><textarea data-layer-user="${key}"></textarea></div><button data-reset-layer="${key}">reset layer</button>`;d.querySelector(`[data-layer-system="${key}"]`).value=prompts[l.systemKey];d.querySelector(`[data-layer-user="${key}"]`).value=prompts[l.userKey];lr.appendChild(d)}
+  lr.querySelectorAll("[data-reset-layer]").forEach(b=>b.onclick=()=>{const k=b.dataset.resetLayer,l=LAYERS[k];prompts[l.systemKey]=DEFAULT_PROMPTS[l.systemKey];prompts[l.userKey]=DEFAULT_PROMPTS[l.userKey];providerConfig.layers[k]={provider:"default",model:""};renderProviderEditor()})
+}
+function captureConfigEditor(){
+  providerConfig.persistKeys=$("#persistKeys").checked;document.querySelectorAll("[data-prof-endpoint]").forEach(x=>providerConfig.profiles[x.dataset.profEndpoint].endpoint=x.value.trim());document.querySelectorAll("[data-prof-model]").forEach(x=>providerConfig.profiles[x.dataset.profModel].model=x.value.trim());document.querySelectorAll("[data-prof-key]").forEach(x=>providerConfig.profiles[x.dataset.profKey].apiKey=x.value.trim());
+  for(const [k,l] of Object.entries(LAYERS)){providerConfig.layers[k]={provider:document.querySelector(`[data-layer-provider="${k}"]`).value,model:document.querySelector(`[data-layer-model="${k}"]`).value.trim()};prompts[l.systemKey]=document.querySelector(`[data-layer-system="${k}"]`).value;prompts[l.userKey]=document.querySelector(`[data-layer-user="${k}"]`).value}
+  localStorage.setItem("ontologyWorkbenchPrompts",JSON.stringify(prompts));saveProviderConfig();$("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();renderPromptEditor();
+}
+function openConfig(){renderProviderEditor();$("#configModal").classList.add("on")}
+
+function contextMode(){return $("#contextMode").value||"all"}
+function setContextMode(v){$("#contextMode").value=v;$("#toolbarContextMode").value=v;localStorage.setItem("ontologyContextMode",v);renderFocusSummary()}
+function focusedSources(){return sources.filter(s=>s.focused)}
+function selectedNodeSet(withNeighbors=false){const ids=new Set(focusedNodeIds);if(withNeighbors&&ontology){let changed=true;while(changed){changed=false;(ontology.link_types||[]).forEach(l=>{if(ids.has(l.from_type)||ids.has(l.to_type)){if(!ids.has(l.from_type)){ids.add(l.from_type);changed=true}if(!ids.has(l.to_type)){ids.add(l.to_type);changed=true}}});(ontology.event_types||[]).forEach(e=>{if(ids.has(e.id)||ids.has(e.actor_type)||ids.has(e.target_type)){[e.id,e.actor_type,e.target_type].filter(Boolean).forEach(x=>{if(!ids.has(x)){ids.add(x);changed=true}})}});(ontology.actions||[]).forEach(a=>{if(ids.has(a.id)||(a.target_types||[]).some(x=>ids.has(x))){[a.id,...(a.target_types||[])].forEach(x=>{if(!ids.has(x)){ids.add(x);changed=true}})}})} }return ids}
+function pruneOntology(ids){if(!ontology)return null;const o=JSON.parse(JSON.stringify(ontology));o.object_types=o.object_types.filter(x=>ids.has(x.id));o.event_types=o.event_types.filter(x=>ids.has(x.id));o.functions=o.functions.filter(x=>ids.has(x.id));o.actions=o.actions.filter(x=>ids.has(x.id));const objIds=new Set(o.object_types.map(x=>x.id));o.link_types=o.link_types.filter(l=>objIds.has(l.from_type)&&objIds.has(l.to_type));const text=JSON.stringify([...ids]);o.metrics=(o.metrics||[]).filter(m=>(m.inputs||[]).some(x=>text.includes(x))||(m.source_dependencies||[]).some(x=>text.includes(x)));o.policies=(o.policies||[]).filter(p=>[...ids].some(id=>String(p.scope||"").includes(id)||String(p.condition||"").includes(id)));return o}
+function ontologyForContext(){const m=contextMode();if(m==="focused_nodes")return pruneOntology(selectedNodeSet(false));if(m==="focused_neighbors"||m==="focused_combined")return pruneOntology(selectedNodeSet(m==="focused_neighbors"));return ontology}
+function sourceIdsFromOntology(o){const ids=new Set();if(!o)return ids;const scanBind=a=>(a||[]).forEach(b=>b?.source_id&&ids.add(b.source_id));(o.object_types||[]).forEach(x=>{scanBind(x.source_bindings);(x.properties||[]).forEach(p=>scanBind(p.source_bindings))});(o.link_types||[]).forEach(x=>scanBind(x.source_bindings));(o.event_types||[]).forEach(x=>scanBind(x.source_bindings));(o.actions||[]).forEach(x=>scanBind(x.source_bindings));return ids}
+function sourcesForContext(){const m=contextMode();if(m==="all")return sources;if(m==="focused_sources")return focusedSources();if(m==="focused_nodes"||m==="focused_neighbors"){const ids=sourceIdsFromOntology(ontologyForContext());return sources.filter(s=>ids.has(s.id))}if(m==="focused_combined"){const ids=sourceIdsFromOntology(ontologyForContext());return sources.filter(s=>s.focused||ids.has(s.id))}return sources}
+function renderFocusSummary(){const fs=focusedSources().length,fn=focusedNodeIds.size;$("#focusSummary").textContent=`${fs} focused sources · ${fn} focused nodes`;localStorage.setItem("ontologyFocusedNodes",JSON.stringify([...focusedNodeIds]))}
+
+const oldRenderSources=renderSources;
+renderSources=function(){
+  const root=$("#sources");root.innerHTML="";$("#sourceCount").textContent=sources.length;sources.forEach((s,i)=>{s.focused=!!s.focused;const d=document.createElement("div");d.className="source-card"+(s.focused?" focused":"");d.innerHTML=`<div class="card-head"><span class="badge">${esc(s.kind)}</span><div class="card-title grow" title="${esc(s.name)}">${esc(s.name)}</div><button class="iconbtn" data-del="${i}">×</button></div><div class="card-body"><div class="input-grid"><select data-auth="${i}">${AUTH.map(a=>`<option value="${a}" ${a===s.authority?"selected":""}>${a}</option>`).join("")}</select><span class="small" style="align-self:center;text-align:right">${(s.content?.length||0).toLocaleString()} ch</span></div><label class="focus-toggle"><input type="checkbox" data-focus-source="${i}" ${s.focused?"checked":""}> immediate context focus</label><div class="source-path">${esc(s.meta||"")}</div></div>`;root.appendChild(d)});root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{sources.splice(+b.dataset.del,1);renderSources()});root.querySelectorAll("[data-auth]").forEach(x=>x.onchange=()=>sources[+x.dataset.auth].authority=x.value);root.querySelectorAll("[data-focus-source]").forEach(x=>x.onchange=()=>{sources[+x.dataset.focusSource].focused=x.checked;renderSources();renderFocusSummary()});renderFocusSummary()
+};
+const oldAddSource=addSource;addSource=function(src){src.focused=!!src.focused;sources.push(src);renderSources()};
+
+compile=async function(){
+ const scoped=sourcesForContext();if(!scoped.length&&!inputBlocks.length){log(contextMode()==="all"?"Add at least one source or input block.":"No sources match the current focus mode.","err");return}aborter=new AbortController();setBusy(true,"compiling");try{const partials=[],max=Math.max(4000,Number($("#chunk").value||18000));for(const s of scoped){const cs=chunks(s.content||"",max);for(let i=0;i<cs.length;i++)partials.push(await ollamaJSON(prompts.extract_system,tpl(prompts.extract_user,{SOURCE_ID:s.id,SOURCE_NAME:s.name,SOURCE_KIND:s.kind,AUTHORITY:s.authority,SCOPE:$("#scope").value||"(automatic)",CONTENT:cs[i]}),PARTIAL_SCHEMA,`extract ${s.name}${cs.length>1?` ${i+1}/${cs.length}`:""}`))}const registry=scoped.map(s=>({id:s.id,name:s.name,kind:s.kind,authority:s.authority,description:s.meta||"",content_summary:(s.content||"").slice(0,400),read_policy:"read-only unless an action explicitly writes to its external system",freshness:"unknown"}));inputBlocks.forEach(b=>registry.push({id:b.id,name:b.key||b.id,kind:"manual_input",authority:b.authority,description:`${b.kind} · ${b.data_type}`,content_summary:String(b.value).slice(0,400),read_policy:"explicit user-supplied input",freshness:"session"}));ontology=await ollamaJSON(tpl(prompts.compile_system,{AUTHORITY_POLICY:$("#authorityPolicy").value,INFER_ACTIONS:$("#inferActions").checked,INFER_FUNCTIONS:$("#inferFunctions").checked,INFER_POLICIES:$("#inferPolicies").checked}),tpl(prompts.compile_user,{SCOPE:$("#scope").value||"(automatic scope discovery)",SOURCE_REGISTRY:JSON.stringify(registry,null,2),PARTIALS:JSON.stringify(partials,null,2),INPUTS:JSON.stringify(inputBlocks,null,2)}),ONTOLOGY_SCHEMA,"compile ontology");normalizeOntology();analysis=null;selected=null;focusedNodeIds.clear();layoutGraph(true);renderAll();renderFocusSummary();log(`Operational model compiled from ${scoped.length} source(s).`,"good")}catch(e){if(e.name==="AbortError")log("Compile cancelled.","warn");else log(e.message,"err")}finally{aborter=null;setBusy(false)}
+};
+runInsight=async function(){
+ if(!ontology){log("Compile or load a model first.","err");return}const obj=$("#objective").value.trim();if(!obj){log("Enter an objective.","err");return}const scopedOntology=ontologyForContext();if((contextMode().startsWith("focused_node")||contextMode()==="focused_neighbors"||contextMode()==="focused_combined")&&focusedNodeIds.size===0){log("Select at least one graph node for the current context mode.","err");return}aborter=new AbortController();setBusy(true,"analyzing");try{const ss=sourcesForContext(),excerpts=ss.map(s=>({id:s.id,name:s.name,authority:s.authority,excerpt:(s.content||"").slice(0,6000)}));inputBlocks.forEach(b=>excerpts.push({id:b.id,name:b.key||b.id,authority:b.authority,excerpt:String(b.value)}));analysis=await ollamaJSON(prompts.insight_system,tpl(prompts.insight_user,{MODE:$("#analysisMode").value,OBJECTIVE:obj,ONTOLOGY:JSON.stringify(scopedOntology),SOURCE_EXCERPTS:JSON.stringify(excerpts)}),INSIGHT_SCHEMA,"decision analysis");renderAnalysis();log(`Context: ${contextMode()} · ${ss.length} source(s) · ${focusedNodeIds.size} focused node(s).`,"good")}catch(e){if(e.name!=="AbortError")log(e.message,"err")}finally{aborter=null;setBusy(false)}
+};
+
+/* Canvas graph */
+function graphNodeList(){return allNodes().map(n=>({...n}))}
+function layoutGraph(force=false){if(!ontology)return;const cols={object:0,event:1,function:2,action:3},counts={};graphNodeList().forEach(n=>{if(!force&&nodePositions[n.id])return;const c=cols[n._kind]??0,i=counts[c]||0;counts[c]=i+1;nodePositions[n.id]={x:c*330,y:i*150}});localStorage.setItem("ontologyNodePositions",JSON.stringify(nodePositions))}
+function resizeCanvas(){const c=$("#graphCanvas"),v=$("#view");if(!c||!v)return;const dpr=window.devicePixelRatio||1,w=Math.max(1,v.clientWidth),h=Math.max(1,v.clientHeight);if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);c.style.width=w+"px";c.style.height=h+"px"}const m=$("#minimapCanvas");if(m){const mw=m.clientWidth||154,mh=m.clientHeight||104;m.width=Math.round(mw*dpr);m.height=Math.round(mh*dpr)}}
+function worldToScreen(x,y){return{x:x*graphView.scale+graphView.x,y:y*graphView.scale+graphView.y}}
+function screenToWorld(x,y){return{x:(x-graphView.x)/graphView.scale,y:(y-graphView.y)/graphView.scale}}
+function roundedRect(ctx,x,y,w,h){ctx.beginPath();ctx.rect(x,y,w,h)}
+function nodeGeometry(){layoutGraph();return graphNodeList().map(n=>{const p=nodePositions[n.id]||{x:0,y:0};return{...n,x:p.x,y:p.y,w:220,h:112}})}
+function graphEdges(){if(!ontology)return[];const a=[];(ontology.link_types||[]).forEach(l=>a.push({from:l.from_type,to:l.to_type,label:l.label,kind:"link"}));(ontology.event_types||[]).forEach(e=>{if(e.actor_type)a.push({from:e.actor_type,to:e.id,label:"actor",kind:"event"});if(e.target_type)a.push({from:e.id,to:e.target_type,label:"target",kind:"event"})});(ontology.actions||[]).forEach(x=>(x.target_types||[]).forEach(t=>a.push({from:x.id,to:t,label:"mutates",kind:"action"})));return a}
+function drawGraph(){
+ const c=$("#graphCanvas");if(!c)return;resizeCanvas();const dpr=window.devicePixelRatio||1,ctx=c.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,c.clientWidth,c.clientHeight);canvasNodes=nodeGeometry();const byId=new Map(canvasNodes.map(n=>[n.id,n]));ctx.save();ctx.translate(graphView.x,graphView.y);ctx.scale(graphView.scale,graphView.scale);
+ // subtle world grid
+ const inv=1/graphView.scale,tl=screenToWorld(0,0),br=screenToWorld(c.clientWidth,c.clientHeight);ctx.lineWidth=inv;ctx.strokeStyle="#151515";for(let x=Math.floor(tl.x/50)*50;x<br.x;x+=50){ctx.beginPath();ctx.moveTo(x,tl.y);ctx.lineTo(x,br.y);ctx.stroke()}for(let y=Math.floor(tl.y/50)*50;y<br.y;y+=50){ctx.beginPath();ctx.moveTo(tl.x,y);ctx.lineTo(br.x,y);ctx.stroke()}
+ for(const e of graphEdges()){const a=byId.get(e.from),b=byId.get(e.to);if(!a||!b)continue;const x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2,dx=Math.max(60,Math.abs(x2-x1)*.45);ctx.beginPath();ctx.moveTo(x1,y1);ctx.bezierCurveTo(x1+dx,y1,x2-dx,y2,x2,y2);ctx.strokeStyle=e.kind==="action"?"#8a8a8a":"#5f5f5f";ctx.lineWidth=1.2*inv;if(e.kind==="action")ctx.setLineDash([5*inv,4*inv]);else ctx.setLineDash([]);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle="#777";ctx.font=`${8*inv}px ui-monospace`;ctx.fillText(e.label.slice(0,26),(x1+x2)/2,(y1+y2)/2-5*inv)}
+ for(const n of canvasNodes){const focused=focusedNodeIds.has(n.id),sel=selected?.id===n.id;ctx.fillStyle=sel?"#202020":focused?"#191919":"#111";ctx.strokeStyle=sel?"#fff":focused?"#bcbcbc":"#555";ctx.lineWidth=(sel?2:1)*inv;roundedRect(ctx,n.x,n.y,n.w,n.h);ctx.fill();ctx.stroke();ctx.fillStyle="#777";ctx.font=`${8*inv}px ui-monospace`;ctx.fillText(n._kind.toUpperCase(),n.x+10,n.y+16);ctx.fillStyle="#eee";ctx.font=`bold ${12*inv}px Inter,system-ui`;ctx.fillText(String(n.label||n.id).slice(0,30),n.x+10,n.y+36);ctx.fillStyle="#aaa";ctx.font=`${9*inv}px Inter,system-ui`;wrapCanvasText(ctx,n.description||"",n.x+10,n.y+54,n.w-20,12*inv,2);ctx.strokeStyle="#292929";ctx.lineWidth=inv;ctx.beginPath();ctx.moveTo(n.x+10,n.y+n.h-24);ctx.lineTo(n.x+n.w-10,n.y+n.h-24);ctx.stroke();ctx.fillStyle="#777";ctx.font=`${8*inv}px ui-monospace`;let meta=n._kind==="object"?`${(n.properties||[]).length} props · ${n.temporal_mode||""}`:n._kind==="action"?`${n.risk||""} risk · ${n.approval||""}`:n._kind==="function"?`${n.logic_kind||""} · ${(n.inputs||[]).length} inputs`:`${(n.properties||[]).length} props`;ctx.fillText(meta,n.x+10,n.y+n.h-9)}ctx.restore();drawMinimap();$("#empty").style.display=canvasNodes.length?"none":"grid";$("#graphStat").textContent=ontology?`${ontology.object_types.length} objects · ${ontology.link_types.length} links · ${ontology.event_types.length} events · ${ontology.actions.length} actions`:"empty"
+}
+function wrapCanvasText(ctx,text,x,y,maxWidth,lineH,maxLines){const words=String(text).split(/\s+/);let line="",lines=0;for(const w of words){const test=line?line+" "+w:w;if(ctx.measureText(test).width>maxWidth&&line){ctx.fillText(line,x,y+lines*lineH);lines++;line=w;if(lines>=maxLines)return}else line=test}if(line&&lines<maxLines)ctx.fillText(line,x,y+lines*lineH)}
+function graphBounds(){const ns=nodeGeometry();if(!ns.length)return{x:0,y:0,w:1,h:1};const minX=Math.min(...ns.map(n=>n.x)),minY=Math.min(...ns.map(n=>n.y)),maxX=Math.max(...ns.map(n=>n.x+n.w)),maxY=Math.max(...ns.map(n=>n.y+n.h));return{x:minX,y:minY,w:maxX-minX,h:maxY-minY}}
+function fitGraph(){const v=$("#view"),b=graphBounds(),pad=55,s=Math.min((v.clientWidth-pad*2)/Math.max(1,b.w),(v.clientHeight-pad*2)/Math.max(1,b.h));graphView.scale=Math.max(.12,Math.min(2.2,s));graphView.x=v.clientWidth/2-(b.x+b.w/2)*graphView.scale;graphView.y=v.clientHeight/2-(b.y+b.h/2)*graphView.scale;saveGraphView();drawGraph()}
+function resetGraphView(){graphView={x:55,y:45,scale:1};saveGraphView();drawGraph()}
+function zoomAt(sx,sy,factor){const before=screenToWorld(sx,sy);graphView.scale=Math.max(.12,Math.min(4,graphView.scale*factor));graphView.x=sx-before.x*graphView.scale;graphView.y=sy-before.y*graphView.scale;saveGraphView();drawGraph()}
+function drawMinimap(){const c=$("#minimapCanvas");if(!c||!ontology)return;const dpr=window.devicePixelRatio||1,ctx=c.getContext("2d"),w=c.clientWidth,h=c.clientHeight,b=graphBounds(),pad=8,s=Math.min((w-pad*2)/Math.max(1,b.w),(h-pad*2)/Math.max(1,b.h));ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.fillStyle="#0b0b0b";ctx.fillRect(0,0,w,h);for(const n of nodeGeometry()){ctx.fillStyle=focusedNodeIds.has(n.id)?"#ddd":"#777";ctx.fillRect(pad+(n.x-b.x)*s,pad+(n.y-b.y)*s,Math.max(2,n.w*s),Math.max(2,n.h*s))}const tl=screenToWorld(0,0),br=screenToWorld($("#view").clientWidth,$("#view").clientHeight);ctx.strokeStyle="#fff";ctx.lineWidth=1;ctx.strokeRect(pad+(tl.x-b.x)*s,pad+(tl.y-b.y)*s,(br.x-tl.x)*s,(br.y-tl.y)*s)}
+function hitNode(sx,sy){const p=screenToWorld(sx,sy);for(let i=canvasNodes.length-1;i>=0;i--){const n=canvasNodes[i];if(p.x>=n.x&&p.x<=n.x+n.w&&p.y>=n.y&&p.y<=n.y+n.h)return n}return null}
+function initCanvas(){
+ const c=$("#graphCanvas"),view=$("#view");let drag=null;
+ c.addEventListener("wheel",e=>{e.preventDefault();const r=c.getBoundingClientRect();zoomAt(e.clientX-r.left,e.clientY-r.top,Math.exp(-e.deltaY*.0012))},{passive:false});
+ c.addEventListener("pointerdown",e=>{const r=c.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top,n=hitNode(sx,sy);c.setPointerCapture(e.pointerId);drag={sx,sy,lastX:e.clientX,lastY:e.clientY,node:n,moved:false,nodeStart:n?{...nodePositions[n.id]}:null};if(!n)view.classList.add("panning")});
+ c.addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-drag.lastX,dy=e.clientY-drag.lastY;if(Math.abs(e.clientX-(drag.sx+c.getBoundingClientRect().left))+Math.abs(e.clientY-(drag.sy+c.getBoundingClientRect().top))>3)drag.moved=true;if(drag.node){nodePositions[drag.node.id].x+=dx/graphView.scale;nodePositions[drag.node.id].y+=dy/graphView.scale}else{graphView.x+=dx;graphView.y+=dy}drag.lastX=e.clientX;drag.lastY=e.clientY;drawGraph()});
+ const finish=e=>{if(!drag)return;view.classList.remove("panning");if(drag.node){localStorage.setItem("ontologyNodePositions",JSON.stringify(nodePositions));if(!drag.moved){selected=drag.node;openNodeModal(drag.node)}}else saveGraphView();drag=null};c.addEventListener("pointerup",finish);c.addEventListener("pointercancel",finish);
+ const mini=$("#minimapCanvas");mini.addEventListener("pointerdown",e=>{const r=mini.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,b=graphBounds(),pad=8,s=Math.min((mini.clientWidth-pad*2)/Math.max(1,b.w),(mini.clientHeight-pad*2)/Math.max(1,b.h)),wx=b.x+(mx-pad)/s,wy=b.y+(my-pad)/s,v=$("#view");graphView.x=v.clientWidth/2-wx*graphView.scale;graphView.y=v.clientHeight/2-wy*graphView.scale;saveGraphView();drawGraph()});
+ new ResizeObserver(()=>{resizeCanvas();drawGraph()}).observe(view)
+}
+renderGraph=function(){drawGraph()};
+
+function openNodeModal(n){selected=n;$("#nodeModalKind").textContent=n._kind;$("#nodeModalTitle").textContent=n.label||n.id;$("#nodeFocusBtn").textContent=focusedNodeIds.has(n.id)?"unfocus":"focus";const rows=[];const add=(k,v)=>rows.push(`<div>${esc(k)}</div><div>${v}</div>`);add("id",`<code>${esc(n.id)}</code>`);add("description",esc(n.description||""));if(n._kind==="object"){add("identity",esc(n.identity_strategy||""));add("temporal",esc(n.temporal_mode||""));add("properties",(n.properties||[]).map(p=>`<div style="margin-bottom:8px"><b>${esc(p.label)}</b> <span class="chip">${esc(p.data_type)}</span><span class="chip">${esc(p.authority)}</span><div class="small">${esc(p.description)}</div><div class="source-path">${esc((p.source_bindings||[]).map(b=>`${b.source_id}:${b.path}`).join(" · "))}</div></div>`).join("")||"—")}if(n._kind==="event"){add("actor",`<code>${esc(n.actor_type||"")}</code>`);add("target",`<code>${esc(n.target_type||"")}</code>`);add("timestamp",esc(n.timestamp_property||""))}if(n._kind==="function"){add("logic",`<span class="badge">${esc(n.logic_kind||"")}</span><div style="margin-top:5px">${esc(n.expression||"")}</div>`);add("dependencies",esc((n.source_dependencies||[]).join(" · ")))}if(n._kind==="action"){add("targets",(n.target_types||[]).map(x=>`<span class="chip">${esc(x)}</span>`).join(""));add("inputs",(n.input_parameters||[]).map(x=>`<div>${esc(x.label)} · <code>${esc(x.data_type)}</code>${x.required?" *":""}</div>`).join("")||"—");add("preconditions",(n.preconditions||[]).map(x=>"• "+esc(x)).join("<br>")||"—");add("mutations",(n.mutations||[]).map(x=>"• "+esc(x)).join("<br>")||"—");add("side effects",(n.side_effects||[]).map(x=>"• "+esc(x)).join("<br>")||"—");add("governance",`${esc(n.approval||"")} approval · ${esc(n.risk||"")} risk · ${esc(n.authority||"")}`)}add("source bindings",(n.source_bindings||[]).map(b=>`${esc(b.source_id)} · ${esc(b.path)} · ${Math.round((b.confidence||0)*100)}%`).join("<br>")||"—");$("#nodeModalBody").innerHTML=`<div class="node-modal-grid">${rows.join("")}</div>`;$("#nodeModal").classList.add("on");drawGraph()}
+
+const oldRenderAll=renderAll;renderAll=function(){renderGraph();renderLineage();renderMetrics();$("#ontologyJson").value=ontology?JSON.stringify(ontology,null,2):"";renderFocusSummary()};
+const oldRenderOutput=renderOutput;renderOutput=async function(){if(!ontology){log("No model to translate.","err");return}const original=ontology,scoped=ontologyForContext();if(scoped)ontology=scoped;try{return await oldRenderOutput()}finally{ontology=original}};
+
+function initContextUI(){const saved=localStorage.getItem("ontologyContextMode")||"all";setContextMode(saved);$("#contextMode").onchange=e=>setContextMode(e.target.value);$("#toolbarContextMode").onchange=e=>setContextMode(e.target.value)}
+function initProviderUI(){$("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();$("#provider").onchange=()=>syncRuntimeFromConfig();$("#host").oninput=syncRuntimeToConfig;$("#model").oninput=syncRuntimeToConfig;$("#configBtn").onclick=openConfig;$("#closeConfig").onclick=()=>$("#configModal").classList.remove("on");$("#saveConfig").onclick=()=>{captureConfigEditor();$("#configModal").classList.remove("on");log("LLM configuration saved.","good")};$("#resetConfig").onclick=()=>{providerConfig={defaultProvider:"ollama",persistKeys:false,profiles:JSON.parse(JSON.stringify(PROVIDER_DEFAULTS)),layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""}}};prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyProviderConfig");localStorage.removeItem("ontologyWorkbenchPrompts");renderProviderEditor();$("#provider").value="ollama";syncRuntimeFromConfig();renderPromptEditor();log("LLM configuration reset.","good")};$("#persistKeys").onchange=e=>providerConfig.persistKeys=e.target.checked}
+function initNodeModal(){$("#closeNodeModal").onclick=()=>{$("#nodeModal").classList.remove("on");selected=null;drawGraph()};$("#nodeFocusBtn").onclick=()=>{if(!selected)return;if(focusedNodeIds.has(selected.id))focusedNodeIds.delete(selected.id);else focusedNodeIds.add(selected.id);$("#nodeFocusBtn").textContent=focusedNodeIds.has(selected.id)?"unfocus":"focus";renderFocusSummary();drawGraph()}}
+
+// Replace legacy fit/layout controls with viewport-aware graph controls.
+$("#fitBtn").onclick=fitGraph;$("#layoutBtn").onclick=()=>{layoutGraph(true);fitGraph()};$("#fitGraphBtn").onclick=fitGraph;$("#resetViewBtn").onclick=resetGraphView;$("#zoomInBtn").onclick=()=>zoomAt($("#view").clientWidth/2,$("#view").clientHeight/2,1.2);$("#zoomOutBtn").onclick=()=>zoomAt($("#view").clientWidth/2,$("#view").clientHeight/2,1/1.2);
+initPanelLayout();initContextUI();initProviderUI();initCanvas();initNodeModal();
+/* -------------- end v2 interaction/runtime layer -------------- */
+
 $("#connectBtn").onclick=connect;$("#compileBtn").onclick=compile;$("#analyzeBtn").onclick=()=>$("#objective").focus();$("#runInsight").onclick=runInsight;$("#addValue").onclick=()=>addInput("value");$("#addText").onclick=()=>addInput("text");
 const drop=$("#drop");drop.ondblclick=()=>$("#filePicker").click();["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("drag")}));["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("drag")}));drop.addEventListener("drop",e=>addFiles(e.dataTransfer.files));$("#filePicker").onchange=e=>{addFiles(e.target.files);e.target.value=""};
-$("#fitBtn").onclick=()=>$("#view").scrollTo({left:0,top:0,behavior:"smooth"});$("#layoutBtn").onclick=renderGraph;$("#jsonBtn").onclick=()=>{$("#ontologyJson").value=ontology?JSON.stringify(ontology,null,2):"";$("#jsonModal").classList.add("on")};$("#closeJson").onclick=()=>$("#jsonModal").classList.remove("on");$("#applyJson").onclick=()=>{try{ontology=JSON.parse($("#ontologyJson").value);normalizeOntology();renderAll();$("#jsonModal").classList.remove("on");log("Edited model applied.","good")}catch(e){log(e.message,"err")}};
+$("#fitBtn").onclick=fitGraph;$("#layoutBtn").onclick=()=>{layoutGraph(true);fitGraph()};$("#jsonBtn").onclick=()=>{$("#ontologyJson").value=ontology?JSON.stringify(ontology,null,2):"";$("#jsonModal").classList.add("on")};$("#closeJson").onclick=()=>$("#jsonModal").classList.remove("on");$("#applyJson").onclick=()=>{try{ontology=JSON.parse($("#ontologyJson").value);normalizeOntology();renderAll();$("#jsonModal").classList.remove("on");log("Edited model applied.","good")}catch(e){log(e.message,"err")}};
 $("#saveBtn").onclick=()=>ontology&&saveBlob((ontology.world_model?.name||"ontology").replace(/\W+/g,"_")+".ontology.json",JSON.stringify(ontology,null,2),"application/json");$("#loadModelBtn").onclick=()=>$("#modelFilePicker").click();$("#modelFilePicker").onchange=async e=>{try{ontology=JSON.parse(await e.target.files[0].text());normalizeOntology();renderAll();log("Model loaded.","good")}catch(x){log(x.message,"err")}};
 $("#clearAnalysis").onclick=()=>{analysis=null;renderAnalysis()};$("#format").onchange=e=>$("#customFormatWrap").style.display=e.target.value==="custom"?"grid":"none";$("#renderOutput").onclick=renderOutput;$("#copyOutput").onclick=()=>navigator.clipboard.writeText($("#outputText").value);$("#downloadOutput").onclick=()=>saveBlob("ontology."+outputExt,$("#outputText").value);
 $("#savePrompts").onclick=()=>{$$("#promptEditor [data-prompt]").forEach(x=>prompts[x.dataset.prompt]=x.value);localStorage.setItem("ontologyWorkbenchPrompts",JSON.stringify(prompts));log("Prompts saved.","good")};$("#restorePrompts").onclick=()=>{prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyWorkbenchPrompts");renderPromptEditor();log("Prompts restored.","good")};
