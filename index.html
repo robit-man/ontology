@@ -174,6 +174,38 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 .audit-table{max-height:260px;overflow:auto;font:8px/1.35 ui-monospace,monospace}.audit-row{display:grid;grid-template-columns:18px minmax(85px,1.2fr) minmax(110px,1.5fr) 55px 52px 55px 55px minmax(105px,1.4fr);gap:5px;padding:4px 6px;border-bottom:1px solid #171717;align-items:center}.audit-row.head{position:sticky;top:0;background:#111;color:#777;text-transform:uppercase;z-index:2}.audit-row.pass{background:#09100b}.audit-row.degraded{background:#100e08}.audit-row.fail{background:#100909}.audit-row.running{background:#0b0d12}.audit-cell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.audit-status{font-weight:bold}.audit-row.pass .audit-status{color:#9cba9c}.audit-row.degraded .audit-status{color:#c8ad78}.audit-row.fail .audit-status{color:#c98e8e}.audit-row.running .audit-status{color:#91a7c9}
 @media(max-width:900px){.audit-row{grid-template-columns:18px minmax(90px,1fr) minmax(110px,1fr) 50px 50px 50px}.audit-row>*:nth-child(7),.audit-row>*:nth-child(8){display:none}}
 
+
+/* ========== v8 operational world workspace ========== */
+.workspace-mini{margin-top:7px;border:1px solid var(--line);background:#0b0b0b;padding:7px}
+.workspace-mini .health-title{display:flex;align-items:baseline;gap:8px;margin-bottom:5px}
+.workspace-mini .health-title b{font:700 16px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
+.workspace-health-grid{display:grid;grid-template-columns:1fr 40px;gap:2px 8px;font:10px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+.workspace-health-grid .v{text-align:right;color:#ddd}
+.world-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:8px}
+.world-summary>div{border:1px solid var(--line);background:#0b0b0b;padding:6px}
+.world-summary b{display:block;font:700 15px/1.1 ui-monospace,SFMono-Regular,Menlo,monospace}
+.world-summary span{font:9px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;color:#777;text-transform:uppercase}
+.runtime-list{display:grid;gap:5px}
+.runtime-card{border:1px solid var(--line);background:#0b0b0b;padding:7px;cursor:pointer}
+.runtime-card:hover{border-color:#555}
+.runtime-card .rt-head{display:flex;align-items:center;gap:6px;min-width:0}
+.runtime-card .rt-title{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.runtime-card .rt-meta{margin-top:4px;color:#777;font:9px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+.runtime-card .rt-state{margin-top:5px;font:10px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:#bbb;word-break:break-word}
+.epi-observed{border-left:2px solid #ddd}.epi-reported{border-left:2px solid #999}.epi-inferred{border-left:2px dashed #888}.epi-predicted{border-left:2px dotted #888}
+.conflict-card{border:1px solid #4b3838;background:#100c0c;padding:7px;margin-bottom:6px}
+.conflict-card.resolved{opacity:.58;border-color:var(--line);background:#0b0b0b}
+.conflict-card .conflict-title{display:flex;gap:6px;align-items:center}
+.conflict-card code{font-size:9px}
+.history-row{display:grid;grid-template-columns:42px 1fr auto;gap:7px;align-items:start;border-bottom:1px solid var(--line);padding:6px 0}
+.history-row .rev{font:700 10px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;color:#ddd}
+.history-row .desc{font-size:10px;color:#aaa}
+.workspace-actions{display:flex;flex-flow:wrap;gap:5px;margin-top:6px}
+.graph-layer-select{height:25px;min-width:100px;font-size:10px;text-transform:uppercase}
+.patch-log{margin-top:6px;padding:6px;border:1px solid var(--line);background:#090909;font:9px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:#888;max-height:125px;overflow:auto}
+.health-bad{color:#d8a0a0}.health-warn{color:#d8c59a}.health-good{color:#b8d8b8}
+@media(max-width:900px){.world-summary{grid-template-columns:1fr 1fr}}
+
 </style>
 </head>
 <body>
@@ -183,7 +215,9 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
   <div class="brand">ONTOLOGY</div>
   <button id="connectBtn">connect</button>
   <button id="compileBtn">compile</button>
+  <button id="reconcileBtn" title="Observations → validated world patch → revision">reconcile</button>
   <button id="analyzeBtn">analyze</button>
+  <button id="auditWorldBtn" title="Deterministic world-model lint + health">audit</button>
   <button id="configBtn" class="header-icon" title="LLM configuration" aria-label="LLM configuration"><svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M4 13.5v-3l2.1-.7.8-1.9-1-2 2.1-2.1 2 1 1.9-.8.7-2.1h3l.7 2.1 1.9.8 2-1 2.1 2.1-1 2 .8 1.9 2.1.7v3l-2.1.7-.8 1.9 1 2-2.1 2.1-2-1-1.9.8-.7 2.1h-3l-.7-2.1-1.9-.8-2 1-2.1-2.1 1-2-.8-1.9L4 13.5Z"/></svg></button>
   <div class="spacer"></div>
   <div class="status"><span id="dot" class="dot"></span><span id="statusText">local</span></div>
@@ -320,6 +354,11 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
     <label class="check"><input id="inferActions" type="checkbox" checked> infer actions + writeback contracts</label>
     <label class="check"><input id="inferFunctions" type="checkbox" checked> infer functions + metrics</label>
     <label class="check"><input id="inferPolicies" type="checkbox" checked> infer governance + approvals</label>
+    <div id="workspaceMini" class="workspace-mini">
+      <div class="health-title"><b id="workspaceHealthScore">—</b><span class="small mono">MODEL HEALTH</span></div>
+      <div id="workspaceHealthGrid" class="workspace-health-grid"><div>workspace</div><div class="v">initializing</div></div>
+      <div class="workspace-actions"><button id="persistWorkspaceBtn" class="iconbtn">persist</button><button id="clearWorldBtn" class="iconbtn">clear world</button></div>
+    </div>
   </div>
 </aside>
 <div class="splitter vertical" id="leftSplitter"></div>
@@ -328,13 +367,17 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
   <div class="toolbar">
     <button id="fitBtn">fit</button>
     <button id="layoutBtn">layout</button>
-    <div class="view-mode-group"><button id="graphModeBtn" class="on" title="Ontology graph">graph</button><button id="mapModeBtn" title="Geospatial grounding">world</button></div>
+    <div class="view-mode-group"><button id="graphModeBtn" class="on" title="Graph canvas">graph</button><button id="mapModeBtn" title="Geospatial grounding">world</button></div>
+    <select id="graphLayerMode" class="graph-layer-select" title="Graph semantic layer"><option value="type">TYPE</option><option value="instance">INSTANCE</option><option value="hybrid">HYBRID</option></select>
     <select id="toolbarContextMode" class="context-select" title="LLM context focus">
       <option value="all">context · all</option><option value="focused_sources">context · sources</option><option value="focused_nodes">context · nodes</option><option value="focused_neighbors">context · nodes+1</option><option value="focused_combined">context · combined</option>
     </select>
     <button id="jsonBtn">json</button>
     <button id="saveBtn">save model</button>
     <button id="loadModelBtn">load model</button>
+    <button id="newWorkspaceBtn" title="New persistent workspace">new ws</button>
+    <button id="forkWorkspaceBtn" title="Fork current workspace">fork</button>
+    <button id="saveWorkspaceBtn" title="Export complete workspace">workspace</button>
     <input id="modelFilePicker" type="file" accept=".json" hidden>
     <div class="spacer"></div>
     <span id="graphStat" class="small">empty</span>
@@ -361,12 +404,15 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
       <textarea id="objective" placeholder="Ask for an operational insight, decision, risk, anomaly, plan, dependency, optimization target, root cause, forecast implication, next-best action..."></textarea>
       <div class="row">
         <select id="analysisMode" class="grow">
-          <option value="decision">decision</option>
-          <option value="diagnostic">diagnostic</option>
-          <option value="planning">planning</option>
+          <option value="decision">decide</option>
+          <option value="diagnostic">diagnose</option>
+          <option value="planning">plan</option>
+          <option value="optimize">optimize</option>
+          <option value="simulate">simulate</option>
           <option value="risk">risk</option>
           <option value="opportunity">opportunity</option>
           <option value="explain">explain</option>
+          <option value="audit">audit</option>
         </select>
         <button id="runInsight">run</button>
       </div>
@@ -387,7 +433,10 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
   <div class="tabs">
     <button class="tab on" data-pane="inspectPane">inspect</button>
     <button class="tab" data-pane="sourcePane">lineage</button>
+    <button class="tab" data-pane="statePane">state</button>
+    <button class="tab" data-pane="conflictPane">conflicts <span id="conflictTabCount"></span></button>
     <button class="tab" data-pane="geoPane">geo</button>
+    <button class="tab" data-pane="historyPane">history</button>
     <button class="tab" data-pane="outputPane">output</button>
     <button class="tab" data-pane="promptPane">prompts</button>
   </div>
@@ -405,11 +454,30 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
     <div class="sec-head"><b>lineage</b></div>
     <div id="lineage" class="small">Compile a model to inspect bindings.</div>
   </div>
+  <div id="statePane" class="pane">
+    <div class="sec-head"><b>runtime world state</b><div class="spacer"></div><span id="worldRevisionBadge" class="badge">rev 0</span></div>
+    <div id="worldSummary" class="world-summary"></div>
+    <div id="worldStateList" class="runtime-list"><div class="small">No runtime instances. Compile the ontology, then reconcile observations.</div></div>
+  </div>
+
+  <div id="conflictPane" class="pane">
+    <div class="sec-head"><b>claim conflicts</b><div class="spacer"></div><button id="refreshConflictsBtn" class="iconbtn">detect</button></div>
+    <div class="help">Conflicting claims are preserved. A preferred candidate may be ranked, but state is never silently collapsed.</div>
+    <div id="conflictList"><div class="small">No conflicts.</div></div>
+  </div>
+
   <div id="geoPane" class="pane">
     <div class="sec-head"><b>grounding</b><div class="spacer"></div><button id="showWorldBtn">world</button></div>
     <div id="geoSummary" class="small">No spatial model.</div>
     <div class="map-legend"><span><i class="map-swatch"></i> grounded</span><span>double-click map → input</span></div>
     <div class="hrule"></div><div id="geoFrames"></div><div id="geoList"></div>
+  </div>
+
+  <div id="historyPane" class="pane">
+    <div class="sec-head"><b>revision history</b><div class="spacer"></div><button id="snapshotNowBtn" class="iconbtn">snapshot</button></div>
+    <div id="historySummary" class="small">No revisions.</div>
+    <div id="historyList"></div>
+    <div id="patchTrace" class="patch-log">world patch trace idle</div>
   </div>
 
   <div id="outputPane" class="pane">
@@ -657,7 +725,7 @@ function log(s,c=""){const d=document.createElement("div");d.className="log "+c;
 function host(){return $("#host").value.trim().replace(/\/+$/,"")}
 function tpl(s,v){return s.replace(/\{\{([A-Z0-9_]+)\}\}/g,(_,k)=>String(v[k]??""))}
 function saveBlob(name,text,type="text/plain"){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),800)}
-function setBusy(x,label="working"){["compileBtn","analyzeBtn","runInsight"].forEach(id=>$("#"+id).disabled=x);$("#statusText").textContent=x?label:(ontology?"model ready":"local")}
+function setBusy(x,label="working"){["compileBtn","reconcileBtn","analyzeBtn","auditWorldBtn","runInsight"].forEach(id=>{const el=$("#"+id);if(el)el.disabled=x});$("#statusText").textContent=x?label:(ontology?"model ready":"local")}
 
 async function connect(){
  try{$("#statusText").textContent="connecting";const r=await fetch(host()+"/api/tags",{signal:AbortSignal.timeout(8000)});if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json(),sel=$("#model"),prior=sel.value;sel.innerHTML="";(d.models||[]).forEach(m=>{const o=document.createElement("option");o.value=m.name||m.model;o.textContent=o.value;sel.appendChild(o)});if(prior&&[...sel.options].some(o=>o.value===prior))sel.value=prior;$("#dot").className="dot ok";$("#statusText").textContent=`${(d.models||[]).length} models`;log("Ollama connected.","good")}
@@ -926,7 +994,7 @@ async function providerRequest(layer,system,user,schema,label,wantsJSON=true){
   if(!response.ok&&key==="openai"&&schema&&response.status===400){delete body.response_format;response=await fetch(url,{method:"POST",headers,signal:aborter?.signal,body:JSON.stringify(body)})}
   if(!response.ok)throw new Error(`${label}: ${profile.label} HTTP ${response.status} ${await response.text()}`);const data=await response.json(),text=extractTextResponse(key,data);if(!text)throw new Error(`${label}: empty model response`);if(!wantsJSON)return text;try{return JSON.parse(text)}catch(e){const match=text.match(/\{[\s\S]*\}/);if(match)try{return JSON.parse(match[0])}catch{}throw new Error(`${label}: invalid structured JSON (${e.message})`)}
 }
-function layerFromLabel(label){label=String(label).toLowerCase();if(label.includes("extract"))return"extract";if(label.includes("compile"))return"compile";if(label.includes("analysis")||label.includes("decision"))return"insight";return"custom_output"}
+function layerFromLabel(label){label=String(label).toLowerCase();if(label.includes("extract"))return"extract";if(label.includes("compile")||label.includes("reconcile")||label.includes("world patch"))return"compile";if(label.includes("analysis")||label.includes("decision")||label.includes("reason"))return"insight";return"custom_output"}
 ollamaJSON=async function(system,user,schema,label){const t=performance.now(),x=await providerRequest(layerFromLabel(label),system,user,schema,label,true);log(`${label} · ${((performance.now()-t)/1000).toFixed(1)}s`,"good");return x};
 ollamaText=async function(system,user,label){return providerRequest("custom_output",system,user,null,label,false)};
 connect=async function(){
@@ -1020,7 +1088,7 @@ function initCanvas(){
  c.addEventListener("wheel",e=>{e.preventDefault();const r=c.getBoundingClientRect();zoomAt(e.clientX-r.left,e.clientY-r.top,Math.exp(-e.deltaY*.0012))},{passive:false});
  c.addEventListener("pointerdown",e=>{const r=c.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top,n=hitNode(sx,sy);c.setPointerCapture(e.pointerId);drag={sx,sy,lastX:e.clientX,lastY:e.clientY,node:n,moved:false,nodeStart:n?{...nodePositions[n.id]}:null};if(!n)view.classList.add("panning")});
  c.addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-drag.lastX,dy=e.clientY-drag.lastY;if(Math.abs(e.clientX-(drag.sx+c.getBoundingClientRect().left))+Math.abs(e.clientY-(drag.sy+c.getBoundingClientRect().top))>3)drag.moved=true;if(drag.node){nodePositions[drag.node.id].x+=dx/graphView.scale;nodePositions[drag.node.id].y+=dy/graphView.scale}else{graphView.x+=dx;graphView.y+=dy}drag.lastX=e.clientX;drag.lastY=e.clientY;drawGraph()});
- const finish=e=>{if(!drag)return;view.classList.remove("panning");if(drag.node){localStorage.setItem("ontologyNodePositions",JSON.stringify(nodePositions));if(!drag.moved){selected=drag.node;openNodeModal(drag.node)}}else saveGraphView();drag=null};c.addEventListener("pointerup",finish);c.addEventListener("pointercancel",finish);
+ const finish=e=>{if(!drag)return;view.classList.remove("panning");if(drag.node){if(drag.node._kind==="instance")localStorage.setItem("ontologyRuntimeNodePositions",JSON.stringify(runtimeNodePositions));else localStorage.setItem("ontologyNodePositions",JSON.stringify(nodePositions));if(!drag.moved){selected=drag.node;openNodeModal(drag.node)}}else saveGraphView();drag=null};c.addEventListener("pointerup",finish);c.addEventListener("pointercancel",finish);
  const mini=$("#minimapCanvas");mini.addEventListener("pointerdown",e=>{const r=mini.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,b=graphBounds(),pad=8,s=Math.min((mini.clientWidth-pad*2)/Math.max(1,b.w),(mini.clientHeight-pad*2)/Math.max(1,b.h)),wx=b.x+(mx-pad)/s,wy=b.y+(my-pad)/s,v=$("#view");graphView.x=v.clientWidth/2-wx*graphView.scale;graphView.y=v.clientHeight/2-wy*graphView.scale;saveGraphView();drawGraph()});
  new ResizeObserver(()=>{resizeCanvas();drawGraph()}).observe(view)
 }
@@ -1178,11 +1246,11 @@ const graphqlV3=graphql;graphql=function(){return graphqlV3()+`\ntype SpatialGro
 initCanvas=function(){
  const c=$("#graphCanvas"),view=$("#view");let drag=null;
  c.addEventListener("wheel",e=>{e.preventDefault();const r=c.getBoundingClientRect();zoomAt(e.clientX-r.left,e.clientY-r.top,Math.exp(-e.deltaY*.0012))},{passive:false});
- c.addEventListener("pointerdown",e=>{const r=c.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;c.setPointerCapture(e.pointerId);if(canvasMode==="world"){const g=hitSpatial(sx,sy);drag={mode:"world",sx,sy,lastX:e.clientX,lastY:e.clientY,grounding:g,moved:false};if(!g)view.classList.add("panning")}else{const n=hitNode(sx,sy);drag={mode:"graph",sx,sy,lastX:e.clientX,lastY:e.clientY,node:n,moved:false,nodeStart:n?{...nodePositions[n.id]}:null};if(!n)view.classList.add("panning")}});
- c.addEventListener("pointermove",e=>{const r=c.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;updateMapReadout(sx,sy);if(!drag)return;const dx=e.clientX-drag.lastX,dy=e.clientY-drag.lastY;if(Math.abs(e.clientX-(drag.sx+r.left))+Math.abs(e.clientY-(drag.sy+r.top))>3)drag.moved=true;if(drag.mode==="world"){if(!drag.grounding){mapView.x+=dx;mapView.y+=dy}}else if(drag.node){nodePositions[drag.node.id].x+=dx/graphView.scale;nodePositions[drag.node.id].y+=dy/graphView.scale}else{graphView.x+=dx;graphView.y+=dy}drag.lastX=e.clientX;drag.lastY=e.clientY;drawGraph()});
+ c.addEventListener("pointerdown",e=>{const r=c.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;c.setPointerCapture(e.pointerId);if(canvasMode==="world"){const g=hitSpatial(sx,sy);drag={mode:"world",sx,sy,lastX:e.clientX,lastY:e.clientY,grounding:g,moved:false};if(!g)view.classList.add("panning")}else{const n=hitNode(sx,sy);drag={mode:"graph",sx,sy,lastX:e.clientX,lastY:e.clientY,node:n,moved:false,nodeStart:n?{...(n._kind==="instance"?(runtimeNodePositions[n.id]||{}):(nodePositions[n.id]||{}))}:null};if(!n)view.classList.add("panning")}});
+ c.addEventListener("pointermove",e=>{const r=c.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;updateMapReadout(sx,sy);if(!drag)return;const dx=e.clientX-drag.lastX,dy=e.clientY-drag.lastY;if(Math.abs(e.clientX-(drag.sx+r.left))+Math.abs(e.clientY-(drag.sy+r.top))>3)drag.moved=true;if(drag.mode==="world"){if(!drag.grounding){mapView.x+=dx;mapView.y+=dy}}else if(drag.node){const pos=drag.node._kind==="instance"?(runtimeNodePositions[drag.node.id]||(runtimeNodePositions[drag.node.id]={x:drag.node.x||0,y:drag.node.y||0})):(nodePositions[drag.node.id]||(nodePositions[drag.node.id]={x:drag.node.x||0,y:drag.node.y||0}));pos.x+=dx/graphView.scale;pos.y+=dy/graphView.scale}else{graphView.x+=dx;graphView.y+=dy}drag.lastX=e.clientX;drag.lastY=e.clientY;drawGraph()});
  const finish=()=>{if(!drag)return;view.classList.remove("panning");if(drag.mode==="world"){saveMapView();if(drag.grounding&&!drag.moved)openGeoModal(drag.grounding)}else{if(drag.node){localStorage.setItem("ontologyNodePositions",JSON.stringify(nodePositions));if(!drag.moved){selected=drag.node;openNodeModal(drag.node)}}else saveGraphView()}drag=null};c.addEventListener("pointerup",finish);c.addEventListener("pointercancel",finish);
  c.addEventListener("dblclick",e=>{if(canvasMode!=="world")return;const r=c.getBoundingClientRect(),p=geoScreenToLonLat(e.clientX-r.left,e.clientY-r.top);if(p.lon>=-180&&p.lon<=180&&p.lat>=-90&&p.lat<=90)addGeoInputAt(p.lon,p.lat)});
- const mini=$("#minimapCanvas");mini.addEventListener("pointerdown",e=>{const r=mini.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;if(canvasMode==="world"){const pad=6,s=Math.min((mini.clientWidth-pad*2)/1000,(mini.clientHeight-pad*2)/500),ox=(mini.clientWidth-1000*s)/2,oy=(mini.clientHeight-500*s)/2,wx=(mx-ox)/s,wy=(my-oy)/s,v=$("#view");mapView.x=v.clientWidth/2-wx*mapView.scale;mapView.y=v.clientHeight/2-wy*mapView.scale;saveMapView();drawGraph()}else{const b=graphBounds(),pad=8,s=Math.min((mini.clientWidth-pad*2)/Math.max(1,b.w),(mini.clientHeight-pad*2)/Math.max(1,b.h)),wx=b.x+(mx-pad)/s,wy=b.y+(my-pad)/s,v=$("#view");graphView.x=v.clientWidth/2-wx*graphView.scale;graphView.y=v.clientHeight/2-wy*graphView.scale;saveGraphView();drawGraph()}});
+ const mini=$("#minimapCanvas");mini.addEventListener("pointerdown",e=>{const r=mini.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;if(canvasMode==="world"){const pad=6,s=Math.min((mini.clientWidth-pad*2)/1000,(mini.clientHeight-pad*2)/500),ox=(mini.clientWidth-1000*s)/2,oy=(mini.clientHeight-500*s)/2,wx=(mx-ox)/s,wy=(my-oy)/s,v=$("#view");mapView.x=v.clientWidth/2-wx*mapView.scale;mapView.y=v.clientHeight/2-wy*mapView.scale;saveMapView();drawGraph()}else{const b=(typeof graphLayerMode!=="undefined"&&graphLayerMode!=="type")?runtimeBounds(graphLayerMode==="hybrid"):graphBounds(),pad=8,s=Math.min((mini.clientWidth-pad*2)/Math.max(1,b.w),(mini.clientHeight-pad*2)/Math.max(1,b.h)),wx=b.x+(mx-pad)/s,wy=b.y+(my-pad)/s,v=$("#view");graphView.x=v.clientWidth/2-wx*graphView.scale;graphView.y=v.clientHeight/2-wy*graphView.scale;saveGraphView();drawGraph()}});
  new ResizeObserver(()=>{resizeCanvas();drawGraph()}).observe(view)
 };
 function initGeoUI(){$("#graphModeBtn").onclick=()=>setCanvasMode("graph");$("#mapModeBtn").onclick=()=>setCanvasMode("world");$("#showWorldBtn").onclick=()=>{setCanvasMode("world");fitWorld()};$("#addGeo").onclick=()=>addInput("geo");$("#closeGeoModal").onclick=()=>{$("#geoModal").classList.remove("on");selectedSpatial=null;drawGraph()};$("#geoFocusBtn").onclick=()=>{if(!selectedSpatial)return;if(focusedSpatialIds.has(selectedSpatial.id))focusedSpatialIds.delete(selectedSpatial.id);else focusedSpatialIds.add(selectedSpatial.id);if(selectedSpatial.ontology_type_id&&allNodes().some(n=>n.id===selectedSpatial.ontology_type_id)&&focusedSpatialIds.has(selectedSpatial.id))focusedNodeIds.add(selectedSpatial.ontology_type_id);$("#geoFocusBtn").textContent=focusedSpatialIds.has(selectedSpatial.id)?"unfocus":"focus";renderFocusSummary();renderSpatial();drawGraph()};setCanvasMode(canvasMode)}
@@ -2497,6 +2565,611 @@ setTimeout(initInferenceFabricUI,0);
 
 
 
+
+/* ========================================================================
+   V8 · PERSISTENT OPERATIONAL WORLD MODEL
+   ontology = type/schema layer
+   workspace.world = actual instances/state
+   workspace.epistemics = claims/evidence/conflicts
+   LLMs may PROPOSE patches; only deterministic code mutates world state.
+   ======================================================================== */
+
+const EPISTEMIC_STATUSES=["observed","reported","inferred","derived","predicted","assumed","simulated","unknown"];
+const WORLD_PATCH_OPS=["create_instance","update_state","create_relation","close_relation","record_event","add_claim","retract_claim","add_evidence","resolve_conflict","propose_schema_change"];
+const WORKSPACE_DB_NAME="ontology_operational_workbench";
+const WORKSPACE_DB_VERSION=1;
+const ACTIVE_WORKSPACE_KEY="ontologyActiveWorkspaceV8";
+const cloneJSON=v=>v==null?v:JSON.parse(JSON.stringify(v));
+const isoNow=()=>new Date().toISOString();
+const simpleHash=s=>{let h=2166136261;for(const c of String(s??"")){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return("00000000"+(h>>>0).toString(16)).slice(-8)};
+const stableJSON=v=>{if(v===null||typeof v!=="object")return JSON.stringify(v);if(Array.isArray(v))return"["+v.map(stableJSON).join(",")+"]";return"{"+Object.keys(v).sort().map(k=>JSON.stringify(k)+":"+stableJSON(v[k])).join(",")+"}"};
+
+function makeWorkspace(id=uid("ws"),name="Operational workspace"){
+  const now=isoNow();
+  return{
+    version:"8.0",
+    metadata:{id,name,created_at:now,updated_at:now,ontology_revision:0,world_revision:0,forked_from:null},
+    ontology:null,
+    world:{revision:0,instances:[],relationships:[],events:[],state:{},spatial:[]},
+    epistemics:{claims:[],evidence:[],conflicts:[],resolutions:[]},
+    operations:{objectives:[],plans:[],simulations:[],executions:[],approvals:[]},
+    connections:{sources:[],streams:[],adapters:[],subscriptions:[]},
+    history:{revisions:[],patches:[],snapshots:[],execution_receipts:[],schema_proposals:[]}
+  }
+}
+function normalizeWorkspace(w){
+  const base=makeWorkspace(w?.metadata?.id||uid("ws"),w?.metadata?.name||"Operational workspace");
+  w={...base,...(w||{})};
+  w.metadata={...base.metadata,...(w.metadata||{})};
+  w.world={...base.world,...(w.world||{})};["instances","relationships","events","spatial"].forEach(k=>w.world[k]=Array.isArray(w.world[k])?w.world[k]:[]);w.world.state=w.world.state&&typeof w.world.state==="object"?w.world.state:{};
+  w.epistemics={...base.epistemics,...(w.epistemics||{})};["claims","evidence","conflicts","resolutions"].forEach(k=>w.epistemics[k]=Array.isArray(w.epistemics[k])?w.epistemics[k]:[]);
+  w.operations={...base.operations,...(w.operations||{})};["objectives","plans","simulations","executions","approvals"].forEach(k=>w.operations[k]=Array.isArray(w.operations[k])?w.operations[k]:[]);
+  w.connections={...base.connections,...(w.connections||{})};["sources","streams","adapters","subscriptions"].forEach(k=>w.connections[k]=Array.isArray(w.connections[k])?w.connections[k]:[]);
+  w.history={...base.history,...(w.history||{})};["revisions","patches","snapshots","execution_receipts","schema_proposals"].forEach(k=>w.history[k]=Array.isArray(w.history[k])?w.history[k]:[]);
+  w.world.revision=Number(w.world.revision||w.metadata.world_revision||0);
+  w.metadata.world_revision=w.world.revision;
+  return w
+}
+let workspace=makeWorkspace();
+let workspaceDB=null,workspaceSaveTimer=null,workspaceInitialized=false;
+let graphLayerMode=localStorage.getItem("ontologyGraphLayerMode")||"type";
+let runtimeNodePositions=(()=>{try{return JSON.parse(localStorage.getItem("ontologyRuntimeNodePositions")||"{}")||{}}catch{return{}}})();
+
+function openWorkspaceDB(){
+  if(workspaceDB)return Promise.resolve(workspaceDB);
+  return new Promise((resolve,reject)=>{
+    if(!("indexedDB"in window)){resolve(null);return}
+    const req=indexedDB.open(WORKSPACE_DB_NAME,WORKSPACE_DB_VERSION);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains("workspaces"))db.createObjectStore("workspaces",{keyPath:"metadata.id"});
+      if(!db.objectStoreNames.contains("source_cache"))db.createObjectStore("source_cache",{keyPath:"workspace_id"});
+      if(!db.objectStoreNames.contains("provider_tests"))db.createObjectStore("provider_tests",{keyPath:"origin"});
+    };
+    req.onsuccess=()=>{workspaceDB=req.result;resolve(workspaceDB)};
+    req.onerror=()=>reject(req.error)
+  })
+}
+async function idbGet(store,key){const db=await openWorkspaceDB();if(!db)return null;return new Promise((res,rej)=>{const tx=db.transaction(store,"readonly"),r=tx.objectStore(store).get(key);r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error)})}
+async function idbPut(store,value){const db=await openWorkspaceDB();if(!db)return;return new Promise((res,rej)=>{const tx=db.transaction(store,"readwrite");tx.objectStore(store).put(value);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}
+async function idbDelete(store,key){const db=await openWorkspaceDB();if(!db)return;return new Promise((res,rej)=>{const tx=db.transaction(store,"readwrite");tx.objectStore(store).delete(key);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}
+
+function syncConnectionsFromRuntime(){
+  workspace.connections.sources=[
+    ...sources.map(s=>({id:s.id,name:s.name,kind:s.kind,authority:s.authority||"unknown",meta:s.meta||"",freshness:s.freshness||"unknown",captured_at:s.captured_at||null})),
+    ...inputBlocks.map(b=>({id:b.id,name:b.key||b.id,kind:b.kind==="geo"?"geo_manual":"manual_input",authority:b.authority||"authoritative",meta:b.data_type||"",freshness:"session",captured_at:null}))
+  ]
+}
+function syncSpatialFromOntology(){
+  if(!ontology)return;
+  const existing=new Map((workspace.world.spatial||[]).map(g=>[g.id,g]));
+  for(const g of ontology.spatial_groundings||[])if(!existing.has(g.id))existing.set(g.id,{...cloneJSON(g),runtime_origin:"ontology_compile"});
+  workspace.world.spatial=[...existing.values()]
+}
+async function persistWorkspace(reason="autosave"){
+  if(!workspaceInitialized)return;
+  try{
+    syncConnectionsFromRuntime();workspace.ontology=ontology?cloneJSON(ontology):workspace.ontology;workspace.metadata.updated_at=isoNow();workspace.metadata.world_revision=workspace.world.revision;
+    await idbPut("workspaces",cloneJSON(workspace));
+    await idbPut("source_cache",{workspace_id:workspace.metadata.id,sources:cloneJSON(sources),inputBlocks:cloneJSON(inputBlocks),saved_at:isoNow()});
+    if(typeof providerAuditResults!=="undefined")await idbPut("provider_tests",{origin:currentAuditOrigin?.()||location.origin,results:cloneJSON(providerAuditResults),saved_at:isoNow()});
+    localStorage.setItem(ACTIVE_WORKSPACE_KEY,workspace.metadata.id);
+    if(reason!=="autosave")log(`Workspace persisted · ${workspace.metadata.name} · world rev ${workspace.world.revision}`,"good")
+  }catch(e){log(`Workspace persistence unavailable · ${e.message||e}`,"warn")}
+}
+function scheduleWorkspaceSave(){clearTimeout(workspaceSaveTimer);workspaceSaveTimer=setTimeout(()=>persistWorkspace("autosave"),350)}
+async function loadWorkspacePersisted(id){
+  const saved=await idbGet("workspaces",id);if(!saved)return false;
+  workspace=normalizeWorkspace(saved);ontology=workspace.ontology?cloneJSON(workspace.ontology):null;
+  const cache=await idbGet("source_cache",id);if(cache){sources=Array.isArray(cache.sources)?cache.sources:[];inputBlocks=Array.isArray(cache.inputBlocks)?cache.inputBlocks:[]}
+  normalizeOntology();renderSources();renderInputs();layoutGraph(true);renderAll();renderFocusSummary();renderWorkspacePanels();
+  return true
+}
+async function initWorkspaceRuntime(){
+  try{
+    const active=localStorage.getItem(ACTIVE_WORKSPACE_KEY);
+    if(active&&await loadWorkspacePersisted(active)){workspaceInitialized=true;log(`Workspace restored · ${workspace.metadata.name} · rev ${workspace.world.revision}`,"good")}
+    else{workspace=makeWorkspace();workspaceInitialized=true;localStorage.setItem(ACTIVE_WORKSPACE_KEY,workspace.metadata.id);await persistWorkspace("initial")}
+    const pt=await idbGet("provider_tests",currentAuditOrigin?.()||location.origin);if(pt?.results&&typeof providerAuditResults!=="undefined"&&!Object.keys(providerAuditResults).length){providerAuditResults=pt.results;renderAuditResults?.();renderPoolStatus?.()}
+  }catch(e){workspaceInitialized=true;log(`IndexedDB workspace init degraded · ${e.message||e}`,"warn")}
+  renderWorkspacePanels()
+}
+async function newWorkspace(){
+  await persistWorkspace("before new");
+  workspace=makeWorkspace(uid("ws"),"Operational workspace "+new Date().toLocaleString());
+  ontology=null;analysis=null;sources=[];inputBlocks=[];selected=null;focusedNodeIds.clear();focusedSpatialIds.clear();runtimeNodePositions={};localStorage.setItem("ontologyRuntimeNodePositions","{}");localStorage.setItem(ACTIVE_WORKSPACE_KEY,workspace.metadata.id);
+  renderSources();renderInputs();renderAll();renderAnalysis();renderWorkspacePanels();drawGraph();await persistWorkspace("new workspace")
+}
+async function forkWorkspace(){
+  const old=workspace,copy=cloneJSON(old);copy.metadata.id=uid("ws");copy.metadata.name=(old.metadata.name||"Workspace")+" · fork";copy.metadata.created_at=isoNow();copy.metadata.updated_at=isoNow();copy.metadata.forked_from=old.metadata.id;workspace=normalizeWorkspace(copy);localStorage.setItem(ACTIVE_WORKSPACE_KEY,workspace.metadata.id);await persistWorkspace("fork");renderWorkspacePanels()
+}
+function exportWorkspace(){
+  const out=cloneJSON(workspace);out.ontology=ontology?cloneJSON(ontology):out.ontology;out.runtime_sources=sources;out.runtime_inputs=inputBlocks;
+  saveBlob((workspace.metadata.name||"workspace").replace(/\W+/g,"_")+".workspace.json",JSON.stringify(out,null,2),"application/json")
+}
+function clearRuntimeWorld(){
+  if(!confirm("Clear runtime instances, claims, conflicts and world history while preserving the ontology schema?"))return;
+  workspace.world={revision:0,instances:[],relationships:[],events:[],state:{},spatial:[]};workspace.epistemics={claims:[],evidence:[],conflicts:[],resolutions:[]};workspace.history.patches=[];workspace.history.snapshots=[];workspace.history.revisions=workspace.history.revisions.filter(r=>r.kind==="compile");syncSpatialFromOntology();scheduleWorkspaceSave();renderWorkspacePanels();drawGraph();log("Runtime world cleared; ontology preserved.","warn")
+}
+
+/* ----- patch schema ----- */
+const WORLD_PATCH_OPERATION_SCHEMA={type:"object",additionalProperties:false,properties:{
+  op:{type:"string",enum:WORLD_PATCH_OPS},
+  target_id:{type:"string"},
+  path:{type:"string"},
+  value_json:{type:"string"},
+  confidence:{type:"number",minimum:0,maximum:1},
+  evidence_ids:{type:"array",items:{type:"string"}},
+  epistemic_status:{type:"string",enum:EPISTEMIC_STATUSES},
+  valid_from:{type:"string"},
+  valid_to:{type:"string"},
+  observed_at:{type:"string"},
+  reason:{type:"string"}
+},required:["op","target_id","path","value_json","confidence","evidence_ids","epistemic_status","valid_from","valid_to","observed_at","reason"]};
+const WORLD_PATCH_SCHEMA={type:"object",additionalProperties:false,properties:{
+  base_revision:{type:"integer",minimum:0},
+  operations:{type:"array",items:WORLD_PATCH_OPERATION_SCHEMA}
+},required:["base_revision","operations"]};
+
+DEFAULT_PROMPTS.reconcile_system=`You are a world-state reconciliation engine operating against an existing TYPE ONTOLOGY and a persistent runtime WORLD.
+
+You do not rewrite the ontology and you never directly mutate world state.
+You only PROPOSE a WORLD_PATCH. Deterministic application code validates and applies it.
+
+Distinguish:
+- ontology types: what kinds of things can exist
+- instances: identifiable things that actually exist in the supplied observation
+- relationships: actual instance-to-instance links
+- event instances: actual occurrences
+- evidence: compact source anchors proving a claim
+- claims: source-specific propositions about instance state
+- resolved state: never silently overwrite conflict; competing claims must coexist
+
+Operation value_json contracts:
+create_instance -> {"id","type_id","label","identity","state","lifecycle","valid_from","valid_to","observed_at","confidence","evidence_ids","geometry_id","geometry"}
+  geometry may be null or {"geometry_type":"Point|LineString|Polygon|BBox","coordinates":<JSON-compatible coordinates>,"crs":"EPSG:4326 or explicit frame","place_name":""}.
+update_state -> JSON value for the requested property path.
+create_relation -> {"id","link_type_id","from_id","to_id","valid_from","valid_to","confidence","evidence_ids"}.
+close_relation -> {"id","valid_to"}.
+record_event -> {"id","event_type_id","timestamp","actor_ids","target_ids","properties","evidence_ids","confidence"}.
+add_evidence -> {"id","source_id","source_revision","locator","anchor","content_hash","captured_at","observed_at","authority","confidence","extractor_provider","extractor_model"}.
+add_claim -> {"id","subject_id","predicate","value","object_id","valid_from","valid_to","confidence","authority","evidence_ids","status"}.
+retract_claim -> {"id","reason"}.
+resolve_conflict -> {"id","preferred_claim_id","reason"}.
+propose_schema_change -> {"description","rationale","evidence_ids"}.
+
+Rules:
+- Every factual create/update/claim should cite evidence IDs created in the same patch or already present.
+- Evidence anchors must be short source excerpts, never whole documents.
+- Use existing ontology type/link/event IDs exactly.
+- Do not invent an instance merely because a type exists.
+- If identity is ambiguous, preserve that ambiguity in identity/state and lower confidence; never merge uncertain identities.
+- State-changing observations should generally be represented as claims plus update_state only when source authority supports current operational state.
+- All WGS84/GeoJSON coordinates are [longitude, latitude].
+- Preserve valid time and observation time when supplied.
+- value_json must itself be valid JSON encoded as a STRING.
+- Return complete JSON matching the schema.`;
+
+DEFAULT_PROMPTS.reconcile_user=`BASE WORLD REVISION: {{BASE_REVISION}}
+
+TYPE ONTOLOGY:
+{{ONTOLOGY}}
+
+CURRENT WORLD SLICE:
+{{WORLD}}
+
+SOURCE:
+id={{SOURCE_ID}}
+name={{SOURCE_NAME}}
+kind={{SOURCE_KIND}}
+authority={{AUTHORITY}}
+locator={{LOCATOR}}
+
+OBSERVATION:
+<<<
+{{CONTENT}}
+>>>
+
+Propose only source-supported operations.`;
+
+DEFAULT_PROMPTS.reconcile_repair=`You repair a candidate WORLD_PATCH that failed deterministic validation.
+Return a complete replacement patch matching the schema.
+Do not add unsupported facts merely to satisfy validation.
+If a referenced type/link/event does not exist, either remove the unsupported operation or emit propose_schema_change instead.
+If evidence is missing, add compact evidence records grounded in the supplied observation.
+Preserve the base revision supplied by the caller.`;
+
+function parseOperationValue(op){
+  try{return op.value_json===""?null:JSON.parse(op.value_json)}
+  catch(e){return{__parse_error:e.message}}
+}
+function worldIndexes(){
+  return{
+    typeById:new Map((ontology?.object_types||[]).map(x=>[x.id,x])),
+    linkById:new Map((ontology?.link_types||[]).map(x=>[x.id,x])),
+    eventTypeById:new Map((ontology?.event_types||[]).map(x=>[x.id,x])),
+    instanceById:new Map((workspace.world.instances||[]).map(x=>[x.id,x])),
+    relationById:new Map((workspace.world.relationships||[]).map(x=>[x.id,x])),
+    evidenceById:new Map((workspace.epistemics.evidence||[]).map(x=>[x.id,x])),
+    claimById:new Map((workspace.epistemics.claims||[]).map(x=>[x.id,x]))
+  }
+}
+function classifyPatchValidation(errors){
+  const text=errors.map(e=>e.message).join(" ").toLowerCase();
+  if(text.includes("base revision"))return"stale_world_assumption";
+  if(text.includes("json")||text.includes("value_json"))return"invalid_structure";
+  if(text.includes("type_id")||text.includes("link_type_id")||text.includes("event_type_id"))return"schema_incompatible";
+  if(text.includes("identity")||text.includes("instance"))return"unresolved_identity";
+  if(text.includes("evidence"))return"missing_evidence";
+  if(text.includes("temporal")||text.includes("valid_"))return"temporal_invalid";
+  return"semantic_inconsistency"
+}
+function validateWorldPatch(patch){
+  const errors=[],decoded=new Map();
+  if(!patch||typeof patch!=="object"||Array.isArray(patch))errors.push({kind:"invalid_structure",message:"patch root must be object"});
+  if(Number(patch?.base_revision)!==Number(workspace.world.revision))errors.push({kind:"stale_world_assumption",message:`base revision ${patch?.base_revision} does not match current ${workspace.world.revision}`});
+  if(!Array.isArray(patch?.operations))errors.push({kind:"invalid_structure",message:"operations must be array"});
+  const idx=worldIndexes(),createdInstances=new Set(),createdEvidence=new Set(),createdRelations=new Set(),createdEvents=new Set(),seenIds=new Set();
+  for(const [i,op] of (patch?.operations||[]).entries()){
+    const p=`operations[${i}]`;
+    if(!WORLD_PATCH_OPS.includes(op?.op))errors.push({kind:"invalid_structure",message:`${p}.op unsupported`});
+    if(!(Number(op?.confidence)>=0&&Number(op?.confidence)<=1))errors.push({kind:"invalid_structure",message:`${p}.confidence outside 0..1`});
+    const value=parseOperationValue(op||{});decoded.set(op,value);
+    if(value?.__parse_error){errors.push({kind:"invalid_structure",message:`${p}.value_json invalid JSON: ${value.__parse_error}`});continue}
+    if(["create_instance","create_relation","record_event","add_evidence","add_claim"].includes(op.op)){
+      const id=String(value?.id||op.target_id||"");if(!id)errors.push({kind:"invalid_structure",message:`${p} missing value.id`});else if(seenIds.has(id))errors.push({kind:"duplicate",message:`duplicate patch id ${id}`});else seenIds.add(id)
+    }
+    if(op.op==="create_instance"){
+      const id=String(value?.id||op.target_id||""),type=String(value?.type_id||"");if(!idx.typeById.has(type))errors.push({kind:"schema_incompatible",message:`${p} type_id ${type||"(missing)"} not in ontology`});
+      if(idx.instanceById.has(id))errors.push({kind:"identity",message:`${p} instance ${id} already exists; use update_state/add_claim`});createdInstances.add(id);
+      if(!value?.label)errors.push({kind:"identity",message:`${p} instance label missing`})
+    }
+    if(op.op==="create_relation"){
+      const id=String(value?.id||op.target_id||""),lt=String(value?.link_type_id||""),from=String(value?.from_id||""),to=String(value?.to_id||"");
+      if(!idx.linkById.has(lt))errors.push({kind:"schema_incompatible",message:`${p} link_type_id ${lt||"(missing)"} not in ontology`});
+      if(!idx.instanceById.has(from)&&!createdInstances.has(from))errors.push({kind:"identity",message:`${p} from instance ${from} unresolved`});
+      if(!idx.instanceById.has(to)&&!createdInstances.has(to))errors.push({kind:"identity",message:`${p} to instance ${to} unresolved`});
+      if(idx.relationById.has(id))errors.push({kind:"duplicate",message:`${p} relation ${id} exists`});createdRelations.add(id)
+    }
+    if(op.op==="record_event"){
+      const et=String(value?.event_type_id||"");if(!idx.eventTypeById.has(et))errors.push({kind:"schema_incompatible",message:`${p} event_type_id ${et||"(missing)"} not in ontology`});
+      for(const x of [...(value?.actor_ids||[]),...(value?.target_ids||[])])if(!idx.instanceById.has(x)&&!createdInstances.has(x))errors.push({kind:"identity",message:`${p} event instance reference ${x} unresolved`});
+      createdEvents.add(String(value?.id||op.target_id||""))
+    }
+    if(op.op==="add_evidence")createdEvidence.add(String(value?.id||op.target_id||""));
+    if(op.op==="add_claim"){
+      const subject=String(value?.subject_id||op.target_id||"");if(!idx.instanceById.has(subject)&&!createdInstances.has(subject))errors.push({kind:"identity",message:`${p} claim subject ${subject} unresolved`});
+      const evs=[...(value?.evidence_ids||[]),...(op.evidence_ids||[])];if(!evs.length)errors.push({kind:"missing_evidence",message:`${p} claim has no evidence`});
+      for(const eid of evs)if(!idx.evidenceById.has(eid)&&!createdEvidence.has(eid))errors.push({kind:"missing_evidence",message:`${p} evidence ${eid} unresolved`})
+    }
+    if(op.op==="update_state"){
+      const id=String(op.target_id||"");if(!idx.instanceById.has(id)&&!createdInstances.has(id))errors.push({kind:"identity",message:`${p} update target ${id} unresolved`});
+      if(!String(op.path||"").trim())errors.push({kind:"invalid_structure",message:`${p} update_state path missing`})
+    }
+    const vf=op.valid_from||value?.valid_from,vt=op.valid_to||value?.valid_to;if(vf&&vt&&Date.parse(vf)>Date.parse(vt))errors.push({kind:"temporal_invalid",message:`${p} valid_from occurs after valid_to`})
+  }
+  return{ok:errors.length===0,errors,failureClass:errors.length?classifyPatchValidation(errors):"",decoded}
+}
+function setDeepState(obj,path,value){
+  const parts=String(path||"").replace(/^state\./,"").split(".").filter(Boolean);if(!parts.length)return;
+  let cur=obj;for(let i=0;i<parts.length-1;i++){const k=parts[i];if(!cur[k]||typeof cur[k]!=="object")cur[k]={};cur=cur[k]}cur[parts.at(-1)]=value
+}
+function temporalOverlap(a,b){
+  const loA=a.valid_from?Date.parse(a.valid_from):-Infinity,hiA=a.valid_to?Date.parse(a.valid_to):Infinity,loB=b.valid_from?Date.parse(b.valid_from):-Infinity,hiB=b.valid_to?Date.parse(b.valid_to):Infinity;
+  return loA<=hiB&&loB<=hiA
+}
+function claimValueKey(c){return c.object_id?`object:${c.object_id}`:`value:${stableJSON(c.value)}`}
+function claimRank(c){
+  const aw={authoritative:5,operational:4,observation:3,reference:2,counterpart:2,derived:1,unknown:.5};
+  const authority=aw[String(c.authority||"unknown").toLowerCase()]||.5,confidence=Math.max(.01,Number(c.confidence||0)),fresh=c.observed_at?Math.max(.2,1-Math.min(1,(Date.now()-Date.parse(c.observed_at))/(1000*60*60*24*30))*.5):.7;
+  const direct=(c.evidence_ids||[]).length?1:.65;return authority*confidence*fresh*direct
+}
+function detectConflicts(){
+  const groups=new Map();
+  for(const c of workspace.epistemics.claims.filter(x=>x.status!=="retracted")){
+    const key=`${c.subject_id}::${c.predicate}`;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(c)
+  }
+  const prior=new Map(workspace.epistemics.conflicts.map(c=>[c.id,c])),out=[];
+  for(const [key,claims] of groups){
+    const incompatible=[];for(let i=0;i<claims.length;i++)for(let j=i+1;j<claims.length;j++)if(temporalOverlap(claims[i],claims[j])&&claimValueKey(claims[i])!==claimValueKey(claims[j])){incompatible.push(claims[i],claims[j])}
+    const uniq=[...new Map(incompatible.map(c=>[c.id,c])).values()];if(uniq.length<2)continue;
+    const [subject_id,predicate]=key.split("::"),id="conf_"+simpleHash(key+"::"+uniq.map(x=>x.id).sort().join("|")),ranked=[...uniq].sort((a,b)=>claimRank(b)-claimRank(a)),old=prior.get(id);
+    out.push({id,claim_ids:uniq.map(c=>c.id),subject_id,predicate,severity:uniq.length>2?"high":"medium",resolution:old?.resolution||"unresolved",preferred_claim_id:old?.preferred_claim_id||ranked[0]?.id||null,reason:old?.reason||"Candidate ranked by authority × confidence × freshness × direct evidence; conflict intentionally preserved."})
+  }
+  workspace.epistemics.conflicts=out;return out
+}
+function snapshotWorld(reason="snapshot"){
+  const snap={revision:workspace.world.revision,timestamp:isoNow(),reason,world:cloneJSON(workspace.world),epistemics:cloneJSON(workspace.epistemics)};
+  workspace.history.snapshots.push(snap);if(workspace.history.snapshots.length>24)workspace.history.snapshots.shift();return snap
+}
+function appendRevision(kind,reason,operations=[],evidence_ids=[]){
+  workspace.history.revisions.push({revision:workspace.world.revision,ontology_revision:workspace.metadata.ontology_revision||0,parent:workspace.world.revision>0?workspace.world.revision-1:null,timestamp:isoNow(),actor:"workbench",kind,operations:cloneJSON(operations),reason,evidence_ids:[...new Set(evidence_ids||[])]});
+  if(workspace.history.revisions.length>160)workspace.history.revisions.splice(0,workspace.history.revisions.length-160)
+}
+function applyWorldPatch(patch,meta={}){
+  const validation=validateWorldPatch(patch);if(!validation.ok)throw new Error(`World patch rejected · ${validation.failureClass} · ${validation.errors.slice(0,4).map(x=>x.message).join(" | ")}`);
+  snapshotWorld(`before patch rev ${workspace.world.revision+1}`);
+  const idx=worldIndexes(),ops=[...(patch.operations||[])];
+  const priority={add_evidence:0,create_instance:1,create_relation:2,record_event:3,add_claim:4,update_state:5,close_relation:6,retract_claim:7,resolve_conflict:8,propose_schema_change:9};
+  ops.sort((a,b)=>(priority[a.op]??99)-(priority[b.op]??99));
+  const trace=[],evidenceIds=[];
+  for(const op of ops){
+    const v=validation.decoded.get(op);
+    if(op.op==="add_evidence"){
+      const e={id:v.id||op.target_id,source_id:v.source_id||meta.source_id||"",source_revision:v.source_revision||"session",locator:v.locator||meta.locator||"",anchor:String(v.anchor||"").slice(0,220),content_hash:v.content_hash||simpleHash(v.anchor||""),captured_at:v.captured_at||isoNow(),observed_at:v.observed_at||op.observed_at||"",authority:v.authority||meta.authority||"unknown",confidence:Number(v.confidence??op.confidence??1),extractor_provider:v.extractor_provider||meta.provider||"",extractor_model:v.extractor_model||meta.model||""};
+      workspace.epistemics.evidence.push(e);evidenceIds.push(e.id);trace.push(`+ evidence ${e.id}`)
+    }else if(op.op==="create_instance"){
+      const inst={id:v.id||op.target_id,type_id:v.type_id,label:v.label||v.id,identity:v.identity||{},state:v.state||{},lifecycle:v.lifecycle||"unknown",valid_from:v.valid_from||op.valid_from||"",valid_to:v.valid_to||op.valid_to||"",observed_at:v.observed_at||op.observed_at||"",confidence:Number(v.confidence??op.confidence??1),evidence_ids:[...new Set([...(v.evidence_ids||[]),...(op.evidence_ids||[])])],geometry_id:v.geometry_id||""};
+      if(v.geometry&&v.geometry.crs){
+        const gid=inst.geometry_id||`geo_${inst.id}`;inst.geometry_id=gid;
+        workspace.world.spatial.push({id:gid,label:inst.label,kind:"world_instance",ontology_type_id:inst.type_id,instance_id:inst.id,geometry_type:v.geometry.geometry_type||"Point",coordinates_json:JSON.stringify(v.geometry.coordinates??null),crs:v.geometry.crs,place_name:v.geometry.place_name||"",region_hint:"",valid_from:inst.valid_from,valid_to:inst.valid_to,confidence:inst.confidence,source_bindings:inst.evidence_ids.map(eid=>({source_id:(workspace.epistemics.evidence.find(e=>e.id===eid)?.source_id)||meta.source_id||"",path:(workspace.epistemics.evidence.find(e=>e.id===eid)?.locator)||"",confidence:inst.confidence,notes:"runtime reconciliation"}))})
+      }
+      workspace.world.instances.push(inst);trace.push(`+ instance ${inst.id}:${inst.type_id}`)
+    }else if(op.op==="create_relation"){
+      const rel={id:v.id||op.target_id,link_type_id:v.link_type_id,from_id:v.from_id,to_id:v.to_id,valid_from:v.valid_from||op.valid_from||"",valid_to:v.valid_to||op.valid_to||"",confidence:Number(v.confidence??op.confidence??1),evidence_ids:[...new Set([...(v.evidence_ids||[]),...(op.evidence_ids||[])])]};
+      workspace.world.relationships.push(rel);trace.push(`+ relation ${rel.id}`)
+    }else if(op.op==="record_event"){
+      const ev={id:v.id||op.target_id,event_type_id:v.event_type_id,timestamp:v.timestamp||op.observed_at||isoNow(),actor_ids:v.actor_ids||[],target_ids:v.target_ids||[],properties:v.properties||{},evidence_ids:[...new Set([...(v.evidence_ids||[]),...(op.evidence_ids||[])])],confidence:Number(v.confidence??op.confidence??1)};
+      workspace.world.events.push(ev);trace.push(`+ event ${ev.id}`)
+    }else if(op.op==="add_claim"){
+      const c={id:v.id||op.target_id,subject_id:v.subject_id,predicate:v.predicate,value:v.value??null,object_id:v.object_id||null,valid_from:v.valid_from||op.valid_from||"",valid_to:v.valid_to||op.valid_to||"",observed_at:op.observed_at||"",confidence:Number(v.confidence??op.confidence??1),authority:v.authority||meta.authority||"unknown",evidence_ids:[...new Set([...(v.evidence_ids||[]),...(op.evidence_ids||[])])],status:v.status||"accepted",epistemic_status:op.epistemic_status||"reported"};
+      workspace.epistemics.claims.push(c);trace.push(`+ claim ${c.subject_id}.${c.predicate}`)
+    }else if(op.op==="update_state"){
+      const inst=workspace.world.instances.find(x=>x.id===op.target_id);const stateValue={value:v,valid_from:op.valid_from||"",valid_to:op.valid_to||"",known_from:isoNow(),known_to:null,observed_at:op.observed_at||"",confidence:Number(op.confidence??1),evidence_ids:[...(op.evidence_ids||[])],epistemic_status:op.epistemic_status||"reported"};
+      setDeepState(inst.state,op.path,stateValue);workspace.world.state[`${op.target_id}.${op.path}`]=stateValue;trace.push(`~ state ${op.target_id}.${op.path}`)
+    }else if(op.op==="close_relation"){
+      const rel=workspace.world.relationships.find(x=>x.id===(v?.id||op.target_id));if(rel){rel.valid_to=v?.valid_to||op.valid_to||isoNow();trace.push(`× relation ${rel.id}`)}
+    }else if(op.op==="retract_claim"){
+      const c=workspace.epistemics.claims.find(x=>x.id===(v?.id||op.target_id));if(c){c.status="retracted";c.retraction_reason=v?.reason||op.reason||"";trace.push(`× claim ${c.id}`)}
+    }else if(op.op==="resolve_conflict"){
+      const c=workspace.epistemics.conflicts.find(x=>x.id===(v?.id||op.target_id));if(c){c.resolution="resolved";c.preferred_claim_id=v?.preferred_claim_id||c.preferred_claim_id;c.reason=v?.reason||op.reason||c.reason;workspace.epistemics.resolutions.push({id:uid("resolution"),conflict_id:c.id,preferred_claim_id:c.preferred_claim_id,reason:c.reason,resolved_at:isoNow()});trace.push(`✓ conflict ${c.id}`)}
+    }else if(op.op==="propose_schema_change"){
+      workspace.history.schema_proposals.push({id:uid("schema_proposal"),timestamp:isoNow(),description:v?.description||op.reason||"",rationale:v?.rationale||"",evidence_ids:v?.evidence_ids||op.evidence_ids||[],status:"proposed"});trace.push(`? schema proposal`)
+    }
+  }
+  workspace.world.revision++;workspace.metadata.world_revision=workspace.world.revision;detectConflicts();
+  const receipt={id:uid("patch"),base_revision:patch.base_revision,revision:workspace.world.revision,timestamp:isoNow(),source_id:meta.source_id||"",provider:meta.provider||"",model:meta.model||"",operation_count:ops.length,failure_class:"",operations:cloneJSON(ops),trace};
+  workspace.history.patches.push(receipt);if(workspace.history.patches.length>120)workspace.history.patches.shift();
+  appendRevision("reconcile",meta.reason||`reconciled ${meta.source_id||"observation"}`,ops,evidenceIds);
+  workspace.metadata.updated_at=isoNow();scheduleWorkspaceSave();renderWorkspacePanels();drawGraph();return receipt
+}
+
+function worldContextSlice(){
+  return{
+    revision:workspace.world.revision,
+    instances:workspace.world.instances.slice(-120),
+    relationships:workspace.world.relationships.slice(-160),
+    events:workspace.world.events.slice(-100),
+    claims:workspace.epistemics.claims.filter(x=>x.status!=="retracted").slice(-160),
+    conflicts:workspace.epistemics.conflicts.slice(-60)
+  }
+}
+async function proposeWorldPatch(source,chunk,index,total){
+  const cp=currentProvider("compile"),locator=chunk.path||`${source.name} shard ${index+1}/${total}`;
+  const vars={BASE_REVISION:workspace.world.revision,ONTOLOGY:JSON.stringify(ontology),WORLD:JSON.stringify(worldContextSlice()),SOURCE_ID:source.id,SOURCE_NAME:source.name,SOURCE_KIND:source.kind,AUTHORITY:source.authority||"unknown",LOCATOR:locator,CONTENT:chunk.content};
+  let patch=await ollamaJSON(prompts.reconcile_system,tpl(prompts.reconcile_user,vars),WORLD_PATCH_SCHEMA,`reconcile ${source.name}${total>1?` ${index+1}/${total}`:""}`);
+  patch.base_revision=workspace.world.revision;
+  let v=validateWorldPatch(patch);
+  if(v.ok)return{patch,provider:cp.key,model:cp.model,repair:false};
+  const fc=v.failureClass,detail=v.errors.slice(0,12).map(x=>x.message).join("\n- ");
+  log(`reconcile ${source.name} · ${fc} → corrective action`, "warn");
+  const repairUser=`FAILURE CLASS: ${fc}
+CURRENT BASE REVISION: ${workspace.world.revision}
+VALIDATION ERRORS:
+- ${detail}
+
+SOURCE OBSERVATION:
+<<<
+${chunk.content}
+>>>
+
+PREVIOUS CANDIDATE PATCH:
+${JSON.stringify(patch)}
+
+TYPE ONTOLOGY:
+${JSON.stringify(ontology)}
+
+CURRENT WORLD:
+${JSON.stringify(worldContextSlice())}`;
+  patch=await ollamaJSON(prompts.reconcile_repair,repairUser,WORLD_PATCH_SCHEMA,`reconcile repair ${source.name}`);
+  patch.base_revision=workspace.world.revision;v=validateWorldPatch(patch);
+  if(!v.ok){const e=new Error(`reconcile validation exhausted · ${v.failureClass} · ${v.errors.slice(0,5).map(x=>x.message).join(" | ")}`);e.failureClass=v.failureClass;throw e}
+  return{patch,provider:cp.key,model:cp.model,repair:true}
+}
+async function reconcileWorkspace(){
+  if(!ontology){log("Compile or load a type ontology before reconciliation.","err");return}
+  const scoped=sourcesForContext(),pseudoInputs=inputBlocks.map(b=>({id:b.id,name:b.key||b.id,kind:b.kind==="geo"?"geo_manual":"manual_input",authority:b.authority||"authoritative",content:String(b.value||"")}));
+  if(!scoped.length&&!pseudoInputs.length){log("No observations available to reconcile.","err");return}
+  aborter=new AbortController();setBusy(true,"reconciling");
+  try{
+    const max=Math.max(3500,Math.min(10000,Number($("#chunk").value||8000))),jobs=[];
+    for(const source of [...scoped,...pseudoInputs]){
+      const cs=source.kind==="manual_input"||source.kind==="geo_manual"?[{path:source.name,content:source.content}]:sourceChunksV4(source,max);
+      cs.forEach((chunk,i)=>jobs.push({source,chunk,index:i,total:cs.length}))
+    }
+    log(`World reconciliation · ${jobs.length} observation shard(s) · deterministic apply serializes revisions.`,"good");
+    let applied=0,repairs=0,skipped=0;
+    for(const j of jobs){
+      if(aborter?.signal.aborted)throw new DOMException("Aborted","AbortError");
+      try{
+        const r=await proposeWorldPatch(j.source,j.chunk,j.index,j.total);
+        if(!(r.patch.operations||[]).length){skipped++;log(`reconcile ${j.source.name} · no world delta`);continue}
+        const receipt=applyWorldPatch(r.patch,{source_id:j.source.id,authority:j.source.authority||"unknown",locator:j.chunk.path||"",provider:r.provider,model:r.model,reason:`observation from ${j.source.name}`});
+        applied++;if(r.repair)repairs++;log(`world rev ${receipt.revision} · ${receipt.operation_count} op(s)${r.repair?" · repaired":""}`,"good")
+      }catch(e){
+        const fc=e.failureClass||(/timeout/i.test(e.message)?"timeout":/schema|structured|json/i.test(e.message)?"invalid_structure":"provider");
+        log(`reconcile ${j.source.name} · ${fc} · ${e.message}`,"err");skipped++
+      }
+    }
+    detectConflicts();renderWorkspacePanels();renderAll();drawGraph();await persistWorkspace("reconcile");
+    log(`Reconciliation complete · ${applied} patch(es) · ${workspace.world.revision} world revision · ${repairs} repaired · ${skipped} no-op/failed.`,skipped?"warn":"good")
+  }catch(e){if(e.name==="AbortError")log("Reconciliation cancelled.","warn");else log(e.message,"err")}
+  finally{aborter=null;setBusy(false)}
+}
+
+/* ----- deterministic world health / lint ----- */
+function worldLint(){
+  const issues=[],idx=worldIndexes(),allIds=[];
+  const pushIds=(kind,arr)=>{for(const x of arr||[]){if(!x?.id)issues.push({severity:"error",kind,message:`${kind} missing id`});else allIds.push([x.id,kind])}};
+  pushIds("object_type",ontology?.object_types);pushIds("link_type",ontology?.link_types);pushIds("event_type",ontology?.event_types);pushIds("instance",workspace.world.instances);pushIds("relationship",workspace.world.relationships);pushIds("event",workspace.world.events);pushIds("evidence",workspace.epistemics.evidence);pushIds("claim",workspace.epistemics.claims);
+  const seen=new Map();for(const [id,kind] of allIds){if(seen.has(id))issues.push({severity:"error",kind:"duplicate_id",message:`duplicate id ${id} (${seen.get(id)}, ${kind})`});else seen.set(id,kind)}
+  for(const x of workspace.world.instances){if(!idx.typeById.has(x.type_id))issues.push({severity:"error",kind:"unresolved_type",message:`instance ${x.id} references unknown type ${x.type_id}`});if(x.valid_from&&x.valid_to&&Date.parse(x.valid_from)>Date.parse(x.valid_to))issues.push({severity:"error",kind:"temporal",message:`instance ${x.id} has invalid validity interval`})}
+  for(const r of workspace.world.relationships){if(!idx.linkById.has(r.link_type_id))issues.push({severity:"error",kind:"unresolved_link",message:`relation ${r.id} unknown link type ${r.link_type_id}`});if(!idx.instanceById.has(r.from_id)||!idx.instanceById.has(r.to_id))issues.push({severity:"error",kind:"dangling_relation",message:`relation ${r.id} has dangling endpoint`})}
+  for(const e of workspace.world.events){if(!idx.eventTypeById.has(e.event_type_id))issues.push({severity:"error",kind:"unresolved_event_type",message:`event ${e.id} unknown type ${e.event_type_id}`});for(const x of [...(e.actor_ids||[]),...(e.target_ids||[])])if(!idx.instanceById.has(x))issues.push({severity:"warn",kind:"dangling_event_ref",message:`event ${e.id} references ${x}`})}
+  for(const c of workspace.epistemics.claims){if(!idx.instanceById.has(c.subject_id))issues.push({severity:"error",kind:"dangling_claim",message:`claim ${c.id} subject ${c.subject_id} unresolved`});for(const eid of c.evidence_ids||[])if(!idx.evidenceById.has(eid))issues.push({severity:"warn",kind:"missing_evidence",message:`claim ${c.id} evidence ${eid} unresolved`})}
+  for(const a of ontology?.actions||[]){if(!(a.target_types||[]).length)issues.push({severity:"warn",kind:"action_target",message:`action ${a.id} has no target`});if(!(a.preconditions||[]).length)issues.push({severity:"info",kind:"action_preconditions",message:`action ${a.id} has no explicit preconditions`});if(!a.authority)issues.push({severity:"warn",kind:"action_authority",message:`action ${a.id} has no authority`})}
+  for(const m of ontology?.metrics||[])if(!(m.inputs||[]).length&&!(m.source_dependencies||[]).length)issues.push({severity:"warn",kind:"metric_dependencies",message:`metric ${m.id} has no dependencies`});
+  for(const g of workspace.world.spatial||[]){if(String(g.crs||"").toUpperCase().includes("4326")&&g.geometry_type==="Point"){try{const a=JSON.parse(g.coordinates_json);if(!Array.isArray(a)||a.length<2||Math.abs(Number(a[0]))>180||Math.abs(Number(a[1]))>90)issues.push({severity:"error",kind:"spatial",message:`${g.id} invalid EPSG:4326 point`})}catch{issues.push({severity:"error",kind:"spatial",message:`${g.id} invalid coordinates_json`})}}}
+  const claims=workspace.epistemics.claims.filter(x=>x.status!=="retracted"),claimEv=claims.length?claims.filter(c=>(c.evidence_ids||[]).length).length/claims.length:1,inst=workspace.world.instances,temporal=inst.length?inst.filter(x=>x.observed_at||x.valid_from).length/inst.length:1,identity=inst.length?inst.reduce((a,x)=>a+Number(x.confidence??.5),0)/inst.length:1,conflicts=workspace.epistemics.conflicts,unresolved=conflicts.filter(x=>x.resolution!=="resolved").length,conflictScore=conflicts.length?1-unresolved/conflicts.length:1,spatial=inst.length?inst.filter(x=>x.geometry_id).length/inst.length:(ontology?.spatial_groundings?.length?1:0),refs=Math.max(0,1-issues.filter(x=>x.severity==="error").length/Math.max(1,allIds.length));
+  const freshness=workspace.connections.sources.length?workspace.connections.sources.reduce((a,x)=>a+(x.freshness==="session"||x.freshness==="live"?1:x.freshness==="stale"?.35:.7),0)/workspace.connections.sources.length:1;
+  const scores={schema_integrity:issues.some(x=>x.kind==="duplicate_id")?0.65:1,unresolved_refs:refs,evidence_coverage:claimEv,temporal_completeness:temporal,identity_confidence:identity,conflicts:conflictScore,source_freshness:freshness,spatial_grounding:spatial};
+  const health=Math.round(Object.values(scores).reduce((a,b)=>a+b,0)/Object.keys(scores).length*100);
+  return{health,scores,issues}
+}
+function auditWorldModel(){
+  detectConflicts();const r=worldLint();renderWorkspacePanels();
+  log(`World audit · health ${r.health} · ${r.issues.filter(x=>x.severity==="error").length} error · ${r.issues.filter(x=>x.severity==="warn").length} warning`,r.issues.some(x=>x.severity==="error")?"err":r.issues.some(x=>x.severity==="warn")?"warn":"good");
+  for(const i of r.issues.slice(0,12))log(`audit ${i.kind} · ${i.message}`,i.severity==="error"?"err":i.severity==="warn"?"warn":undefined);
+  return r
+}
+
+/* ----- workspace UI ----- */
+function epiClass(status){return EPISTEMIC_STATUSES.includes(status)?`epi-${status}`:""}
+function stateValuePreview(v){if(v&&typeof v==="object"&&"value"in v)return`${typeof v.value==="object"?JSON.stringify(v.value):String(v.value)} · ${v.epistemic_status||"unknown"} · ${Math.round(Number(v.confidence??0)*100)}%`;return typeof v==="object"?JSON.stringify(v):String(v??"")}
+function renderWorldState(){
+  const sum=$("#worldSummary"),list=$("#worldStateList");if(!sum||!list)return;
+  $("#worldRevisionBadge").textContent=`rev ${workspace.world.revision}`;
+  sum.innerHTML=`<div><b>${workspace.world.instances.length}</b><span>instances</span></div><div><b>${workspace.world.relationships.length}</b><span>relationships</span></div><div><b>${workspace.world.events.length}</b><span>events</span></div><div><b>${workspace.epistemics.claims.filter(x=>x.status!=="retracted").length}</b><span>claims</span></div><div><b>${workspace.epistemics.evidence.length}</b><span>evidence</span></div><div><b>${workspace.epistemics.conflicts.filter(x=>x.resolution!=="resolved").length}</b><span>conflicts</span></div>`;
+  if(!workspace.world.instances.length){list.innerHTML='<div class="small">No runtime instances. Compile the type ontology, then reconcile observations.</div>';return}
+  list.innerHTML=workspace.world.instances.map(x=>{const type=(ontology?.object_types||[]).find(t=>t.id===x.type_id),stateEntries=Object.entries(x.state||{}).slice(0,5),ev=x.evidence_ids?.length?`${x.evidence_ids.length} evidence`:"no evidence";return`<div class="runtime-card" data-instance-id="${esc(x.id)}"><div class="rt-head"><span class="badge">INSTANCE</span><div class="rt-title">${esc(x.label||x.id)}</div></div><div class="rt-meta">${esc(x.id)} · ${esc(type?.label||x.type_id)} · ${esc(x.lifecycle||"unknown")} · ${Math.round(Number(x.confidence??0)*100)}% · ${ev}</div><div class="rt-state">${stateEntries.length?stateEntries.map(([k,v])=>`${esc(k)} = ${esc(stateValuePreview(v))}`).join("<br>"):"state empty"}</div></div>`}).join("");
+  list.querySelectorAll("[data-instance-id]").forEach(el=>el.onclick=()=>openRuntimeInstance(el.dataset.instanceId))
+}
+function renderConflicts(){
+  const root=$("#conflictList"),count=workspace.epistemics.conflicts.filter(x=>x.resolution!=="resolved").length;if($("#conflictTabCount"))$("#conflictTabCount").textContent=count?String(count):"";
+  if(!root)return;if(!workspace.epistemics.conflicts.length){root.innerHTML='<div class="small">No conflicts.</div>';return}
+  const claims=new Map(workspace.epistemics.claims.map(x=>[x.id,x]));
+  root.innerHTML=workspace.epistemics.conflicts.map(c=>`<div class="conflict-card ${c.resolution==="resolved"?"resolved":""}"><div class="conflict-title"><span class="badge">${esc(c.severity)}</span><b>${esc(c.subject_id)} · ${esc(c.predicate)}</b></div><div class="small" style="margin-top:5px">${c.claim_ids.map(id=>{const x=claims.get(id);return x?`<code>${esc(id)}</code> = ${esc(x.object_id||stableJSON(x.value))} (${esc(x.authority)} · ${Math.round(Number(x.confidence||0)*100)}%)`:`<code>${esc(id)}</code>`}).join("<br>")}</div><div class="source-path">preferred candidate: ${esc(c.preferred_claim_id||"—")} · ${esc(c.resolution)}</div><div class="small">${esc(c.reason||"")}</div></div>`).join("")
+}
+function renderHistory(){
+  const list=$("#historyList"),summary=$("#historySummary"),trace=$("#patchTrace");if(!list)return;
+  const revs=[...workspace.history.revisions].reverse();summary.textContent=`world rev ${workspace.world.revision} · ontology rev ${workspace.metadata.ontology_revision||0} · ${workspace.history.snapshots.length} snapshots · ${workspace.history.schema_proposals.length} schema proposals`;
+  list.innerHTML=revs.slice(0,80).map(r=>`<div class="history-row"><div class="rev">${r.kind==="compile"?"O"+r.ontology_revision:"W"+r.revision}</div><div><div class="desc">${esc(r.reason||r.kind)}</div><div class="source-path">${esc(r.timestamp||"")}</div></div>${workspace.history.snapshots.some(s=>s.revision===r.revision)&&r.kind!=="compile"?`<button class="iconbtn" data-restore-rev="${r.revision}">restore</button>`:""}</div>`).join("")||'<div class="small">No revisions.</div>';
+  list.querySelectorAll("[data-restore-rev]").forEach(b=>b.onclick=()=>restoreWorldRevision(Number(b.dataset.restoreRev)));
+  const p=workspace.history.patches.at(-1);trace.textContent=p?`patch ${p.id} · base ${p.base_revision} → rev ${p.revision}\n${(p.trace||[]).join("\n")}`:"world patch trace idle"
+}
+function restoreWorldRevision(rev){
+  const snap=[...workspace.history.snapshots].reverse().find(s=>s.revision===rev);if(!snap){log(`No snapshot for revision ${rev}.`,"warn");return}
+  if(!confirm(`Restore runtime world to revision ${rev}? A safety snapshot of the current state will be created first.`))return;
+  snapshotWorld(`before restoring rev ${rev}`);workspace.world=cloneJSON(snap.world);workspace.epistemics=cloneJSON(snap.epistemics);workspace.metadata.world_revision=workspace.world.revision;appendRevision("restore",`restored world revision ${rev}`,[],[]);scheduleWorkspaceSave();renderWorkspacePanels();drawGraph();log(`World restored to revision ${rev}.`,"warn")
+}
+function renderWorkspaceHealth(){
+  const box=$("#workspaceHealthGrid"),score=$("#workspaceHealthScore");if(!box||!score)return;const r=worldLint();score.textContent=r.health;score.className=r.health>=85?"health-good":r.health>=65?"health-warn":"health-bad";
+  const label={schema_integrity:"schema integrity",unresolved_refs:"unresolved refs",evidence_coverage:"evidence coverage",temporal_completeness:"temporal completeness",identity_confidence:"identity confidence",conflicts:"conflicts",source_freshness:"source freshness",spatial_grounding:"spatial grounding"};
+  box.innerHTML=Object.entries(r.scores).map(([k,v])=>`<div>${label[k]||k}</div><div class="v">${Math.round(v*100)}</div>`).join("")
+}
+function renderWorkspacePanels(){if(!workspace)return;renderWorldState();renderConflicts();renderHistory();renderWorkspaceHealth()}
+
+function openRuntimeInstance(id){
+  const x=workspace.world.instances.find(i=>i.id===id);if(!x)return;selected={...x,_kind:"instance"};
+  $("#nodeModalKind").textContent="instance";$("#nodeModalTitle").textContent=x.label||x.id;$("#nodeFocusBtn").style.display="none";
+  const type=(ontology?.object_types||[]).find(t=>t.id===x.type_id),claims=workspace.epistemics.claims.filter(c=>c.subject_id===x.id&&c.status!=="retracted"),events=workspace.world.events.filter(e=>(e.actor_ids||[]).includes(x.id)||(e.target_ids||[]).includes(x.id));
+  const rows=[["id",`<code>${esc(x.id)}</code>`],["type",`<code>${esc(x.type_id)}</code> · ${esc(type?.label||"")}`],["lifecycle",esc(x.lifecycle||"unknown")],["identity",`<pre>${esc(JSON.stringify(x.identity||{},null,2))}</pre>`],["state",`<pre>${esc(JSON.stringify(x.state||{},null,2))}</pre>`],["claims",claims.map(c=>`<div style="margin-bottom:5px"><code>${esc(c.predicate)}</code> = ${esc(c.object_id||stableJSON(c.value))} <span class="chip">${esc(c.epistemic_status||"reported")}</span> ${Math.round(Number(c.confidence||0)*100)}%</div>`).join("")||"—"],["events",events.map(e=>`<code>${esc(e.id)}</code> ${esc(e.timestamp||"")}`).join("<br>")||"—"]];
+  $("#nodeModalBody").innerHTML=rows.map(([k,v])=>`<div>${esc(k)}</div><div>${v}</div>`).join("");$("#nodeModal").classList.add("on")
+}
+
+/* ----- TYPE / INSTANCE / HYBRID graph ----- */
+function runtimeGraphNodeList(hybrid=false){
+  const instances=workspace.world.instances.map(x=>({...x,_kind:"instance",description:`${x.type_id} · ${x.lifecycle||"unknown"}`}));
+  return hybrid?[...graphNodeList(),...instances]:instances
+}
+function layoutRuntimeGraph(force=false,hybrid=false){
+  const typePos=new Map();for(const t of ontology?.object_types||[]){const p=nodePositions[t.id]||{x:0,y:0};typePos.set(t.id,p)}
+  const count={};for(const x of workspace.world.instances){if(!force&&runtimeNodePositions[x.id])continue;const tp=typePos.get(x.type_id),i=count[x.type_id]||0;count[x.type_id]=i+1;runtimeNodePositions[x.id]=hybrid&&tp?{x:tp.x+(i%2)*235,y:tp.y+145+Math.floor(i/2)*105}:{x:(Object.keys(count).indexOf(x.type_id)%4)*280,y:i*120}}
+  localStorage.setItem("ontologyRuntimeNodePositions",JSON.stringify(runtimeNodePositions))
+}
+function runtimeNodeGeometry(hybrid=false){
+  layoutRuntimeGraph(false,hybrid);const nodes=[];
+  if(hybrid)for(const n of graphNodeList()){const p=nodePositions[n.id]||{x:0,y:0};nodes.push({...n,x:p.x,y:p.y,w:220,h:112})}
+  for(const n of workspace.world.instances){const p=runtimeNodePositions[n.id]||{x:0,y:0};nodes.push({...n,_kind:"instance",description:`${n.type_id} · ${n.lifecycle||"unknown"}`,x:p.x,y:p.y,w:210,h:86})}
+  return nodes
+}
+function runtimeGraphEdges(hybrid=false){
+  const e=workspace.world.relationships.map(r=>({from:r.from_id,to:r.to_id,label:(ontology?.link_types||[]).find(x=>x.id===r.link_type_id)?.label||r.link_type_id,kind:"runtime"}));
+  if(hybrid)for(const x of workspace.world.instances)e.push({from:x.type_id,to:x.id,label:"instance",kind:"instance_of"});
+  return e
+}
+function drawRuntimeGraph(hybrid=false){
+  const c=$("#graphCanvas");if(!c)return;resizeCanvas();const dpr=window.devicePixelRatio||1,ctx=c.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,c.clientWidth,c.clientHeight);canvasNodes=runtimeNodeGeometry(hybrid);const byId=new Map(canvasNodes.map(n=>[n.id,n]));ctx.save();ctx.translate(graphView.x,graphView.y);ctx.scale(graphView.scale,graphView.scale);const inv=1/graphView.scale,tl=screenToWorld(0,0),br=screenToWorld(c.clientWidth,c.clientHeight);ctx.lineWidth=inv;ctx.strokeStyle="#151515";for(let x=Math.floor(tl.x/50)*50;x<br.x;x+=50){ctx.beginPath();ctx.moveTo(x,tl.y);ctx.lineTo(x,br.y);ctx.stroke()}for(let y=Math.floor(tl.y/50)*50;y<br.y;y+=50){ctx.beginPath();ctx.moveTo(tl.x,y);ctx.lineTo(br.x,y);ctx.stroke()}
+  for(const e of runtimeGraphEdges(hybrid)){const a=byId.get(e.from),b=byId.get(e.to);if(!a||!b)continue;const x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2,dx=Math.max(45,Math.abs(x2-x1)*.35);ctx.beginPath();ctx.moveTo(x1,y1);ctx.bezierCurveTo(x1+dx,y1,x2-dx,y2,x2,y2);ctx.strokeStyle=e.kind==="instance_of"?"#333":"#696969";ctx.setLineDash(e.kind==="instance_of"?[4*inv,4*inv]:[]);ctx.lineWidth=inv;ctx.stroke();ctx.setLineDash([]);ctx.fillStyle="#666";ctx.font=`${8*inv}px ui-monospace`;ctx.fillText(String(e.label).slice(0,24),(x1+x2)/2,(y1+y2)/2-4*inv)}
+  for(const n of canvasNodes){const isInst=n._kind==="instance";ctx.fillStyle=isInst?"#0d1110":"#111";ctx.strokeStyle=isInst?"#5f786a":"#555";ctx.lineWidth=inv;roundedRect(ctx,n.x,n.y,n.w,n.h);ctx.fill();ctx.stroke();ctx.fillStyle=isInst?"#839b8e":"#777";ctx.font=`${8*inv}px ui-monospace`;ctx.fillText(isInst?"INSTANCE":String(n._kind||"TYPE").toUpperCase(),n.x+9,n.y+15);ctx.fillStyle="#eee";ctx.font=`bold ${11*inv}px Inter,system-ui`;ctx.fillText(String(n.label||n.id).slice(0,29),n.x+9,n.y+34);ctx.fillStyle="#888";ctx.font=`${8*inv}px ui-monospace`;const meta=isInst?`${n.type_id} · ${n.lifecycle||"unknown"} · ${Math.round(Number(n.confidence||0)*100)}%`:(n.description||"");ctx.fillText(String(meta).slice(0,38),n.x+9,n.y+52);if(isInst){ctx.fillStyle="#6f7f76";ctx.fillText(`${Object.keys(n.state||{}).length} state · ${(n.evidence_ids||[]).length} evidence`,n.x+9,n.y+n.h-10)}}ctx.restore();drawRuntimeMinimap(hybrid);$("#empty").style.display=canvasNodes.length?"none":"grid";$("#graphStat").textContent=hybrid?`${ontology?.object_types?.length||0} types · ${workspace.world.instances.length} instances · ${workspace.world.relationships.length} runtime links`:`${workspace.world.instances.length} instances · ${workspace.world.relationships.length} relationships · rev ${workspace.world.revision}`
+}
+function runtimeBounds(hybrid=false){const ns=runtimeNodeGeometry(hybrid);if(!ns.length)return{x:0,y:0,w:1,h:1};const minX=Math.min(...ns.map(n=>n.x)),minY=Math.min(...ns.map(n=>n.y)),maxX=Math.max(...ns.map(n=>n.x+n.w)),maxY=Math.max(...ns.map(n=>n.y+n.h));return{x:minX,y:minY,w:maxX-minX,h:maxY-minY}}
+function fitRuntimeGraph(){const hybrid=graphLayerMode==="hybrid",v=$("#view"),b=runtimeBounds(hybrid),pad=55,s=Math.min((v.clientWidth-pad*2)/Math.max(1,b.w),(v.clientHeight-pad*2)/Math.max(1,b.h));graphView.scale=Math.max(.12,Math.min(2.2,s));graphView.x=v.clientWidth/2-(b.x+b.w/2)*graphView.scale;graphView.y=v.clientHeight/2-(b.y+b.h/2)*graphView.scale;saveGraphView();drawGraph()}
+function drawRuntimeMinimap(hybrid=false){const c=$("#minimapCanvas");if(!c)return;const dpr=window.devicePixelRatio||1,ctx=c.getContext("2d"),w=c.clientWidth,h=c.clientHeight,b=runtimeBounds(hybrid),pad=8,s=Math.min((w-pad*2)/Math.max(1,b.w),(h-pad*2)/Math.max(1,b.h));ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.fillStyle="#0b0b0b";ctx.fillRect(0,0,w,h);for(const n of runtimeNodeGeometry(hybrid)){ctx.fillStyle=n._kind==="instance"?"#82998b":"#666";ctx.fillRect(pad+(n.x-b.x)*s,pad+(n.y-b.y)*s,Math.max(2,n.w*s),Math.max(2,n.h*s))}}
+const drawGraphBeforeWorkspace=drawGraph;
+drawGraph=function(){if(canvasMode==="graph"&&graphLayerMode!=="type")return drawRuntimeGraph(graphLayerMode==="hybrid");return drawGraphBeforeWorkspace()};
+const fitGraphBeforeWorkspace=fitGraph;
+fitGraph=function(){if(canvasMode==="graph"&&graphLayerMode!=="type")return fitRuntimeGraph();return fitGraphBeforeWorkspace()};
+const openNodeModalBeforeWorkspace=openNodeModal;
+openNodeModal=function(n){if(n?._kind==="instance")return openRuntimeInstance(n.id);$("#nodeFocusBtn").style.display="";return openNodeModalBeforeWorkspace(n)};
+
+/* Extend world map with runtime-instance spatial state without mutating ontology. */
+const spatialGroundingsBeforeWorkspace=spatialGroundings;
+spatialGroundings=function(){const map=new Map((spatialGroundingsBeforeWorkspace()||[]).map(x=>[x.id,x]));for(const g of workspace?.world?.spatial||[])map.set(g.id,g);return[...map.values()]};
+const geojsonBeforeWorkspace=geojson;
+geojson=function(){const features=[];for(const g of spatialGroundings()){if(g.geometry_type==="Unresolved"||!g.coordinates_json||!isEarthGrounding(g))continue;let coords;try{coords=JSON.parse(g.coordinates_json)}catch{continue}let geom=null;if(g.geometry_type==="BBox"&&Array.isArray(coords)&&coords.length>=4){const[w,s,e,n]=coords;geom={type:"Polygon",coordinates:[[[w,s],[e,s],[e,n],[w,n],[w,s]]]}}else if(["Point","LineString","Polygon","MultiPoint","MultiLineString","MultiPolygon"].includes(g.geometry_type))geom={type:g.geometry_type,coordinates:coords};if(!geom)continue;features.push({type:"Feature",id:g.id,geometry:geom,properties:{label:g.label,kind:g.kind,ontology_type_id:g.ontology_type_id,instance_id:g.instance_id||null,crs:g.crs,place_name:g.place_name,valid_from:g.valid_from,valid_to:g.valid_to,confidence:g.confidence}})}return JSON.stringify({type:"FeatureCollection",features},null,2)};
+
+/* Sync ontology compilation/loading into workspace but keep live world independent. */
+const normalizeOntologyBeforeWorkspace=normalizeOntology;
+normalizeOntology=function(){normalizeOntologyBeforeWorkspace();if(workspace&&ontology){workspace.ontology=cloneJSON(ontology);syncSpatialFromOntology();scheduleWorkspaceSave()}};
+const renderAllBeforeWorkspace=renderAll;
+renderAll=function(){renderAllBeforeWorkspace();renderWorkspacePanels()};
+
+
+function buildReasoningContext(objective,budget=28000){
+  const text=String(objective||"").toLowerCase(),terms=[...new Set(text.split(/[^a-z0-9_-]+/).filter(x=>x.length>2))].slice(0,24),focusedTypes=new Set(focusedNodeIds);
+  const score=x=>{const hay=stableJSON(x).toLowerCase();let n=0;for(const t of terms)if(hay.includes(t))n++;if(x.type_id&&focusedTypes.has(x.type_id))n+=8;return n};
+  let instances=[...workspace.world.instances].sort((a,b)=>score(b)-score(a));if(terms.length||focusedTypes.size)instances=instances.filter((x,i)=>score(x)>0||i<12);instances=instances.slice(0,80);
+  const ids=new Set(instances.map(x=>x.id)),relationships=workspace.world.relationships.filter(r=>ids.has(r.from_id)||ids.has(r.to_id)).slice(0,120),events=workspace.world.events.filter(e=>[...(e.actor_ids||[]),...(e.target_ids||[])].some(id=>ids.has(id))).slice(-80),claims=workspace.epistemics.claims.filter(c=>ids.has(c.subject_id)&&c.status!=="retracted").slice(-120),claimIds=new Set(claims.map(c=>c.id)),conflicts=workspace.epistemics.conflicts.filter(c=>c.claim_ids.some(id=>claimIds.has(id))).slice(0,50),evIds=new Set(claims.flatMap(c=>c.evidence_ids||[])),evidence=workspace.epistemics.evidence.filter(e=>evIds.has(e.id)).slice(0,100),types=new Set(instances.map(x=>x.type_id)),candidate_actions=(ontology?.actions||[]).filter(a=>(a.target_types||[]).some(t=>types.has(t))).slice(0,40);
+  const ctx={world_revision:workspace.world.revision,ontology_revision:workspace.metadata.ontology_revision||0,instances,relationships,events,claims,conflicts,evidence,candidate_actions};
+  let raw=JSON.stringify(ctx);if(raw.length>budget){ctx.evidence=ctx.evidence.slice(0,30);ctx.claims=ctx.claims.slice(-60);ctx.events=ctx.events.slice(-40);ctx.instances=ctx.instances.slice(0,40)}return ctx
+}
+const runInsightBeforeWorkspace=runInsight;
+runInsight=async function(){
+  if(!ontology){log("Compile or load a model first.","err");return}const natural=$("#objective").value.trim();if(!natural){log("Enter an objective.","err");return}
+  const mode=$("#analysisMode").value,objective={id:uid("objective"),natural_language:natural,desired_state:[],constraints:[],optimize:[],deadline:null,priority:1,mode,status:"running",created_at:isoNow(),world_revision:workspace.world.revision};workspace.operations.objectives.push(objective);if(workspace.operations.objectives.length>100)workspace.operations.objectives.shift();
+  const scopedOntology=ontologyForContext();if((contextMode().startsWith("focused_node")||contextMode()==="focused_neighbors"||contextMode()==="focused_combined")&&focusedNodeIds.size===0){objective.status="blocked";objective.block_reason="focused graph context has no selected node";log("Select at least one graph node for the current context mode.","err");return}
+  aborter=new AbortController();setBusy(true,"reasoning");try{const ss=sourcesForContext(),excerpts=ss.map(s=>({id:s.id,name:s.name,authority:s.authority,excerpt:(s.content||"").slice(0,4500)}));inputBlocks.forEach(b=>excerpts.push({id:b.id,name:b.key||b.id,authority:b.authority,excerpt:String(b.value)}));const reasoningContext=buildReasoningContext(natural);const user=tpl(prompts.insight_user,{MODE:mode,OBJECTIVE:natural,ONTOLOGY:JSON.stringify(scopedOntology),SOURCE_EXCERPTS:JSON.stringify(excerpts)})+`\n\nRUNTIME WORLD CONTEXT (resolved state is not more authoritative than its claims/evidence):\n${JSON.stringify(reasoningContext)}`;analysis=await ollamaJSON(prompts.insight_system,user,INSIGHT_SCHEMA,`reason ${mode}`);objective.status="complete";objective.completed_at=isoNow();objective.result_summary=analysis.answer||"";objective.confidence=analysis.confidence??null;renderAnalysis();renderWorkspacePanels();scheduleWorkspaceSave();log(`Reason context · world rev ${workspace.world.revision} · ${reasoningContext.instances.length} instances · ${reasoningContext.claims.length} claims · ${reasoningContext.conflicts.length} conflicts · ${reasoningContext.evidence.length} evidence records.`,"good")}catch(e){objective.status=e.name==="AbortError"?"cancelled":"failed";objective.error=e.message||String(e);if(e.name!=="AbortError")log(e.message,"err")}finally{aborter=null;setBusy(false);scheduleWorkspaceSave()}
+};
+
+const compileBeforeWorkspace=compile;
+compile=async function(){
+  const before=ontology?simpleHash(JSON.stringify(ontology)):"";
+  await compileBeforeWorkspace();
+  if(ontology){
+    const after=simpleHash(JSON.stringify(ontology));workspace.ontology=cloneJSON(ontology);syncConnectionsFromRuntime();syncSpatialFromOntology();
+    if(after!==before){workspace.metadata.ontology_revision=Number(workspace.metadata.ontology_revision||0)+1;workspace.history.revisions.push({revision:workspace.world.revision,ontology_revision:workspace.metadata.ontology_revision,parent:null,timestamp:isoNow(),actor:"workbench",kind:"compile",operations:[],reason:`compiled type ontology from ${sourcesForContext().length} source(s)`,evidence_ids:[]})}
+    scheduleWorkspaceSave();renderWorkspacePanels()
+  }
+};
+
+/* Persist provider burn-in in IndexedDB as well as existing localStorage. */
+if(typeof auditSave==="function"){const auditSaveBeforeWorkspace=auditSave;auditSave=function(){auditSaveBeforeWorkspace();if(workspaceInitialized)idbPut("provider_tests",{origin:currentAuditOrigin(),results:cloneJSON(providerAuditResults),saved_at:isoNow()}).catch(()=>{})}}
+
+/* Runtime source edits become persistent observations. */
+if(typeof renderSources==="function"){const renderSourcesBeforeWorkspace=renderSources;renderSources=function(){const r=renderSourcesBeforeWorkspace();if(workspaceInitialized)scheduleWorkspaceSave();return r}}
+if(typeof renderInputs==="function"){const renderInputsBeforeWorkspace=renderInputs;renderInputs=function(){const r=renderInputsBeforeWorkspace();if(workspaceInitialized)scheduleWorkspaceSave();return r}}
+
+function initWorkspaceUI(){
+  const layer=$("#graphLayerMode");if(layer){layer.value=graphLayerMode;layer.onchange=()=>{graphLayerMode=layer.value;localStorage.setItem("ontologyGraphLayerMode",graphLayerMode);if(graphLayerMode!=="type"&&canvasMode!=="graph")setCanvasMode("graph");layoutRuntimeGraph(true,graphLayerMode==="hybrid");fitGraph();drawGraph()}}
+  $("#reconcileBtn").onclick=reconcileWorkspace;$("#auditWorldBtn").onclick=auditWorldModel;$("#persistWorkspaceBtn").onclick=()=>persistWorkspace("manual");$("#saveWorkspaceBtn").onclick=exportWorkspace;$("#newWorkspaceBtn").onclick=newWorkspace;$("#forkWorkspaceBtn").onclick=forkWorkspace;$("#clearWorldBtn").onclick=clearRuntimeWorld;$("#refreshConflictsBtn").onclick=()=>{detectConflicts();renderWorkspacePanels();scheduleWorkspaceSave()};$("#snapshotNowBtn").onclick=()=>{snapshotWorld("manual snapshot");scheduleWorkspaceSave();renderHistory();log(`Snapshot captured at world rev ${workspace.world.revision}.`,"good")};
+  $("#layoutBtn").onclick=()=>{if(canvasMode==="world")fitWorld();else if(graphLayerMode==="type"){layoutGraph(true);fitGraph()}else{layoutRuntimeGraph(true,graphLayerMode==="hybrid");fitGraph()}};
+  $("#fitBtn").onclick=fitGraph;
+  setTimeout(initWorkspaceRuntime,25)
+}
+setTimeout(initWorkspaceUI,0);
+/* ====================== end v8 world workspace ====================== */
+
 function initContextUI(){const saved=localStorage.getItem("ontologyContextMode")||"all";setContextMode(saved);$("#contextMode").onchange=e=>setContextMode(e.target.value);$("#toolbarContextMode").onchange=e=>setContextMode(e.target.value)}
 function initProviderUI(){$("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();$("#provider").onchange=async()=>{syncRuntimeFromConfig();if(["ollama","anonymous_pool","aihorde","aihorde_native","ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","openapis_anthropic","mangaai","petals","puter","hf_space","inference_sh","kilo","peerwave","tangle","chat_at","tiamat","distil_sn97","ailiance","novai_free","mimocode","dandolo","vedaya","agentbot_demo","mlvoca","helloblue_test","iaqa_mcp"].includes($("#provider").value))await connect()};$("#host").oninput=syncRuntimeToConfig;$("#model").onchange=syncRuntimeToConfig;$("#configBtn").onclick=openConfig;$("#closeConfig").onclick=()=>$("#configModal").classList.remove("on");$("#saveConfig").onclick=()=>{captureConfigEditor();$("#configModal").classList.remove("on");log("LLM configuration saved.","good")};$("#resetConfig").onclick=()=>{providerConfig={defaultProvider:"ollama",persistKeys:false,profiles:JSON.parse(JSON.stringify(PROVIDER_DEFAULTS)),layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""}}};prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyProviderConfig");localStorage.removeItem("ontologyWorkbenchPrompts");renderProviderEditor();$("#provider").value="ollama";syncRuntimeFromConfig();renderPromptEditor();log("LLM configuration reset.","good")};$("#persistKeys").onchange=e=>providerConfig.persistKeys=e.target.checked}
 function initNodeModal(){$("#closeNodeModal").onclick=()=>{$("#nodeModal").classList.remove("on");selected=null;drawGraph()};$("#nodeFocusBtn").onclick=()=>{if(!selected)return;if(focusedNodeIds.has(selected.id))focusedNodeIds.delete(selected.id);else focusedNodeIds.add(selected.id);$("#nodeFocusBtn").textContent=focusedNodeIds.has(selected.id)?"unfocus":"focus";renderFocusSummary();drawGraph()}}
@@ -2508,8 +3181,8 @@ initPanelLayout();initContextUI();initProviderUI();initCanvas();initNodeModal();
 
 $("#connectBtn").onclick=connect;$("#compileBtn").onclick=compile;$("#analyzeBtn").onclick=()=>$("#objective").focus();$("#runInsight").onclick=runInsight;$("#addValue").onclick=()=>addInput("value");$("#addText").onclick=()=>addInput("text");$("#addGeo").onclick=()=>addInput("geo");
 const drop=$("#drop");drop.ondblclick=()=>$("#filePicker").click();["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("drag")}));["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("drag")}));drop.addEventListener("drop",e=>addFiles(e.dataTransfer.files));$("#filePicker").onchange=e=>{addFiles(e.target.files);e.target.value=""};
-$("#fitBtn").onclick=fitGraph;$("#layoutBtn").onclick=()=>{if(canvasMode==="world")fitWorld();else{layoutGraph(true);fitGraph()}};$("#jsonBtn").onclick=()=>{$("#ontologyJson").value=ontology?JSON.stringify(ontology,null,2):"";$("#jsonModal").classList.add("on")};$("#closeJson").onclick=()=>$("#jsonModal").classList.remove("on");$("#applyJson").onclick=()=>{try{ontology=JSON.parse($("#ontologyJson").value);normalizeOntology();renderAll();$("#jsonModal").classList.remove("on");log("Edited model applied.","good")}catch(e){log(e.message,"err")}};
-$("#saveBtn").onclick=()=>ontology&&saveBlob((ontology.world_model?.name||"ontology").replace(/\W+/g,"_")+".ontology.json",JSON.stringify(ontology,null,2),"application/json");$("#loadModelBtn").onclick=()=>$("#modelFilePicker").click();$("#modelFilePicker").onchange=async e=>{try{ontology=JSON.parse(await e.target.files[0].text());normalizeOntology();renderAll();log("Model loaded.","good")}catch(x){log(x.message,"err")}};
+$("#fitBtn").onclick=fitGraph;$("#layoutBtn").onclick=()=>{if(canvasMode==="world")fitWorld();else{layoutGraph(true);fitGraph()}};$("#jsonBtn").onclick=()=>{$("#ontologyJson").value=ontology?JSON.stringify(ontology,null,2):"";$("#jsonModal").classList.add("on")};$("#closeJson").onclick=()=>$("#jsonModal").classList.remove("on");$("#applyJson").onclick=()=>{try{ontology=JSON.parse($("#ontologyJson").value);normalizeOntology();workspace.ontology=cloneJSON(ontology);workspace.metadata.ontology_revision=Number(workspace.metadata.ontology_revision||0)+1;scheduleWorkspaceSave();renderAll();$("#jsonModal").classList.remove("on");log("Edited model applied.","good")}catch(e){log(e.message,"err")}};
+$("#saveBtn").onclick=()=>ontology&&saveBlob((ontology.world_model?.name||"ontology").replace(/\W+/g,"_")+".ontology.json",JSON.stringify(ontology,null,2),"application/json");$("#loadModelBtn").onclick=()=>$("#modelFilePicker").click();$("#modelFilePicker").onchange=async e=>{try{ontology=JSON.parse(await e.target.files[0].text());normalizeOntology();workspace.ontology=cloneJSON(ontology);workspace.metadata.ontology_revision=Number(workspace.metadata.ontology_revision||0)+1;scheduleWorkspaceSave();renderAll();log("Model loaded.","good")}catch(x){log(x.message,"err")}};
 $("#clearAnalysis").onclick=()=>{analysis=null;renderAnalysis()};$("#format").onchange=e=>$("#customFormatWrap").style.display=e.target.value==="custom"?"grid":"none";$("#renderOutput").onclick=renderOutput;$("#copyOutput").onclick=()=>navigator.clipboard.writeText($("#outputText").value);$("#downloadOutput").onclick=()=>saveBlob("ontology."+outputExt,$("#outputText").value);
 $("#savePrompts").onclick=()=>{$$("#promptEditor [data-prompt]").forEach(x=>prompts[x.dataset.prompt]=x.value);localStorage.setItem("ontologyWorkbenchPrompts",JSON.stringify(prompts));log("Prompts saved.","good")};$("#restorePrompts").onclick=()=>{prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyWorkbenchPrompts");renderPromptEditor();log("Prompts restored.","good")};
 $$(".tab").forEach(b=>b.onclick=()=>{$$(".tab").forEach(x=>x.classList.remove("on"));$$(".pane").forEach(x=>x.classList.remove("on"));b.classList.add("on");$("#"+b.dataset.pane).classList.add("on")});window.addEventListener("resize",()=>ontology&&renderGraph());
