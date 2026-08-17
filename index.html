@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ontology Workbench</title>
+<style>
+:root{color-scheme:dark;--bg:#090909;--panel:#101010;--line:#333;--line2:#232323;--text:#f2f2f2;--muted:#9a9a9a;--pad:12px;--head:44px}
+*{box-sizing:border-box;border-radius:0!important}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:12px/1.42 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit;color:inherit;background:#0b0b0b;border:1px solid var(--line);outline:none}
+button{cursor:pointer;padding:7px 9px;text-transform:uppercase;letter-spacing:.055em;font-size:9px}
+button:hover{background:#1b1b1b;border-color:#777}
+input:focus,select:focus,textarea:focus{border-color:#aaa}
+input,select,textarea{width:100%;padding:8px}
+textarea{resize:vertical;min-height:74px}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.app{height:100vh;display:grid;grid-template-rows:var(--head) minmax(0,1fr)}
+header{display:flex;align-items:center;gap:6px;padding:0 var(--pad);border-bottom:1px solid var(--line);background:#0c0c0c}
+.brand{font-weight:800;letter-spacing:.14em;font-size:11px}.spacer{flex:1}
+.status{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:10px}
+.dot{width:7px;height:7px;border:1px solid #666;background:#111}.dot.ok{background:#ddd;border-color:#ddd}
+.main{display:grid;grid-template-columns:320px minmax(0,1fr) 390px;min-height:0}
+.left,.right{background:var(--panel);overflow:auto}.left{border-right:1px solid var(--line)}.right{border-left:1px solid var(--line)}
+.sec{padding:var(--pad);border-bottom:1px solid var(--line)}
+.sec-head{display:flex;align-items:center;gap:6px;margin-bottom:8px;min-height:22px}
+.sec-head b{font-size:9px;text-transform:uppercase;letter-spacing:.12em}
+.small{font-size:9px;color:var(--muted)}
+.row{display:flex;gap:6px;align-items:center}.row>*{min-width:0}.grow{flex:1}
+.field{display:grid;gap:4px;margin-bottom:8px}
+label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.check{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:10px}.check input{width:auto}
+.drop{height:118px;border:1px dashed #555;background:#0b0b0b;display:grid;place-items:center;text-align:center;color:#888;padding:16px;cursor:default;user-select:none}
+.drop.drag{background:#1b1b1b;border-color:#ddd;color:#ddd}
+.source-card,.input-card{border:1px solid var(--line);margin-top:6px;background:#0c0c0c}
+.card-head{display:flex;align-items:center;gap:6px;padding:8px;border-bottom:1px solid var(--line2)}
+.card-title{font-size:10px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-body{padding:8px}.badge{display:inline-block;border:1px solid #444;padding:2px 4px;font-size:8px;text-transform:uppercase;letter-spacing:.06em;color:#aaa}
+.iconbtn{padding:4px 6px;min-width:27px}
+.input-card input,.input-card select,.input-card textarea{border-color:#2a2a2a;background:#090909}
+.input-grid{display:grid;grid-template-columns:1fr 94px;gap:6px}
+.center{min-width:0;min-height:0;display:grid;grid-template-rows:40px minmax(0,1fr) 230px;background:#090909}
+.toolbar{display:flex;align-items:center;gap:5px;padding:6px 8px;border-bottom:1px solid var(--line);background:#0e0e0e}
+.view{position:relative;overflow:auto;background:linear-gradient(#151515 1px,transparent 1px),linear-gradient(90deg,#151515 1px,transparent 1px);background-size:24px 24px}
+.stage{position:relative;min-width:100%;min-height:100%}.edges{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.node{position:absolute;width:218px;min-height:106px;border:1px solid #515151;background:#111;padding:9px;box-shadow:0 8px 18px rgba(0,0,0,.38);cursor:pointer}
+.node:hover,.node.sel{border-color:#eee;background:#171717}
+.node .kind{font:8px ui-monospace,monospace;color:#888;text-transform:uppercase;letter-spacing:.09em}
+.node .name{font-weight:750;margin:5px 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.node .desc{font-size:9px;color:#aaa;max-height:31px;overflow:hidden}
+.node .meta{margin-top:7px;border-top:1px solid #2a2a2a;padding-top:5px;font:8px ui-monospace,monospace;color:#777}
+.edge{stroke:#6c6c6c;stroke-width:1.3;fill:none}.edge.action{stroke-dasharray:5 4}.edge.function{stroke-dasharray:2 3}
+.edge-label{font:8px ui-monospace,monospace;fill:#7c7c7c}
+.lower{border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;min-height:0;background:#0d0d0d}
+.lower>div{min-width:0;overflow:auto;padding:var(--pad)}.lower>div+div{border-left:1px solid var(--line)}
+.objective textarea{min-height:96px}.result{font-size:10px}
+.insight{border-left:2px solid #999;padding:6px 8px;margin:7px 0;background:#111}.insight b{font-size:10px}
+.evidence{font:8px ui-monospace,monospace;color:#777;margin-top:5px}
+.action-row{border:1px solid #3a3a3a;padding:7px;margin:6px 0;background:#101010}.action-row .top{display:flex;gap:6px;align-items:center}
+.tabs{display:flex;position:sticky;top:0;background:#101010;z-index:3;border-bottom:1px solid var(--line)}
+.tab{flex:1;border-width:0 1px 0 0;border-color:var(--line);background:#101010;padding:10px 5px}.tab.on{background:#222;color:#fff}
+.pane{display:none;padding:var(--pad)}.pane.on{display:block}
+.kv{display:grid;grid-template-columns:105px minmax(0,1fr);gap:7px;border-bottom:1px solid #282828;padding:7px 0}
+.kv>strong{font-size:8px;text-transform:uppercase;letter-spacing:.07em;color:#777}
+.chip{display:inline-block;border:1px solid #3a3a3a;padding:2px 4px;margin:1px;font-size:8px;color:#aaa}
+#ontologyJson,#outputText{min-height:calc(100vh - 175px);font:9px/1.45 ui-monospace,monospace}
+.log{font:9px/1.45 ui-monospace,monospace;color:#8d8d8d;padding:2px 0}.log.good{color:#d6d6d6}.log.warn{color:#ababab}.log.err{color:#f0f0f0}
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #333;margin-bottom:8px}
+.metric{padding:7px;border-right:1px solid #333}.metric:last-child{border-right:0}.metric b{display:block;font:15px ui-monospace,monospace}.metric span{font-size:8px;color:#777;text-transform:uppercase}
+.empty{position:absolute;inset:0;display:grid;place-items:center;color:#555;text-align:center;padding:30px}
+.source-path{font:8px ui-monospace,monospace;color:#777;word-break:break-all}
+.policy{border:1px solid #333;padding:7px;margin:5px 0}.policy b{font-size:9px}
+.help{font-size:9px;color:#888;line-height:1.55}.hrule{height:1px;background:#292929;margin:8px 0}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;place-items:center;z-index:50}.modal.on{display:grid}
+.modal-card{width:min(760px,calc(100vw - 40px));max-height:80vh;overflow:auto;background:#111;border:1px solid #777;padding:14px}
+@media(max-width:1150px){.main{grid-template-columns:290px 1fr}.right{display:none}}
+</style>
+</head>
+<body>
+<input id="filePicker" type="file" multiple hidden accept=".pdf,.docx,.txt,.md,.json,.jsonl,.csv,.tsv,.xml,.html,.htm,.yaml,.yml,.xlsx,.xls,.ods,.log,.sql,.geojson,.ndjson">
+<div class="app">
+<header>
+  <div class="brand">ONTOLOGY</div>
+  <button id="connectBtn">connect</button>
+  <button id="compileBtn">compile</button>
+  <button id="analyzeBtn">analyze</button>
+  <div class="spacer"></div>
+  <div class="status"><span id="dot" class="dot"></span><span id="statusText">local</span></div>
+</header>
+
+<div class="main">
+<aside class="left">
+  <div class="sec">
+    <div class="sec-head"><b>runtime</b></div>
+    <div class="field"><label>ollama</label><input id="host" value="http://127.0.0.1:11434"></div>
+    <div class="field"><label>model</label><select id="model"><option value="">connect first</option></select></div>
+    <div class="row">
+      <div class="field grow"><label>temp</label><input id="temp" type="number" value="0" step=".1"></div>
+      <div class="field grow"><label>context</label><input id="ctx" type="number" value="65536" step="1024"></div>
+      <div class="field grow"><label>chunk</label><input id="chunk" type="number" value="18000" step="1000"></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><b>sources</b><div class="spacer"></div><span id="sourceCount" class="small">0</span></div>
+    <div id="drop" class="drop">DROP ANY SOURCE<br><span class="small">DOUBLE CLICK</span></div>
+    <div id="sources"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><b>inputs</b><div class="spacer"></div><button id="addValue" class="iconbtn">+ value</button><button id="addText" class="iconbtn">+ text</button></div>
+    <div id="inputs"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><b>model controls</b></div>
+    <div class="field"><label>scope / intent</label><textarea id="scope" placeholder="What operational world should be modeled? Leave blank for automatic scope discovery."></textarea></div>
+    <div class="field"><label>authority policy</label>
+      <select id="authorityPolicy">
+        <option value="strict">strict — source authority wins</option>
+        <option value="balanced">balanced — resolve conflicts with evidence</option>
+        <option value="exploratory">exploratory — preserve competing hypotheses</option>
+      </select>
+    </div>
+    <label class="check"><input id="inferActions" type="checkbox" checked> infer actions + writeback contracts</label>
+    <label class="check"><input id="inferFunctions" type="checkbox" checked> infer functions + metrics</label>
+    <label class="check"><input id="inferPolicies" type="checkbox" checked> infer governance + approvals</label>
+  </div>
+</aside>
+
+<main class="center">
+  <div class="toolbar">
+    <button id="fitBtn">fit</button>
+    <button id="layoutBtn">layout</button>
+    <button id="jsonBtn">json</button>
+    <button id="saveBtn">save model</button>
+    <button id="loadModelBtn">load model</button>
+    <input id="modelFilePicker" type="file" accept=".json" hidden>
+    <div class="spacer"></div>
+    <span id="graphStat" class="small">empty</span>
+  </div>
+
+  <div id="view" class="view">
+    <div id="stage" class="stage">
+      <svg id="edges" class="edges"></svg>
+      <div id="nodes"></div>
+      <div id="empty" class="empty">DROP DATA → COMPILE</div>
+    </div>
+  </div>
+
+  <div class="lower">
+    <div class="objective">
+      <div class="sec-head"><b>objective</b><div class="spacer"></div><button id="clearAnalysis">clear</button></div>
+      <textarea id="objective" placeholder="Ask for an operational insight, decision, risk, anomaly, plan, dependency, optimization target, root cause, forecast implication, next-best action..."></textarea>
+      <div class="row">
+        <select id="analysisMode" class="grow">
+          <option value="decision">decision</option>
+          <option value="diagnostic">diagnostic</option>
+          <option value="planning">planning</option>
+          <option value="risk">risk</option>
+          <option value="opportunity">opportunity</option>
+          <option value="explain">explain</option>
+        </select>
+        <button id="runInsight">run</button>
+      </div>
+      <div class="hrule"></div>
+      <div id="logs"></div>
+    </div>
+    <div>
+      <div class="sec-head"><b>result</b><div class="spacer"></div><span id="analysisScore" class="small"></span></div>
+      <div id="result" class="result"><span class="small">No analysis.</span></div>
+    </div>
+  </div>
+</main>
+
+<aside class="right">
+  <div class="tabs">
+    <button class="tab on" data-pane="inspectPane">inspect</button>
+    <button class="tab" data-pane="sourcePane">lineage</button>
+    <button class="tab" data-pane="outputPane">output</button>
+    <button class="tab" data-pane="promptPane">prompts</button>
+  </div>
+
+  <div id="inspectPane" class="pane on">
+    <div id="metrics" class="metric-grid">
+      <div class="metric"><b>0</b><span>objects</span></div>
+      <div class="metric"><b>0</b><span>links</span></div>
+      <div class="metric"><b>0</b><span>actions</span></div>
+    </div>
+    <div id="inspector" class="small">Select a node.</div>
+  </div>
+
+  <div id="sourcePane" class="pane">
+    <div class="sec-head"><b>lineage</b></div>
+    <div id="lineage" class="small">Compile a model to inspect bindings.</div>
+  </div>
+
+  <div id="outputPane" class="pane">
+    <div class="sec-head"><b>translate</b></div>
+    <div class="field"><label>format</label>
+      <select id="format">
+        <option value="json">JSON</option>
+        <option value="jsonld">JSON-LD</option>
+        <option value="yaml">YAML</option>
+        <option value="mermaid">Mermaid</option>
+        <option value="cypher">Cypher</option>
+        <option value="sql">SQL DDL</option>
+        <option value="graphql">GraphQL SDL</option>
+        <option value="csv">CSV schema inventory</option>
+        <option value="markdown">Markdown model spec</option>
+        <option value="custom">Custom via Ollama</option>
+      </select>
+    </div>
+    <div id="customFormatWrap" class="field" style="display:none"><label>custom contract</label><textarea id="customFormat" placeholder="Describe exact target syntax/schema/format."></textarea></div>
+    <div class="row">
+      <button id="renderOutput" class="grow">render</button>
+      <button id="copyOutput">copy</button>
+      <button id="downloadOutput">save</button>
+    </div>
+    <div class="hrule"></div>
+    <textarea id="outputText" spellcheck="false"></textarea>
+  </div>
+
+  <div id="promptPane" class="pane">
+    <div class="help">Prompts are local and editable. The schemas remain the runtime contract.</div>
+    <div id="promptEditor"></div>
+    <div class="row"><button id="savePrompts">save</button><button id="restorePrompts">defaults</button></div>
+  </div>
+</aside>
+</div>
+</div>
+
+<div id="jsonModal" class="modal">
+  <div class="modal-card">
+    <div class="row" style="margin-bottom:8px"><b class="mono">MODEL JSON</b><div class="spacer"></div><button id="applyJson">apply</button><button id="closeJson">close</button></div>
+    <textarea id="ontologyJson" spellcheck="false"></textarea>
+  </div>
+</div>
+
+<script>
+(()=>{
+"use strict";
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const uid=(p="id")=>p+"_"+crypto.getRandomValues(new Uint32Array(1))[0].toString(16);
+const TYPES=["string","number","integer","boolean","date","datetime","currency","identifier","object","array","geometry","enum","text","unknown"];
+const AUTH=["authoritative","operational","reference","observation","counterpart","derived","unknown"];
+
+const BINDING={type:"object",additionalProperties:false,properties:{source_id:{type:"string"},path:{type:"string"},confidence:{type:"number",minimum:0,maximum:1},notes:{type:"string"}},required:["source_id","path","confidence","notes"]};
+const PROPERTY={type:"object",additionalProperties:false,properties:{
+ id:{type:"string"},label:{type:"string"},data_type:{type:"string",enum:TYPES},required:{type:"boolean"},description:{type:"string"},
+ semantic_role:{type:"string",enum:["identifier","state","metric","attribute","timestamp","geometry","reference","text","status","unknown"]},
+ units:{type:"string"},allowed_values:{type:"array",items:{type:"string"}},authority:{type:"string",enum:AUTH},source_bindings:{type:"array",items:BINDING}
+},required:["id","label","data_type","required","description","semantic_role","units","allowed_values","authority","source_bindings"]};
+const PARAM={type:"object",additionalProperties:false,properties:{id:{type:"string"},label:{type:"string"},data_type:{type:"string",enum:TYPES},required:{type:"boolean"},description:{type:"string"}},required:["id","label","data_type","required","description"]};
+
+const ONTOLOGY_SCHEMA={type:"object",additionalProperties:false,properties:{
+ schema_version:{type:"string"},
+ world_model:{type:"object",additionalProperties:false,properties:{name:{type:"string"},purpose:{type:"string"},scope:{type:"string"},operational_question:{type:"string"},assumptions:{type:"array",items:{type:"string"}},unresolved_questions:{type:"array",items:{type:"string"}}},required:["name","purpose","scope","operational_question","assumptions","unresolved_questions"]},
+ source_registry:{type:"array",items:{type:"object",additionalProperties:false,properties:{id:{type:"string"},name:{type:"string"},kind:{type:"string"},authority:{type:"string",enum:AUTH},description:{type:"string"},content_summary:{type:"string"},read_policy:{type:"string"},freshness:{type:"string"}},required:["id","name","kind","authority","description","content_summary","read_policy","freshness"]}},
+ object_types:{type:"array",items:{type:"object",additionalProperties:false,properties:{id:{type:"string"},label:{type:"string"},description:{type:"string"},identity_strategy:{type:"string"},temporal_mode:{type:"string",enum:["static","current_state","event_sourced","bitemporal","unknown"]},properties:{type:"array",items:PROPERTY},capabilities:{type:"array",items:{type:"string"}},source_bindings:{type:"array",items:BINDING}},required:["id","label","description","identity_strategy","temporal_mode","properties","capabilities","source_bindings"]}},
+ link_types:{type:"array",items:{type:"object",additionalProperties:false,properties:{id:{type:"string"},label:{type:"string"},from_type:{type:"string"},to_type:{type:"string"},cardinality:{type:"string",enum:["one_to_one","one_to_many","many_to_one","many_to_many","unknown"]},description:{type:"string"},directional:{type:"boolean"},source_bindings:{type:"array",items:BINDING}},required:["id","label","from_type","to_type","cardinality","description","directional","source_bindings"]}},
+ event_types:{type:"array",items:{type:"object",additionalProperties:false,properties:{id:{type:"string"},label:{type:"string"},description:{type:"string"},actor_type:{type:"string"},target_type:{type:"string"},timestamp_property:{type:"string"},properties:{type:"array",items:PROPERTY},source_bindings:{type:"array",items:BINDING}},required:["id","label","description","actor_type","target_type","timestamp_property","properties","source_bindings"]}},
+ actions:{type:"array",items:{type:"object",additionalProperties:false,properties:{id:{type:"string"},label:{type:"string"},description:{type:"string"},target_types:{type:"array",items:{type:"string"}},input_parameters:{type:"array",items:PARAM},preconditions:{type:"array",items:{type:"string"}},mutations:{type:"array",items:{type:"string"}},side_effects:{type:"array",items:{type:"string"}},approval:{type:"string",enum:["none","recommended","required","external"]},authority:{type:"string"},risk:{type:"string",enum:["low","medium","high","unknown"]},source_bindings:{type:"array",items:BINDING}},required:["id","label","description","target_types","input_parameters","preconditions","mutations","side_effects","approval","authority","risk","source_bindings"]}},
+ functions:{type:"array",items:{type:"object",additionalProperties:false,properties:{id:{type:"string"},label:{type:"string"},description:{type:"string"},inputs:{type:"array",items:PARAM},output_type:{type:"string"},logic_kind:{type:"string",enum:["rule","aggregation","model","llm","optimization","lookup","transform","unknown"]},expression:{type:"string"},source_dependencies:{type:"array",items:{type:"string"}}},required:["id","label","description","inputs","output_type","logic_kind","expression","source_dependencies"]}},
+ metrics:{type:"array",items:{type:"object",additionalProperties:false,properties:{id:{type:"string"},label:{type:"string"},description:{type:"string"},expression:{type:"string"},units:{type:"string"},inputs:{type:"array",items:{type:"string"}},source_dependencies:{type:"array",items:{type:"string"}}},required:["id","label","description","expression","units","inputs","source_dependencies"]}},
+ policies:{type:"array",items:{type:"object",additionalProperties:false,properties:{id:{type:"string"},scope:{type:"string"},effect:{type:"string",enum:["allow","deny","require_approval","mask","validate","observe"]},condition:{type:"string"},description:{type:"string"},source_bindings:{type:"array",items:BINDING}},required:["id","scope","effect","condition","description","source_bindings"]}},
+ provenance_rules:{type:"array",items:{type:"string"}}
+},required:["schema_version","world_model","source_registry","object_types","link_types","event_types","actions","functions","metrics","policies","provenance_rules"]};
+
+const PARTIAL_SCHEMA={type:"object",additionalProperties:false,properties:{
+ source_id:{type:"string"},summary:{type:"string"},
+ entity_candidates:{type:"array",items:{type:"object",additionalProperties:false,properties:{label:{type:"string"},kind:{type:"string",enum:["entity","event","concept","system","actor","resource","location","document","unknown"]},identity_clues:{type:"array",items:{type:"string"}},properties:{type:"array",items:{type:"string"}},evidence:{type:"array",items:{type:"string"}}},required:["label","kind","identity_clues","properties","evidence"]}},
+ relation_candidates:{type:"array",items:{type:"object",additionalProperties:false,properties:{from:{type:"string"},relation:{type:"string"},to:{type:"string"},evidence:{type:"string"}},required:["from","relation","to","evidence"]}},
+ variable_candidates:{type:"array",items:{type:"object",additionalProperties:false,properties:{name:{type:"string"},data_type:{type:"string",enum:TYPES},authority:{type:"string",enum:AUTH},meaning:{type:"string"},evidence:{type:"string"}},required:["name","data_type","authority","meaning","evidence"]}},
+ event_candidates:{type:"array",items:{type:"string"}},rule_candidates:{type:"array",items:{type:"string"}},action_candidates:{type:"array",items:{type:"string"}},metric_candidates:{type:"array",items:{type:"string"}},ambiguity_candidates:{type:"array",items:{type:"string"}}
+},required:["source_id","summary","entity_candidates","relation_candidates","variable_candidates","event_candidates","rule_candidates","action_candidates","metric_candidates","ambiguity_candidates"]};
+
+const INSIGHT_SCHEMA={type:"object",additionalProperties:false,properties:{
+ answer:{type:"string"},confidence:{type:"number",minimum:0,maximum:1},
+ insights:{type:"array",items:{type:"object",additionalProperties:false,properties:{id:{type:"string"},title:{type:"string"},statement:{type:"string"},impact:{type:"string"},urgency:{type:"string"},confidence:{type:"number",minimum:0,maximum:1},evidence_refs:{type:"array",items:{type:"string"}},affected_types:{type:"array",items:{type:"string"}},uncertainties:{type:"array",items:{type:"string"}}},required:["id","title","statement","impact","urgency","confidence","evidence_refs","affected_types","uncertainties"]}},
+ hypotheses:{type:"array",items:{type:"object",additionalProperties:false,properties:{statement:{type:"string"},supporting_evidence:{type:"array",items:{type:"string"}},contradicting_evidence:{type:"array",items:{type:"string"}},confidence:{type:"number",minimum:0,maximum:1},next_information:{type:"string"}},required:["statement","supporting_evidence","contradicting_evidence","confidence","next_information"]}},
+ recommended_actions:{type:"array",items:{type:"object",additionalProperties:false,properties:{action_id:{type:"string"},label:{type:"string"},rationale:{type:"string"},required_inputs:{type:"array",items:{type:"string"}},preconditions:{type:"array",items:{type:"string"}},expected_effect:{type:"string"},risks:{type:"array",items:{type:"string"}},approval:{type:"string"},evidence_refs:{type:"array",items:{type:"string"}}},required:["action_id","label","rationale","required_inputs","preconditions","expected_effect","risks","approval","evidence_refs"]}},
+ missing_information:{type:"array",items:{type:"string"}}
+},required:["answer","confidence","insights","hypotheses","recommended_actions","missing_information"]};
+
+const DEFAULT_PROMPTS={
+extract_system:`You are a domain-independent ontology extraction engine.
+Read ONE source fragment and identify candidates for an operational world model.
+
+Do not impose a familiar business schema. Infer from the actual source.
+Do not convert every noun into an entity. Prefer concepts with identity, state, relationships, lifecycle, decision relevance, or repeated operational use.
+Distinguish entity/object candidates, events, systems/actors, properties/variables, relationships, rules/constraints, actions/decisions, metrics, and ambiguities.
+Authority matters: a source can report an observation without being authoritative for the underlying state.
+Evidence strings must be compact anchors from the supplied fragment.
+Do not invent values, relationships, or actions.
+Return only JSON matching the schema.`,
+
+extract_user:`SOURCE ID: {{SOURCE_ID}}
+SOURCE NAME: {{SOURCE_NAME}}
+SOURCE KIND: {{SOURCE_KIND}}
+DECLARED AUTHORITY: {{AUTHORITY}}
+SCOPE HINT: {{SCOPE}}
+
+CONTENT:
+<<<
+{{CONTENT}}
+>>>`,
+
+compile_system:`You are an operational ontology compiler.
+
+Build a domain-independent world model from source analyses and explicit input blocks.
+
+The output is not merely a knowledge graph. Integrate:
+1. DATA — object types, properties, links, events, source bindings.
+2. LOGIC — functions, rules, aggregations, metrics, models, transforms.
+3. ACTION — typed transactions with parameters, preconditions, mutations, side effects, approval and risk.
+4. GOVERNANCE — authority, read/write boundaries, validation, approval, masking/permission concepts when supported.
+5. PROVENANCE — every source-supported object/property/link/action/policy should retain source bindings.
+
+MODELING RULES
+- Model stable nouns as object types when they have identity/state/lifecycle or materially participate in decisions.
+- Model occurrences or changes over time as event types.
+- Model important relationships as explicit links rather than duplicated text.
+- Properties require semantic roles and explicit authority.
+- identity_strategy explains instance resolution/deduplication.
+- temporal_mode reflects static, current-state, event-sourced, bitemporal, or unknown.
+- Functions are read/compute logic. Actions are state-changing transactions.
+- An inferred action must state what it could mutate and approval required. Never claim an external write integration exists.
+- Preserve uncertainty. Missing information belongs in unresolved_questions.
+- Conflicting sources remain traceable through source bindings and assumptions.
+- Explicit manual input blocks are first-class sources.
+- IDs must be stable snake_case.
+- Source binding paths should identify a field, heading, row/column, JSON path, or evidence anchor where possible.
+
+AUTHORITY POLICY: {{AUTHORITY_POLICY}}
+INFER ACTIONS: {{INFER_ACTIONS}}
+INFER FUNCTIONS: {{INFER_FUNCTIONS}}
+INFER POLICIES: {{INFER_POLICIES}}
+
+Return only JSON matching the schema.`,
+
+compile_user:`SCOPE / INTENT:
+{{SCOPE}}
+
+SOURCE REGISTRY:
+{{SOURCE_REGISTRY}}
+
+PARTIAL SOURCE ANALYSES:
+{{PARTIALS}}
+
+EXPLICIT INPUT BLOCKS:
+{{INPUTS}}
+
+Compile these into one coherent operational ontology.`,
+
+insight_system:`You are an operational decision analyst working over a typed ontology and source evidence.
+
+The ontology is a map of available truth, logic, relationships, actions, and governance. It is not permission to invent instance-level facts absent from evidence.
+
+For the user's objective:
+- traverse relevant objects, links, events, metrics, functions and actions;
+- identify decision-relevant patterns and dependencies;
+- separate observed/source-supported facts from hypotheses;
+- cite evidence using source IDs, binding paths, object/property IDs, metric IDs, or action IDs;
+- recommend actions only when preconditions and authority are compatible with the model;
+- state missing information that would materially change the decision;
+- prefer high-information next steps over generic recommendations;
+- do not claim an action was executed. This workbench only proposes/simulates actions.
+
+Return only JSON matching the schema.`,
+
+insight_user:`MODE: {{MODE}}
+OBJECTIVE:
+{{OBJECTIVE}}
+
+ONTOLOGY:
+{{ONTOLOGY}}
+
+SOURCE EXCERPTS:
+{{SOURCE_EXCERPTS}}`,
+
+custom_output_system:`Translate an operational ontology into an exact requested external representation.
+Preserve semantics, IDs, data direction, links, functions, actions, governance, and provenance where the target format permits.
+Do not add domain facts.
+Return only the requested representation with no markdown fence or explanatory preamble.`,
+
+custom_output_user:`TARGET FORMAT CONTRACT:
+{{FORMAT}}
+
+ONTOLOGY:
+{{ONTOLOGY}}`
+};
+
+let prompts=loadPrompts(),sources=[],inputBlocks=[],ontology=null,analysis=null,selected=null,outputExt="txt",aborter=null;
+function loadPrompts(){try{return {...DEFAULT_PROMPTS,...JSON.parse(localStorage.getItem("ontologyWorkbenchPrompts")||"{}")}}catch{return {...DEFAULT_PROMPTS}}}
+function log(s,c=""){const d=document.createElement("div");d.className="log "+c;d.textContent=`[${new Date().toLocaleTimeString()}] ${s}`;$("#logs").prepend(d)}
+function host(){return $("#host").value.trim().replace(/\/+$/,"")}
+function tpl(s,v){return s.replace(/\{\{([A-Z0-9_]+)\}\}/g,(_,k)=>String(v[k]??""))}
+function saveBlob(name,text,type="text/plain"){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),800)}
+function setBusy(x,label="working"){["compileBtn","analyzeBtn","runInsight"].forEach(id=>$("#"+id).disabled=x);$("#statusText").textContent=x?label:(ontology?"model ready":"local")}
+
+async function connect(){
+ try{$("#statusText").textContent="connecting";const r=await fetch(host()+"/api/tags",{signal:AbortSignal.timeout(8000)});if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json(),sel=$("#model"),prior=sel.value;sel.innerHTML="";(d.models||[]).forEach(m=>{const o=document.createElement("option");o.value=m.name||m.model;o.textContent=o.value;sel.appendChild(o)});if(prior&&[...sel.options].some(o=>o.value===prior))sel.value=prior;$("#dot").className="dot ok";$("#statusText").textContent=`${(d.models||[]).length} models`;log("Ollama connected.","good")}
+ catch(e){$("#dot").className="dot";$("#statusText").textContent="connection failed";log("Connection failed: "+e.message,"err")}
+}
+async function ollamaJSON(system,user,schema,label){
+ if(!$("#model").value){await connect();if(!$("#model").value)throw new Error("No Ollama model available.")}
+ const t=performance.now();log(label+"...");
+ const r=await fetch(host()+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},signal:aborter?.signal,body:JSON.stringify({model:$("#model").value,stream:false,format:schema,options:{temperature:Number($("#temp").value||0),num_ctx:Number($("#ctx").value||65536)},messages:[{role:"system",content:system+"\n\nOUTPUT JSON SCHEMA:\n"+JSON.stringify(schema)},{role:"user",content:user}]})});
+ if(!r.ok)throw new Error(`${label}: HTTP ${r.status} ${await r.text()}`);
+ const d=await r.json();let x;try{x=JSON.parse(d.message.content)}catch(e){throw new Error(`${label}: invalid JSON: ${e.message}`)}
+ log(`${label} · ${((performance.now()-t)/1000).toFixed(1)}s`,"good");return x
+}
+async function ollamaText(system,user,label){
+ if(!$("#model").value){await connect();if(!$("#model").value)throw new Error("No Ollama model available.")}
+ const r=await fetch(host()+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:$("#model").value,stream:false,options:{temperature:Number($("#temp").value||0),num_ctx:Number($("#ctx").value||65536)},messages:[{role:"system",content:system},{role:"user",content:user}]})});if(!r.ok)throw new Error(`${label}: ${await r.text()}`);return (await r.json()).message.content
+}
+
+function authorityFor(name,kind){const n=name.toLowerCase();if(kind==="manual")return"authoritative";if(/log|sensor|telemetry|event/.test(n))return"observation";if(/policy|contract|spec|master|registry/.test(n))return"authoritative";return"reference"}
+function addSource(src){sources.push(src);renderSources()}
+function renderSources(){
+ const root=$("#sources");root.innerHTML="";$("#sourceCount").textContent=sources.length;
+ sources.forEach((s,i)=>{const d=document.createElement("div");d.className="source-card";d.innerHTML=`<div class="card-head"><span class="badge">${esc(s.kind)}</span><div class="card-title grow" title="${esc(s.name)}">${esc(s.name)}</div><button class="iconbtn" data-del="${i}">×</button></div><div class="card-body"><div class="input-grid"><select data-auth="${i}">${AUTH.map(a=>`<option value="${a}" ${a===s.authority?"selected":""}>${a}</option>`).join("")}</select><span class="small" style="align-self:center;text-align:right">${(s.content?.length||0).toLocaleString()} ch</span></div><div class="source-path">${esc(s.meta||"")}</div></div>`;root.appendChild(d)});
+ root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{sources.splice(+b.dataset.del,1);renderSources()});root.querySelectorAll("[data-auth]").forEach(x=>x.onchange=()=>sources[+x.dataset.auth].authority=x.value)
+}
+function addInput(kind){inputBlocks.push({id:uid("input"),kind,key:"",data_type:"string",authority:"authoritative",value:""});renderInputs()}
+function renderInputs(){
+ const root=$("#inputs");root.innerHTML="";
+ inputBlocks.forEach((b,i)=>{const d=document.createElement("div");d.className="input-card";d.innerHTML=`<div class="card-head"><span class="badge">${b.kind}</span><div class="card-title grow">${esc(b.key||"unnamed")}</div><button class="iconbtn" data-rm="${i}">×</button></div><div class="card-body"><div class="input-grid"><input data-key="${i}" placeholder="key / label" value="${esc(b.key)}"><select data-type="${i}">${TYPES.map(t=>`<option ${t===b.data_type?"selected":""}>${t}</option>`).join("")}</select></div><div style="height:6px"></div>${b.kind==="text"?`<textarea data-val="${i}" placeholder="value / context">${esc(b.value)}</textarea>`:`<input data-val="${i}" placeholder="value" value="${esc(b.value)}">`}<div style="height:6px"></div><select data-iauth="${i}">${AUTH.map(a=>`<option value="${a}" ${a===b.authority?"selected":""}>authority · ${a}</option>`).join("")}</select></div>`;root.appendChild(d)});
+ root.querySelectorAll("[data-rm]").forEach(x=>x.onclick=()=>{inputBlocks.splice(+x.dataset.rm,1);renderInputs()});root.querySelectorAll("[data-key]").forEach(x=>x.oninput=()=>{inputBlocks[+x.dataset.key].key=x.value;x.closest(".input-card").querySelector(".card-title").textContent=x.value||"unnamed"});root.querySelectorAll("[data-type]").forEach(x=>x.onchange=()=>inputBlocks[+x.dataset.type].data_type=x.value);root.querySelectorAll("[data-val]").forEach(x=>x.oninput=()=>inputBlocks[+x.dataset.val].value=x.value);root.querySelectorAll("[data-iauth]").forEach(x=>x.onchange=()=>inputBlocks[+x.dataset.iauth].authority=x.value)
+}
+
+async function parseFile(file){
+ const ext=(file.name.split(".").pop()||"").toLowerCase(),id=uid("src");
+ if(ext==="pdf"){await loadScript("pdf","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";const pdf=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise,pages=[];for(let i=1;i<=pdf.numPages;i++){const c=await(await pdf.getPage(i)).getTextContent();pages.push(`[PAGE ${i}]\n`+c.items.map(x=>x.str).join(" "))}return{id,name:file.name,kind:"pdf",authority:authorityFor(file.name,"pdf"),content:pages.join("\n\n"),meta:`${pdf.numPages} pages`}}
+ if(ext==="docx"){await loadScript("mammoth","https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js");const out=await window.mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});return{id,name:file.name,kind:"docx",authority:authorityFor(file.name,"docx"),content:out.value,meta:"DOCX text"}}
+ if(["xlsx","xls","ods"].includes(ext)){await loadScript("xlsx","https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");const wb=window.XLSX.read(await file.arrayBuffer(),{type:"array"}),parts=[];wb.SheetNames.forEach(n=>parts.push(`[SHEET ${n}]\n`+window.XLSX.utils.sheet_to_csv(wb.Sheets[n])));return{id,name:file.name,kind:"spreadsheet",authority:authorityFor(file.name,"spreadsheet"),content:parts.join("\n\n"),meta:`${wb.SheetNames.length} sheets`}}
+ let text=await file.text();if(["html","htm"].includes(ext))text=new DOMParser().parseFromString(text,"text/html").body?.innerText||text;const kind=["json","jsonl","ndjson","geojson"].includes(ext)?"json":(["csv","tsv"].includes(ext)?"table":ext||"text");return{id,name:file.name,kind,authority:authorityFor(file.name,kind),content:text,meta:file.type||"text"}
+}
+const scriptLoads={};function loadScript(key,url){if(scriptLoads[key])return scriptLoads[key];scriptLoads[key]=new Promise((ok,bad)=>{const s=document.createElement("script");s.src=url;s.onload=()=>ok(true);s.onerror=()=>bad(new Error(`Could not load ${key} parser.`));document.head.appendChild(s)});return scriptLoads[key]}
+async function addFiles(files){for(const f of files){try{log("Reading "+f.name);addSource(await parseFile(f));log("Read "+f.name,"good")}catch(e){log(`${f.name}: ${e.message}`,"err")}}}
+function chunks(text,n){if(text.length<=n)return[text];const out=[];let at=0;while(at<text.length){let end=Math.min(text.length,at+n);if(end<text.length){const cut=text.lastIndexOf("\n",end);if(cut>at+n*.6)end=cut}out.push(text.slice(at,end));at=end}return out}
+
+async function compile(){
+ if(!sources.length&&!inputBlocks.length){log("Add at least one source or input block.","err");return}
+ aborter=new AbortController();setBusy(true,"compiling");
+ try{
+  const partials=[],max=Math.max(4000,Number($("#chunk").value||18000));
+  for(const s of sources){const cs=chunks(s.content||"",max);for(let i=0;i<cs.length;i++)partials.push(await ollamaJSON(prompts.extract_system,tpl(prompts.extract_user,{SOURCE_ID:s.id,SOURCE_NAME:s.name,SOURCE_KIND:s.kind,AUTHORITY:s.authority,SCOPE:$("#scope").value||"(automatic)",CONTENT:cs[i]}),PARTIAL_SCHEMA,`extract ${s.name}${cs.length>1?` ${i+1}/${cs.length}`:""}`))}
+  const registry=sources.map(s=>({id:s.id,name:s.name,kind:s.kind,authority:s.authority,description:s.meta||"",content_summary:(s.content||"").slice(0,400),read_policy:"read-only unless an action explicitly writes to its external system",freshness:"unknown"}));
+  inputBlocks.forEach(b=>registry.push({id:b.id,name:b.key||b.id,kind:"manual_input",authority:b.authority,description:`${b.kind} · ${b.data_type}`,content_summary:String(b.value).slice(0,400),read_policy:"explicit user-supplied input",freshness:"session"}));
+  ontology=await ollamaJSON(tpl(prompts.compile_system,{AUTHORITY_POLICY:$("#authorityPolicy").value,INFER_ACTIONS:$("#inferActions").checked,INFER_FUNCTIONS:$("#inferFunctions").checked,INFER_POLICIES:$("#inferPolicies").checked}),tpl(prompts.compile_user,{SCOPE:$("#scope").value||"(automatic scope discovery)",SOURCE_REGISTRY:JSON.stringify(registry,null,2),PARTIALS:JSON.stringify(partials,null,2),INPUTS:JSON.stringify(inputBlocks,null,2)}),ONTOLOGY_SCHEMA,"compile ontology");
+  normalizeOntology();analysis=null;selected=null;renderAll();log("Operational model compiled.","good")
+ }catch(e){if(e.name==="AbortError")log("Compile cancelled.","warn");else log(e.message,"err")}
+ finally{aborter=null;setBusy(false)}
+}
+function normalizeOntology(){if(!ontology)return;["source_registry","object_types","link_types","event_types","actions","functions","metrics","policies","provenance_rules"].forEach(k=>ontology[k]??=[])}
+async function runInsight(){
+ if(!ontology){log("Compile or load a model first.","err");return}const obj=$("#objective").value.trim();if(!obj){log("Enter an objective.","err");return}
+ aborter=new AbortController();setBusy(true,"analyzing");
+ try{const excerpts=sources.map(s=>({id:s.id,name:s.name,authority:s.authority,excerpt:(s.content||"").slice(0,6000)}));inputBlocks.forEach(b=>excerpts.push({id:b.id,name:b.key||b.id,authority:b.authority,excerpt:String(b.value)}));analysis=await ollamaJSON(prompts.insight_system,tpl(prompts.insight_user,{MODE:$("#analysisMode").value,OBJECTIVE:obj,ONTOLOGY:JSON.stringify(ontology),SOURCE_EXCERPTS:JSON.stringify(excerpts)}),INSIGHT_SCHEMA,"decision analysis");renderAnalysis()}
+ catch(e){if(e.name!=="AbortError")log(e.message,"err")}finally{aborter=null;setBusy(false)}
+}
+function renderAnalysis(){
+ const r=$("#result");if(!analysis){r.innerHTML='<span class="small">No analysis.</span>';$("#analysisScore").textContent="";return}
+ $("#analysisScore").textContent=Math.round(analysis.confidence*100)+"%";let h=`<div style="font-size:11px;margin-bottom:9px">${esc(analysis.answer)}</div>`;
+ (analysis.insights||[]).forEach(x=>h+=`<div class="insight"><b>${esc(x.title)}</b><div>${esc(x.statement)}</div><div class="small">${esc(x.impact)} · ${esc(x.urgency)} · ${Math.round(x.confidence*100)}%</div><div class="evidence">${esc((x.evidence_refs||[]).join(" · "))}</div></div>`);
+ if((analysis.recommended_actions||[]).length)h+=`<div class="small" style="margin-top:10px">ACTIONS</div>`;
+ (analysis.recommended_actions||[]).forEach(a=>h+=`<div class="action-row"><div class="top"><span class="badge">${esc(a.approval)}</span><b>${esc(a.label)}</b></div><div>${esc(a.rationale)}</div><div class="small">${esc(a.expected_effect)}</div><div class="evidence">${esc((a.evidence_refs||[]).join(" · "))}</div></div>`);
+ if((analysis.hypotheses||[]).length)h+=`<div class="small" style="margin-top:10px">HYPOTHESES</div>`;
+ (analysis.hypotheses||[]).forEach(x=>h+=`<div class="insight"><b>${Math.round(x.confidence*100)}%</b> ${esc(x.statement)}<div class="small">next: ${esc(x.next_information)}</div></div>`);
+ if((analysis.missing_information||[]).length)h+=`<div class="small" style="margin-top:9px">MISSING · ${esc(analysis.missing_information.join(" · "))}</div>`;r.innerHTML=h
+}
+
+function allNodes(){if(!ontology)return[];return[...ontology.object_types.map(x=>({...x,_kind:"object"})),...ontology.event_types.map(x=>({...x,_kind:"event"})),...ontology.functions.map(x=>({...x,_kind:"function"})),...ontology.actions.map(x=>({...x,_kind:"action"}))]}
+function renderGraph(){
+ const root=$("#nodes"),svg=$("#edges"),empty=$("#empty"),vp=$("#view"),stage=$("#stage");root.innerHTML="";svg.innerHTML="";const nodes=allNodes();if(!nodes.length){empty.style.display="grid";$("#graphStat").textContent="empty";return}empty.style.display="none";
+ const cols={object:0,event:1,function:2,action:3},b={0:[],1:[],2:[],3:[]};nodes.forEach(n=>b[cols[n._kind]??0].push(n));const rows=Math.max(...Object.values(b).map(x=>x.length),1),W=Math.max(vp.clientWidth,1080),H=Math.max(vp.clientHeight,60+rows*142);stage.style.width=W+"px";stage.style.height=H+"px";svg.setAttribute("width",W);svg.setAttribute("height",H);svg.innerHTML='<defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8z" fill="#666"/></marker></defs>';
+ const colW=Math.max(250,(W-70)/4),pos={};Object.entries(b).forEach(([c,arr])=>arr.forEach((n,i)=>{const x=28+Number(c)*colW,y=30+i*142;pos[n.id]={x,y,w:218,h:106};const d=document.createElement("div");d.className="node"+(selected?.id===n.id&&selected?._kind===n._kind?" sel":"");d.style.left=x+"px";d.style.top=y+"px";let meta="";if(n._kind==="object")meta=`${(n.properties||[]).length} properties · ${n.temporal_mode}`;if(n._kind==="event")meta=`${(n.properties||[]).length} properties`;if(n._kind==="function")meta=`${n.logic_kind} · ${(n.inputs||[]).length} inputs`;if(n._kind==="action")meta=`${n.risk} risk · ${n.approval} approval`;d.innerHTML=`<div class="kind">${n._kind}</div><div class="name">${esc(n.label)}</div><div class="desc">${esc(n.description)}</div><div class="meta">${esc(meta)}</div>`;d.onclick=()=>{selected=n;renderGraph();renderInspector()};root.appendChild(d)}));
+ const NS="http://www.w3.org/2000/svg",draw=(from,to,label,cls="")=>{const a=pos[from],c=pos[to];if(!a||!c)return;const x1=a.x+a.w,y1=a.y+a.h/2,x2=c.x,y2=c.y+c.h/2,dx=Math.max(40,Math.abs(x2-x1)*.42);const p=document.createElementNS(NS,"path");p.setAttribute("d",`M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`);p.setAttribute("class","edge "+cls);p.setAttribute("marker-end","url(#arr)");svg.appendChild(p);if(label){const t=document.createElementNS(NS,"text");t.setAttribute("class","edge-label");t.setAttribute("x",(x1+x2)/2);t.setAttribute("y",(y1+y2)/2-4);t.textContent=label.slice(0,28);svg.appendChild(t)}};
+ (ontology.link_types||[]).forEach(l=>draw(l.from_type,l.to_type,l.label));(ontology.event_types||[]).forEach(e=>{if(e.actor_type)draw(e.actor_type,e.id,"actor");if(e.target_type)draw(e.id,e.target_type,"target")});(ontology.actions||[]).forEach(a=>(a.target_types||[]).forEach(t=>draw(a.id,t,"mutates","action")));$("#graphStat").textContent=`${ontology.object_types.length} objects · ${ontology.link_types.length} links · ${ontology.event_types.length} events · ${ontology.actions.length} actions`
+}
+function renderInspector(){
+ const r=$("#inspector");if(!selected){r.innerHTML='<span class="small">Select a node.</span>';return}const n=selected,k=n._kind;let h=`<div class="kv"><strong>type</strong><div><span class="badge">${esc(k)}</span></div></div><div class="kv"><strong>id</strong><code>${esc(n.id)}</code></div><div class="kv"><strong>description</strong><div>${esc(n.description)}</div></div>`;
+ if(k==="object"){h+=`<div class="kv"><strong>identity</strong><div>${esc(n.identity_strategy)}</div></div><div class="kv"><strong>temporal</strong><div>${esc(n.temporal_mode)}</div></div><div class="kv"><strong>properties</strong><div>${(n.properties||[]).map(p=>`<div style="margin-bottom:6px"><b>${esc(p.label)}</b> <span class="chip">${esc(p.data_type)}</span><span class="chip">${esc(p.authority)}</span><br><span class="small">${esc(p.description)}</span></div>`).join("")}</div></div>`}
+ if(k==="event")h+=`<div class="kv"><strong>actor</strong><code>${esc(n.actor_type)}</code></div><div class="kv"><strong>target</strong><code>${esc(n.target_type)}</code></div>`;
+ if(k==="function")h+=`<div class="kv"><strong>logic</strong><div><span class="badge">${esc(n.logic_kind)}</span><br>${esc(n.expression)}</div></div>`;
+ if(k==="action")h+=`<div class="kv"><strong>targets</strong><div>${(n.target_types||[]).map(x=>`<span class="chip">${esc(x)}</span>`).join("")}</div></div><div class="kv"><strong>preconditions</strong><div>${(n.preconditions||[]).map(x=>"• "+esc(x)).join("<br>")||"—"}</div></div><div class="kv"><strong>mutations</strong><div>${(n.mutations||[]).map(x=>"• "+esc(x)).join("<br>")||"—"}</div></div><div class="kv"><strong>approval</strong><div>${esc(n.approval)} · ${esc(n.risk)}</div></div>`;
+ const binds=n.source_bindings||[];if(binds.length)h+=`<div class="kv"><strong>sources</strong><div>${binds.map(b=>`${esc(b.source_id)} · ${esc(b.path)} · ${Math.round(b.confidence*100)}%`).join("<br>")}</div></div>`;r.innerHTML=h
+}
+function renderLineage(){
+ const r=$("#lineage");if(!ontology){r.innerHTML="Compile a model to inspect bindings.";return}let h="";
+ ontology.source_registry.forEach(s=>{const refs=[];ontology.object_types.forEach(o=>{(o.source_bindings||[]).forEach(b=>{if(b.source_id===s.id)refs.push(`object:${o.id}`)});(o.properties||[]).forEach(p=>(p.source_bindings||[]).forEach(b=>{if(b.source_id===s.id)refs.push(`property:${o.id}.${p.id}`)}))});ontology.link_types.forEach(l=>(l.source_bindings||[]).forEach(b=>{if(b.source_id===s.id)refs.push(`link:${l.id}`)}));ontology.actions.forEach(a=>(a.source_bindings||[]).forEach(b=>{if(b.source_id===s.id)refs.push(`action:${a.id}`)}));h+=`<div class="policy"><b>${esc(s.name)}</b> <span class="badge">${esc(s.authority)}</span><div class="small">${esc(s.content_summary)}</div><div class="source-path" style="margin-top:5px">${esc(refs.join(" · ")||"no direct binding")}</div></div>`});h+=`<div class="sec-head" style="margin-top:12px"><b>policies</b></div>`;ontology.policies.forEach(p=>h+=`<div class="policy"><b>${esc(p.effect)} · ${esc(p.scope)}</b><div>${esc(p.description)}</div><div class="source-path">${esc(p.condition)}</div></div>`);r.innerHTML=h||'<span class="small">No lineage.</span>'
+}
+function renderMetrics(){const m=$("#metrics").children;if(!ontology){[...m].forEach(x=>x.querySelector("b").textContent="0");return}m[0].querySelector("b").textContent=ontology.object_types.length;m[1].querySelector("b").textContent=ontology.link_types.length;m[2].querySelector("b").textContent=ontology.actions.length}
+function renderAll(){renderGraph();renderInspector();renderLineage();renderMetrics();$("#ontologyJson").value=ontology?JSON.stringify(ontology,null,2):""}
+
+function yaml(v,d=0){const ind="  ".repeat(d);if(v===null)return"null";if(typeof v!=="object")return typeof v==="string"?(v.includes("\n")?`|\n${v.split("\n").map(x=>ind+"  "+x).join("\n")}`:JSON.stringify(v)):String(v);if(Array.isArray(v))return v.map(x=>typeof x==="object"&&x!==null?`${ind}-\n${yaml(x,d+1)}`:`${ind}- ${yaml(x,d+1).trim()}`).join("\n");return Object.entries(v).map(([k,x])=>typeof x==="object"&&x!==null?`${ind}${k}:\n${yaml(x,d+1)}`:`${ind}${k}: ${yaml(x,d+1).trim()}`).join("\n")}
+function safe(s){return"n_"+String(s).replace(/\W/g,"_")}
+function mermaid(){let s=["flowchart LR"];ontology.object_types.forEach(o=>s.push(`  ${safe(o.id)}["${o.label.replace(/"/g,"'")}"]`));ontology.event_types.forEach(e=>s.push(`  ${safe(e.id)}{{"${e.label.replace(/"/g,"'")}"}}`));ontology.functions.forEach(f=>s.push(`  ${safe(f.id)}[["${f.label.replace(/"/g,"'")}"]]`));ontology.actions.forEach(a=>s.push(`  ${safe(a.id)}["ACTION: ${a.label.replace(/"/g,"'")}"]`));ontology.link_types.forEach(l=>s.push(`  ${safe(l.from_type)} -->|${l.label.replace(/[|"]/g,"'")}| ${safe(l.to_type)}`));ontology.event_types.forEach(e=>{if(e.actor_type)s.push(`  ${safe(e.actor_type)} --> ${safe(e.id)}`);if(e.target_type)s.push(`  ${safe(e.id)} --> ${safe(e.target_type)}`)});ontology.actions.forEach(a=>(a.target_types||[]).forEach(t=>s.push(`  ${safe(a.id)} -.-> ${safe(t)}`)));return s.join("\n")}
+function sqlType(t){return({string:"TEXT",text:"TEXT",identifier:"TEXT",number:"DOUBLE PRECISION",integer:"BIGINT",boolean:"BOOLEAN",date:"DATE",datetime:"TIMESTAMP",currency:"DECIMAL(18,2)",geometry:"JSONB",object:"JSONB",array:"JSONB",enum:"TEXT",unknown:"TEXT"}[t]||"TEXT")}
+function sql(){let s=["-- Generated ontology schema; action semantics are comments, not executable writebacks."];ontology.object_types.forEach(o=>{s.push(`\nCREATE TABLE ${o.id} (`);s.push(...o.properties.map((p,i)=>`  ${p.id} ${sqlType(p.data_type)}${p.required?" NOT NULL":""}${i<o.properties.length-1?",":""}`),");")});ontology.link_types.forEach(l=>s.push(`\n-- LINK ${l.id}: ${l.from_type} -> ${l.to_type} (${l.cardinality})`));ontology.actions.forEach(a=>s.push(`\n-- ACTION ${a.id}: ${a.description}\n-- PRE: ${a.preconditions.join(" | ")}\n-- MUTATE: ${a.mutations.join(" | ")}`));return s.join("\n")}
+function pascal(s){return String(s).split(/[_\W]+/).map(x=>x.charAt(0).toUpperCase()+x.slice(1)).join("")}
+function gqlType(t){return({string:"String",text:"String",identifier:"ID",number:"Float",integer:"Int",boolean:"Boolean",date:"String",datetime:"String",currency:"Float",geometry:"JSON",object:"JSON",array:"JSON",enum:"String",unknown:"String"}[t]||"String")}
+function graphql(){let s=[];ontology.object_types.forEach(o=>{s.push(`type ${pascal(o.id)} {`);o.properties.forEach(p=>s.push(`  ${p.id}: ${gqlType(p.data_type)}${p.required?"!":""}`));ontology.link_types.filter(l=>l.from_type===o.id).forEach(l=>s.push(`  ${l.id}: ${["one_to_many","many_to_many"].includes(l.cardinality)?"["+pascal(l.to_type)+"!]!":pascal(l.to_type)}`));s.push("}\n")});return s.join("\n")}
+function cypher(){let s=["// Schema-oriented Cypher hints"];ontology.object_types.forEach(o=>s.push(`// NODE :${pascal(o.id)} properties: ${(o.properties||[]).map(p=>p.id).join(", ")}`));ontology.link_types.forEach(l=>s.push(`// (:${pascal(l.from_type)})-[:${l.id.toUpperCase()}]->(:${pascal(l.to_type)})`));return s.join("\n")}
+function csv(){const rows=[["kind","parent","id","label","type","authority","source"]];ontology.object_types.forEach(o=>{rows.push(["object","",o.id,o.label,"","",o.source_bindings.map(x=>x.source_id).join("|")]);o.properties.forEach(p=>rows.push(["property",o.id,p.id,p.label,p.data_type,p.authority,p.source_bindings.map(x=>x.source_id).join("|")]))});ontology.link_types.forEach(l=>rows.push(["link",l.from_type,l.id,l.label,l.cardinality,"",l.source_bindings.map(x=>x.source_id).join("|")]));ontology.actions.forEach(a=>rows.push(["action",a.target_types.join("|"),a.id,a.label,a.risk,a.authority,a.source_bindings.map(x=>x.source_id).join("|")]));return rows.map(r=>r.map(x=>`"${String(x??"").replace(/"/g,'""')}"`).join(",")).join("\n")}
+function markdown(){let s=[`# ${ontology.world_model.name}`,"",ontology.world_model.purpose,"","## Objects"];ontology.object_types.forEach(o=>s.push(`\n### ${o.label} \`${o.id}\``,o.description,"",`Identity: ${o.identity_strategy} · Temporal: ${o.temporal_mode}`,"",...(o.properties||[]).map(p=>`- \`${p.id}\` — ${p.data_type}; ${p.authority}; ${p.description}`)));s.push("\n## Links");ontology.link_types.forEach(l=>s.push(`- \`${l.from_type}\` — **${l.label}** → \`${l.to_type}\` (${l.cardinality})`));s.push("\n## Functions");ontology.functions.forEach(f=>s.push(`- **${f.label}** [${f.logic_kind}] — ${f.description}`));s.push("\n## Actions");ontology.actions.forEach(a=>s.push(`- **${a.label}** [${a.risk}/${a.approval}] — ${a.description}`));s.push("\n## Policies");ontology.policies.forEach(p=>s.push(`- **${p.effect}** ${p.scope}: ${p.description}`));return s.join("\n")}
+function jsonld(){const ctx={id:"@id",type:"@type",label:"http://www.w3.org/2000/01/rdf-schema#label",description:"http://purl.org/dc/terms/description"},g=[];ontology.object_types.forEach(o=>g.push({"@id":o.id,"@type":"ObjectType",label:o.label,description:o.description,properties:o.properties.map(p=>({id:p.id,type:p.data_type,authority:p.authority}))}));ontology.link_types.forEach(l=>g.push({"@id":l.id,"@type":"LinkType",label:l.label,from:l.from_type,to:l.to_type,cardinality:l.cardinality}));ontology.actions.forEach(a=>g.push({"@id":a.id,"@type":"ActionType",label:a.label,targets:a.target_types,approval:a.approval,risk:a.risk}));return JSON.stringify({"@context":ctx,"@graph":g},null,2)}
+async function renderOutput(){if(!ontology){log("No model to translate.","err");return}const f=$("#format").value;let out="";if(f==="json"){out=JSON.stringify(ontology,null,2);outputExt="json"}else if(f==="jsonld"){out=jsonld();outputExt="jsonld"}else if(f==="yaml"){out=yaml(ontology);outputExt="yaml"}else if(f==="mermaid"){out=mermaid();outputExt="mmd"}else if(f==="cypher"){out=cypher();outputExt="cypher"}else if(f==="sql"){out=sql();outputExt="sql"}else if(f==="graphql"){out=graphql();outputExt="graphql"}else if(f==="csv"){out=csv();outputExt="csv"}else if(f==="markdown"){out=markdown();outputExt="md"}else{const contract=$("#customFormat").value.trim();if(!contract){log("Describe the custom output contract.","err");return}setBusy(true,"translating");try{out=await ollamaText(prompts.custom_output_system,tpl(prompts.custom_output_user,{FORMAT:contract,ONTOLOGY:JSON.stringify(ontology)}),"custom output");outputExt="txt"}finally{setBusy(false)}}$("#outputText").value=out}
+function renderPromptEditor(){const r=$("#promptEditor");r.innerHTML="";Object.entries(prompts).forEach(([k,v])=>{const d=document.createElement("div");d.className="field";d.innerHTML=`<label>${esc(k)}</label><textarea data-prompt="${esc(k)}" style="min-height:170px;font:9px/1.45 ui-monospace,monospace"></textarea>`;d.querySelector("textarea").value=v;r.appendChild(d)})}
+
+$("#connectBtn").onclick=connect;$("#compileBtn").onclick=compile;$("#analyzeBtn").onclick=()=>$("#objective").focus();$("#runInsight").onclick=runInsight;$("#addValue").onclick=()=>addInput("value");$("#addText").onclick=()=>addInput("text");
+const drop=$("#drop");drop.ondblclick=()=>$("#filePicker").click();["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("drag")}));["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("drag")}));drop.addEventListener("drop",e=>addFiles(e.dataTransfer.files));$("#filePicker").onchange=e=>{addFiles(e.target.files);e.target.value=""};
+$("#fitBtn").onclick=()=>$("#view").scrollTo({left:0,top:0,behavior:"smooth"});$("#layoutBtn").onclick=renderGraph;$("#jsonBtn").onclick=()=>{$("#ontologyJson").value=ontology?JSON.stringify(ontology,null,2):"";$("#jsonModal").classList.add("on")};$("#closeJson").onclick=()=>$("#jsonModal").classList.remove("on");$("#applyJson").onclick=()=>{try{ontology=JSON.parse($("#ontologyJson").value);normalizeOntology();renderAll();$("#jsonModal").classList.remove("on");log("Edited model applied.","good")}catch(e){log(e.message,"err")}};
+$("#saveBtn").onclick=()=>ontology&&saveBlob((ontology.world_model?.name||"ontology").replace(/\W+/g,"_")+".ontology.json",JSON.stringify(ontology,null,2),"application/json");$("#loadModelBtn").onclick=()=>$("#modelFilePicker").click();$("#modelFilePicker").onchange=async e=>{try{ontology=JSON.parse(await e.target.files[0].text());normalizeOntology();renderAll();log("Model loaded.","good")}catch(x){log(x.message,"err")}};
+$("#clearAnalysis").onclick=()=>{analysis=null;renderAnalysis()};$("#format").onchange=e=>$("#customFormatWrap").style.display=e.target.value==="custom"?"grid":"none";$("#renderOutput").onclick=renderOutput;$("#copyOutput").onclick=()=>navigator.clipboard.writeText($("#outputText").value);$("#downloadOutput").onclick=()=>saveBlob("ontology."+outputExt,$("#outputText").value);
+$("#savePrompts").onclick=()=>{$$("#promptEditor [data-prompt]").forEach(x=>prompts[x.dataset.prompt]=x.value);localStorage.setItem("ontologyWorkbenchPrompts",JSON.stringify(prompts));log("Prompts saved.","good")};$("#restorePrompts").onclick=()=>{prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyWorkbenchPrompts");renderPromptEditor();log("Prompts restored.","good")};
+$$(".tab").forEach(b=>b.onclick=()=>{$$(".tab").forEach(x=>x.classList.remove("on"));$$(".pane").forEach(x=>x.classList.remove("on"));b.classList.add("on");$("#"+b.dataset.pane).classList.add("on")});window.addEventListener("resize",()=>ontology&&renderGraph());
+renderSources();renderInputs();renderPromptEditor();renderAll();renderAnalysis();
+})();
+</script>
+</body>
+</html>
