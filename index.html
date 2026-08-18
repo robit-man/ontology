@@ -3575,35 +3575,161 @@ function evidenceNeighborhoodV9(targetIds,neighborIds,needles){
   const events=(workspace.world.events||[]).filter(e=>[...(e.actor_ids||[]),...(e.target_ids||[])].some(id=>allIds.has(id))||needleLow.some(n=>stableJSON(e).toLowerCase().includes(n))).slice(-120);
   return{claims,conflicts,evidence,events}
 }
-function targetedSourceEvidenceV9(objective,targets){
-  const terms=objectiveTermsV9(objective),primary=[...new Set(targets.flatMap(t=>[t.id,t.label,...(t.aliases||[])]).filter(x=>String(x||"").length>2))],rows=[];
-  for(const src of sourcesForContext()){
-    // Exact target/identity windows have first claim on the context budget.
-    let wins=sourceWindowsV9(src.content,primary,3000);
-    // If no named target can be found, fall back to objective terms.
-    if(!wins.length)wins=sourceWindowsV9(src.content,terms,2400);
-    const discovered=new Set();
-    for(const w of wins)for(const id of (w.text.match(/\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\b/g)||[]))if(!primary.some(p=>String(p).toLowerCase()===id.toLowerCase()))discovered.add(id);
-    // One controlled evidence expansion hop captures conflicting/co-referenced
-    // entities (for example a candidate asset identity) without broad document retrieval.
-    const secondary=sourceWindowsV9(src.content,[...discovered].slice(0,14),1800);
-    const merged=[...wins,...secondary].sort((a,b)=>a.start-b.start),uniq=[];
-    for(const w of merged){
-      const prev=uniq.at(-1);
-      if(prev&&w.start<=prev.end+80){prev.end=Math.max(prev.end,w.end);prev.text=String(src.content||"").slice(prev.start,prev.end)}
-      else uniq.push({...w})
-    }
-    for(const w of uniq.slice(0,10)){
-      const locator=`chars ${w.start}-${w.end}`,ref_id=`${src.id}@${w.start}-${w.end}`;
-      rows.push({ref_id,id:src.id,name:src.name,authority:src.authority||"unknown",locator,excerpt:w.text})
-    }
-  }
-  for(const b of inputBlocks){
-    const txt=String(b.value||""),needles=primary.length?primary:terms;
-    if(needles.some(n=>txt.toLowerCase().includes(String(n).toLowerCase())))rows.push({ref_id:`${b.id}@manual`,id:b.id,name:b.key||b.id,authority:b.authority||"authoritative",locator:"manual input",excerpt:txt.slice(0,2400)})
-  }
-  return rows.slice(0,28)
+
+/* ------------------------------------------------------------------------
+   V9.2 DETERMINISTIC ACTION UTILITY / REDUNDANCY VALIDATOR
+   ------------------------------------------------------------------------ */
+const ACTION_ACTIVE_WORDS_V92=/\b(continuous(?:ly)?|currently|active|maintain(?:ing)?|tracking|observing|monitoring|ongoing|healthy|nominal)\b/i;
+const ACTION_REL_WORDS_V92=/\b(track(?:s|ing|ed)?|observ(?:e|es|ing|ed)|monitor(?:s|ing|ed)?|watch(?:es|ing|ed)?|dwell|relay(?:s|ing|ed)?|route(?:s|ing|ed)?|connect(?:s|ed|ing)?|receive(?:s|d|ing)?|sense(?:s|d|ing)?|scan(?:s|ned|ning)?|inspect(?:s|ed|ing)?|report(?:s|ed|ing)?)\b/i;
+
+function clamp01V92(x){return Math.max(0,Math.min(1,Number(x)||0))}
+function operationalDimensionV92(text){
+  const t=String(text||"").toLowerCase(),out=[];
+  if(/\b(identity|identify|identification|who\b|which\s+(?:aircraft|vehicle|person|asset)|authorized|authorization|plate|callsign|transponder|badge|credential)\b/.test(t))out.push("identity");
+  if(/\b(position|location|where\b|track continuity|course|heading|speed|kinematic|trajectory)\b/.test(t))out.push("position");
+  if(/\b(network|packet|latency|bandwidth|link|route|routing|relay|mesh|throughput)\b/.test(t))out.push("network");
+  if(/\b(clock|skew|drift|stale|fresh|current state|timeline|temporal|event time|reception time)\b/.test(t))out.push("temporal");
+  if(/\b(policy|approval|permission|allowed|prohibited|constraint|risk|safety)\b/.test(t))out.push("policy");
+  if(/\b(compute|cpu|gpu|queue|load|overload|saturation)\b/.test(t))out.push("compute");
+  return out.length?[...new Set(out)]:["general"]
 }
+function actorDescriptorV92(actor,ctx){
+  const id=String(actor||""),inst=(ctx.instances||[]).find(x=>x.id===id),type=inst?(ontology?.object_types||[]).find(t=>t.id===inst.type_id):null;
+  return `${id} ${inst?.label||""} ${inst?.type_id||""} ${type?.label||""}`.toLowerCase()
+}
+function capabilityChannelV92(actor,text,ctx){
+  const d=`${actorDescriptorV92(actor,ctx)} ${String(text||"").toLowerCase()}`;
+  if(/\bradar\b/.test(d))return"radar_tracking";
+  if(/\b(rf|radio|mode-s|transponder|emitter)\b/.test(d))return"rf_observation";
+  if(/\b(eo\/ir|eo\b|optical|thermal|camera|visual|ocr)\b/.test(d))return"visual_observation";
+  if(/\b(acoustic|microphone|audio)\b/.test(d))return"acoustic_observation";
+  if(/\b(telemetry|flight.controller|asset telemetry)\b/.test(d))return"telemetry";
+  if(/\b(relay|mesh|gateway|network path)\b/.test(d))return"relay";
+  if(/\b(route|routing|traffic shift)\b/.test(d))return"routing";
+  if(/\b(gate|barrier|hold|block|intercept|restrain)\b/.test(d))return"physical_control";
+  if(/\b(observ|monitor|track|sense|scan|inspect|watch)\b/.test(d))return"general_observation";
+  return"other"
+}
+function activityKindV92(text){
+  const t=String(text||"").toLowerCase();
+  if(/\brelay|gateway\b/.test(t))return"relay";
+  if(/\broute|routing\b/.test(t))return"routing";
+  if(/\btrack|observ|monitor|watch|dwell|sense|scan|inspect\b/.test(t))return"observe";
+  if(/\bblock|barrier|intercept|restrain|hold\b/.test(t))return"control";
+  return"other"
+}
+function relationStatusV92(text){
+  const t=String(text||"");
+  if(/\b(stopped|closed|inactive|ended|terminated|lost)\b/i.test(t))return"inactive";
+  if(ACTION_ACTIVE_WORDS_V92.test(t))return"active";
+  return"reported"
+}
+function idTokensV92(text){return [...new Set((String(text||"").match(/\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\b/g)||[]))]}
+function sensorLikeIdV92(id,ctx){
+  const d=actorDescriptorV92(id,ctx);
+  return /\b(radar|rf|sentry|eo|camera|cam-|acoustic|uas|ugv|edge|c2|sensor|tower|gate|telemetry|controller)\b/i.test(d)
+}
+function deriveActiveActivitiesV92(ctx){
+  const targetSet=new Set((ctx.targets||[]).map(t=>t.id)),rows=[],seen=new Set();
+  const add=(x)=>{
+    if(!x?.actor_id||!x?.target_id||x.actor_id===x.target_id)return;
+    const key=`${x.actor_id}|${x.target_id}|${x.channel}|${x.kind}|${x.evidence_ref||""}`;
+    if(seen.has(key))return;seen.add(key);rows.push(x)
+  };
+  for(const r of ctx.relationships||[]){
+    const label=((ontology?.link_types||[]).find(x=>x.id===r.link_type_id)?.label||r.link_type_id||"related_to");
+    const text=`${r.from_id} ${label} ${r.to_id} ${r.valid_to?"inactive":"active"}`;
+    add({actor_id:r.from_id,target_id:r.to_id,kind:activityKindV92(label),channel:capabilityChannelV92(r.from_id,label,ctx),status:r.valid_to?"inactive":"active",confidence:Number(r.confidence??1),evidence_ref:r.id,text})
+  }
+  for(const e of ctx.source_evidence||[]){
+    const chunks=String(e.excerpt||"").split(/\n+|(?<=[.!?])\s+|;\s+/);
+    for(const chunk0 of chunks){
+      const chunk=chunk0.trim();if(chunk.length<12||!ACTION_REL_WORDS_V92.test(chunk))continue;
+      const ids=idTokensV92(chunk);if(ids.length<2)continue;
+      const targets=ids.filter(id=>targetSet.has(id)||/^TRK-/.test(id));
+      const actors=ids.filter(id=>!targets.includes(id)&&sensorLikeIdV92(id,ctx));
+      for(const actor of actors)for(const target of targets){
+        add({actor_id:actor,target_id:target,kind:activityKindV92(chunk),channel:capabilityChannelV92(actor,chunk,ctx),status:relationStatusV92(chunk),confidence:1,evidence_ref:e.ref_id||e.id,text:chunk.slice(0,420)})
+      }
+    }
+  }
+  for(const ev of ctx.events||[]){
+    for(const actor of ev.actor_ids||[])for(const target of ev.target_ids||[]){
+      const text=`${actor} event ${ev.event_type_id||""} ${target} ${stableJSON(ev.properties||{})}`;
+      if(ACTION_REL_WORDS_V92.test(text))add({actor_id:actor,target_id:target,kind:activityKindV92(text),channel:capabilityChannelV92(actor,text,ctx),status:"reported",confidence:Number(ev.confidence??1),evidence_ref:ev.id,text:text.slice(0,420)})
+    }
+  }
+  return rows
+}
+function channelDimensionFitV92(channel,dimensions){
+  const fit={
+    identity:{visual_observation:.96,rf_observation:.93,telemetry:.86,acoustic_observation:.42,radar_tracking:.27,general_observation:.58,relay:.18,routing:.08,physical_control:.05,other:.25},
+    position:{radar_tracking:.97,telemetry:.95,visual_observation:.78,rf_observation:.38,acoustic_observation:.45,general_observation:.65,relay:.15,routing:.05,physical_control:.05,other:.25},
+    network:{routing:.97,relay:.91,telemetry:.48,general_observation:.35,radar_tracking:.05,rf_observation:.08,visual_observation:.05,physical_control:.05,other:.25},
+    temporal:{telemetry:.95,general_observation:.62,radar_tracking:.58,rf_observation:.55,visual_observation:.55,relay:.35,routing:.32,physical_control:.05,other:.25},
+    policy:{general_observation:.55,visual_observation:.48,rf_observation:.42,radar_tracking:.38,telemetry:.45,relay:.4,routing:.4,physical_control:.15,other:.3},
+    compute:{telemetry:.72,routing:.62,relay:.55,general_observation:.45,other:.3},
+    general:{visual_observation:.65,rf_observation:.65,radar_tracking:.65,telemetry:.65,general_observation:.6,relay:.55,routing:.55,physical_control:.3,other:.4}
+  };
+  return Math.max(...dimensions.map(d=>fit[d]?.[channel]??fit.general[channel]??.35))
+}
+function sameCapabilityV92(a,b){
+  if(a===b)return true;
+  const obs=new Set(["radar_tracking","rf_observation","visual_observation","acoustic_observation","general_observation"]);
+  if(obs.has(a)&&obs.has(b))return a==="general_observation"||b==="general_observation";
+  return false
+}
+function inferActionEndpointsV92(act,ctx){
+  const text=[act.action_id,act.label,act.rationale,act.expected_effect,act.redundancy_check,act.why_now].join(" ");
+  const ids=idTokensV92(text),targetIds=new Set((ctx.targets||[]).map(t=>t.id));
+  const target=ids.find(id=>targetIds.has(id))||ids.find(id=>/^TRK-/.test(id))||(ctx.targets||[])[0]?.id||"";
+  let actor=ids.find(id=>id!==target&&sensorLikeIdV92(id,ctx))||"";
+  if(!actor&&act.action_id){
+    const candidate=(ctx.candidate_actions||[]).find(a=>a.id===act.action_id);
+    const more=idTokensV92(stableJSON(candidate||{}));actor=more.find(id=>id!==target&&sensorLikeIdV92(id,ctx))||actor
+  }
+  return{actor,target,text}
+}
+function alternativeActorsV92(ctx,target,dimensions){
+  const ids=new Set();
+  for(const e of ctx.source_evidence||[])for(const id of idTokensV92(e.excerpt))if(sensorLikeIdV92(id,ctx)&&id!==target)ids.add(id);
+  for(const x of ctx.instances||[])if(sensorLikeIdV92(x.id,ctx)&&x.id!==target)ids.add(x.id);
+  const current=ctx.active_activities||[];
+  return [...ids].map(actor=>{
+    const channel=capabilityChannelV92(actor,"",ctx),fit=channelDimensionFitV92(channel,dimensions);
+    const duplicate=current.some(x=>x.actor_id===actor&&x.target_id===target&&x.status==="active"&&sameCapabilityV92(channel,x.channel));
+    return{actor,target,channel,fit,duplicate,score:fit-(duplicate?.62:0)}
+  }).sort((a,b)=>b.score-a.score).slice(0,6)
+}
+function auditActionUtilityV92(act,ctx,objective){
+  const {actor,target,text}=inferActionEndpointsV92(act,ctx),dimensions=operationalDimensionV92(objective),channel=capabilityChannelV92(actor,text,ctx),kind=activityKindV92(text),activities=ctx.active_activities||[];
+  const duplicates=activities.filter(x=>x.status==="active"&&x.actor_id===actor&&x.target_id===target&&(sameCapabilityV92(channel,x.channel)||kind===x.kind));
+  const sameTarget=activities.filter(x=>x.status==="active"&&x.target_id===target);
+  const independentChannel=!!target&&!!actor&&!sameTarget.some(x=>sameCapabilityV92(channel,x.channel));
+  const fit=channelDimensionFitV92(channel,dimensions),redundancyPenalty=duplicates.length?.72:0,noveltyBonus=independentChannel?.12:0;
+  const deterministic_information_gain=clamp01V92(fit+noveltyBonus-redundancyPenalty);
+  const alternatives=target?alternativeActorsV92(ctx,target,dimensions).filter(x=>x.actor!==actor&&x.score>deterministic_information_gain+.10).slice(0,3):[];
+  return{
+    action_id:act.action_id||"",label:act.label||"",actor,target,kind,channel,objective_dimensions:dimensions,
+    deterministic_information_gain,model_information_gain:Number(act.information_gain??0),
+    hard_redundant:duplicates.length>0&&["observe","relay","routing"].includes(kind),
+    duplicate_activities:duplicates.map(x=>({actor_id:x.actor_id,target_id:x.target_id,kind:x.kind,channel:x.channel,status:x.status,evidence_ref:x.evidence_ref,text:x.text})),
+    independent_channel:independentChannel,alternatives
+  }
+}
+function actionUtilityAuditsV92(a,ctx,objective){return (a.recommended_actions||[]).map(act=>auditActionUtilityV92(act,ctx,objective))}
+
+const REASON_GUARDRAILS_V92=REASON_GUARDRAILS_V9+`
+
+DETERMINISTIC ACTION-UTILITY CONTRACT
+The context includes active_activities derived independently from source/runtime state.
+- An active actor→target→capability relationship is already occurring.
+- Marginal information gain means NEW evidence for the unresolved objective variable, not low cost or ease of continuing an existing action.
+- If the objective is identity and radar already continuously tracks position, more radar tracking is low marginal information unless a new radar-derived discriminant is explicitly supported.
+- Prefer independent observation channels when they directly measure the unresolved variable.
+- Duplicate actor/target/capability actions must identify a genuinely new discriminant or be down-ranked/rejected.
+- Model-authored information_gain and redundancy_check values are advisory only; the deterministic verifier independently recomputes them.`;
+
 function buildReasoningContextV9(objective,budget=36000){
   const mode=$("#analysisMode").value,targets=resolveReasonTargetsV9(objective),targetIds=new Set(targets.map(t=>t.id)),runtimeTargetIds=[...targetIds].filter(id=>(workspace.world.instances||[]).some(x=>x.id===id));
   const depth=["diagnostic","planning","optimize","simulate","risk","audit"].includes(mode)?2:1,hood=graphNeighborhoodV9(runtimeTargetIds,depth),idx=worldIndexV9();
@@ -3616,6 +3742,7 @@ function buildReasoningContextV9(objective,budget=36000){
   const candidate_policies=(ontology?.policies||[]).filter(p=>needles.some(n=>stableJSON(p).toLowerCase().includes(String(n).toLowerCase()))).slice(0,30);
   const context={
     mode,world_revision:workspace.world.revision,ontology_revision:workspace.metadata.ontology_revision||0,
+    objective_dimensions:operationalDimensionV92(objective),
     targets:targets.map(t=>({id:t.id,label:t.label,kind:t.kind,match_score:t.score,reasons:t.reasons})),
     instances,relationships:hood.relationships,dependency_paths:hood.paths,
     events:epi.events,claims:epi.claims,conflicts:epi.conflicts,evidence:epi.evidence,
@@ -3623,6 +3750,7 @@ function buildReasoningContextV9(objective,budget=36000){
     retrieval_summary:{source_windows:source_evidence.length,roles:retrievalRoleSummaryV91(source_evidence),direct_windows:source_evidence.filter(x=>!x.hop).length,expanded_windows:source_evidence.filter(x=>x.hop===1).length},
     candidate_actions,candidate_metrics,candidate_policies
   };
+  context.active_activities=deriveActiveActivitiesV92(context);
   // Deterministic budget trimming preserves target evidence before background neighbors.
   let raw=JSON.stringify(context);
   if(raw.length>budget){
@@ -3635,7 +3763,8 @@ function buildReasoningContextV9(objective,budget=36000){
     context.source_evidence=roleKeep.map(e=>({...e,excerpt:e.excerpt.slice(0,1800)}));
     context.qualifying_evidence=sentenceSignalsV9(context.source_evidence).slice(0,70);
     context.evidence=context.evidence.slice(0,80);context.claims=context.claims.slice(0,90);
-    context.events=context.events.slice(-70);context.instances=context.instances.slice(0,40);context.relationships=context.relationships.slice(0,80)
+    context.events=context.events.slice(-70);context.instances=context.instances.slice(0,40);context.relationships=context.relationships.slice(0,80);
+    context.active_activities=context.active_activities.slice(0,80)
   }
   return context
 }
@@ -3690,14 +3819,22 @@ function deterministicAnalysisCheckV9(a,ctx,mode){
       }
     }
   }
-  for(const act of a.recommended_actions||[]){
-    if(Number(act.information_gain||0)<.15&&Number(act.cost_risk||0)>.35)issues.push({kind:"redundant_action",severity:"warning",statement:act.label,detail:"Low information gain relative to cost/risk.",evidence_refs:act.evidence_refs||[]})
+  const actionAudits=actionUtilityAuditsV92(a,ctx,($("#objective")?.value||""));
+  for(let i=0;i<(a.recommended_actions||[]).length;i++){
+    const act=a.recommended_actions[i],au=actionAudits[i];
+    if(Number(act.information_gain||0)<.15&&Number(act.cost_risk||0)>.35)issues.push({kind:"redundant_action",severity:"warning",statement:act.label,detail:"Low information gain relative to cost/risk.",evidence_refs:act.evidence_refs||[]});
+    if(au?.hard_redundant){
+      const dup=au.duplicate_activities[0],alts=(au.alternatives||[]).map(x=>`${x.actor}/${x.channel}`).join(", ");
+      issues.push({kind:"redundant_action",severity:"error",statement:act.label,detail:`Deterministic activity graph says ${au.actor} is already ${dup?.kind||"performing this capability"} on ${au.target} via ${dup?.channel||au.channel}${dup?.text?`: ${dup.text}`:""}. Marginal information gain is ${Math.round(au.deterministic_information_gain*100)}%, not the model's ${Math.round(Number(act.information_gain||0)*100)}%.${alts?` Higher-alignment non-duplicate channels detected: ${alts}.`:""}`,evidence_refs:[dup?.evidence_ref,...(act.evidence_refs||[])].filter(Boolean)})
+    }else if(Number(act.information_gain||0)>au.deterministic_information_gain+.30){
+      issues.push({kind:"redundant_action",severity:"warning",statement:act.label,detail:`Model information-gain estimate (${Math.round(Number(act.information_gain||0)*100)}%) materially exceeds deterministic target/channel estimate (${Math.round(au.deterministic_information_gain*100)}%). Re-evaluate whether this action measures the unresolved variable.`,evidence_refs:act.evidence_refs||[]})
+    }
   }
   return issues
 }
 async function verifyReasoningV9(objective,mode,ctx,candidate){
-  const deterministic=deterministicAnalysisCheckV9(candidate,ctx,mode);
-  if(!$("#reasonVerify")?.checked)return{verdict:deterministic.some(x=>x.severity==="error")?"correct":"pass",confidence:1,issues:deterministic,repair_instruction:deterministic.map(x=>x.detail).join(" ")};
+  const deterministic=deterministicAnalysisCheckV9(candidate,ctx,mode),action_audits=actionUtilityAuditsV92(candidate,ctx,objective);
+  if(!$("#reasonVerify")?.checked)return{verdict:deterministic.some(x=>x.severity==="error")?"correct":"pass",confidence:1,issues:deterministic,repair_instruction:deterministic.map(x=>x.detail).join(" "),action_audits};
   const criticUser=`MODE: ${mode}
 OBJECTIVE:
 ${objective}
@@ -3717,10 +3854,11 @@ Audit this candidate.`;
     const byKey=new Map();for(const x of [...deterministic,...(critic.issues||[])])byKey.set(`${x.kind}:${x.statement}:${x.detail}`,x);
     critic.issues=[...byKey.values()];
     if(critic.issues.some(x=>x.severity==="error"))critic.verdict="correct";
+    critic.action_audits=action_audits;
     return critic
   }catch(e){
     log(`Reason verifier unavailable · ${e.message||e} · using deterministic checks.`,"warn");
-    return{verdict:deterministic.some(x=>x.severity==="error")?"correct":"pass",confidence:.6,issues:deterministic,repair_instruction:deterministic.map(x=>x.detail).join(" ")}
+    return{verdict:deterministic.some(x=>x.severity==="error")?"correct":"pass",confidence:.6,issues:deterministic,repair_instruction:deterministic.map(x=>x.detail).join(" "),action_audits}
   }
 }
 async function repairReasoningV9(objective,mode,ctx,candidate,verification){
@@ -3758,8 +3896,18 @@ function traceSummaryV9(ctx,verification,corrected=false){
   lines.push(`source win  ${(ctx.source_evidence||[]).length} · direct ${ctx.retrieval_summary?.direct_windows||0} · expanded ${ctx.retrieval_summary?.expanded_windows||0}`);
   lines.push(`roles       ${Object.entries(ctx.retrieval_summary?.roles||{}).map(([k,v])=>`${k}:${v}`).join(" ")||"none"}`);
   lines.push(`qualifiers  ${(ctx.qualifying_evidence||[]).length}`);
+  lines.push(`activities  ${(ctx.active_activities||[]).length}`);
+  lines.push(`objective   ${(ctx.objective_dimensions||[]).join(", ")||"general"}`);
   lines.push(`verification ${verification?.verdict||"not run"}${corrected?" → corrected":""}`);
   for(const i of verification?.issues||[])lines.push(`${i.severity==="error"?"ERROR":"WARN "} ${i.kind}: ${i.detail}`);
+  if((verification?.action_audits||[]).length){
+    lines.push("");lines.push("action utility");
+    for(const a of verification.action_audits)lines.push(`  ${a.actor||"?"} -> ${a.target||"?"} · ${a.channel} · deterministic IG ${Math.round(Number(a.deterministic_information_gain||0)*100)}% · model ${Math.round(Number(a.model_information_gain||0)*100)}%${a.hard_redundant?" · REDUNDANT":""}`)
+  }
+  if((ctx.active_activities||[]).length){
+    lines.push("");lines.push("active activities");
+    for(const a of ctx.active_activities.slice(0,18))lines.push(`  ${a.actor_id} --${a.kind}/${a.channel}--> ${a.target_id} · ${a.status} · ${a.evidence_ref||"no ref"}`)
+  }
   if((ctx.dependency_paths||[]).length){lines.push("");lines.push("dependency paths");for(const p of ctx.dependency_paths.slice(0,16))lines.push(`  ${p.from} --${p.relationship}--> ${p.to}`)}
   return lines.join("\n")
 }
@@ -3826,7 +3974,7 @@ TARGET-FOCUSED RUNTIME / EVIDENCE CONTEXT:
 ${JSON.stringify(ctx)}
 
 The target-focused context is authoritative for what was selected. Do not broaden to unrelated scenario problems.`;
-    analysis=await ollamaJSON(`${prompts.insight_system}\n\n${REASON_GUARDRAILS_V9}`,user,INSIGHT_SCHEMA_V9,`reason ${mode}`);
+    analysis=await ollamaJSON(`${prompts.insight_system}\n\n${REASON_GUARDRAILS_V92}`,user,INSIGHT_SCHEMA_V9,`reason ${mode}`);
     setBusy(true,"verifying reasoning");
     let verification=await verifyReasoningV9(natural,mode,ctx,analysis),corrected=false;
     if(verification.verdict==="correct"){
@@ -3842,8 +3990,23 @@ The target-focused context is authoritative for what was selected. Do not broade
         }
       }catch(e){log(`Reason corrective pass failed · ${e.message||e}`,"err")}
     }else log("Reason verification · pass.","good");
+    // Last deterministic gate: never present a proven duplicate action as an
+    // accepted recommendation even if the corrective model repeats it.
+    const finalActionAudits=actionUtilityAuditsV92(analysis,ctx,natural),hardRejected=finalActionAudits.filter(x=>x.hard_redundant);
+    if(hardRejected.length){
+      const rejectedIds=new Set(hardRejected.map(x=>x.action_id).filter(Boolean)),rejectedLabels=new Set(hardRejected.map(x=>x.label).filter(Boolean));
+      analysis.recommended_actions=(analysis.recommended_actions||[]).filter(a=>!rejectedIds.has(a.action_id)&&!rejectedLabels.has(a.label));
+      if(analysis.recommended_actions.length){
+        const a=analysis.recommended_actions[0];
+        analysis.answer=`${a.label}. ${a.rationale}`;
+      }else{
+        analysis.answer=`No action recommendation passed deterministic novelty/redundancy validation. ${hardRejected.map(x=>`${x.actor||x.label} → ${x.target||"target"} duplicates an active ${x.channel} relationship`).join("; ")}. Review the action-utility trace or rerun for an independent evidence channel.`;
+      }
+      verification={...verification,verdict:"correct",issues:[...(verification.issues||[]),...hardRejected.map(x=>({kind:"redundant_action",severity:"error",statement:x.label||x.action_id||"action",detail:`Final deterministic gate suppressed active duplicate ${x.actor} → ${x.target} via ${x.channel}.`,evidence_refs:(x.duplicate_activities||[]).map(d=>d.evidence_ref).filter(Boolean)}))],action_audits:finalActionAudits};
+      log(`Action gate · suppressed ${hardRejected.length} deterministic duplicate recommendation(s).`,"warn")
+    }else verification={...verification,action_audits:finalActionAudits};
     analysis._verification={...verification,corrected};
-    analysis._reason_context={targets:ctx.targets,world_revision:ctx.world_revision,counts:{instances:ctx.instances.length,relationships:ctx.relationships.length,paths:ctx.dependency_paths.length,events:ctx.events.length,claims:ctx.claims.length,conflicts:ctx.conflicts.length,evidence:ctx.evidence.length,source_evidence:ctx.source_evidence.length}};
+    analysis._reason_context={targets:ctx.targets,world_revision:ctx.world_revision,counts:{instances:ctx.instances.length,relationships:ctx.relationships.length,paths:ctx.dependency_paths.length,events:ctx.events.length,claims:ctx.claims.length,conflicts:ctx.conflicts.length,evidence:ctx.evidence.length,source_evidence:ctx.source_evidence.length,active_activities:ctx.active_activities?.length||0}};
     analysis._reason_trace=traceSummaryV9(ctx,verification,corrected);
     objective.status="complete";objective.completed_at=isoNow();objective.result_summary=analysis.answer||"";objective.confidence=analysis.confidence??null;objective.verification=cloneJSON(analysis._verification);objective.targets=(analysis.target_entities||[]).slice();
     renderAnalysis();renderWorkspacePanels();scheduleWorkspaceSave();
