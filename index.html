@@ -1285,7 +1285,71 @@ function geoUnproject(x,y){return{lon:x/1000*360-180,lat:90-y/500*180}}
 function geoWorldToScreen(x,y){return{x:x*mapView.scale+mapView.x,y:y*mapView.scale+mapView.y}}
 function geoScreenToWorld(x,y){return{x:(x-mapView.x)/mapView.scale,y:(y-mapView.y)/mapView.scale}}
 function geoScreenToLonLat(x,y){const p=geoScreenToWorld(x,y);return geoUnproject(p.x,p.y)}
+
+/* ========== v9.5 deterministic WGS84 coordinate normalization ========== */
+function isEarthCRSV95(crs){
+  const c=String(crs||"").toUpperCase();
+  return c.includes("4326")||c.includes("WGS84")||c==="WGS84"
+}
+function normalizeLonLatPairV95(pair){
+  if(!Array.isArray(pair)||pair.length<2)return{value:pair,changed:false,reason:""};
+  let a=Number(pair[0]),b=Number(pair[1]);
+  if(!Number.isFinite(a)||!Number.isFinite(b))return{value:pair,changed:false,reason:""};
+  // GeoJSON requires [longitude, latitude].
+  // Swap only when the current order is impossible as lon/lat but valid as lat/lon.
+  if(Math.abs(a)<=90&&Math.abs(b)>90&&Math.abs(b)<=180){
+    const out=[b,a,...pair.slice(2)];
+    return{value:out,changed:true,reason:"unambiguous_lat_lon_swap"}
+  }
+  return{value:[a,b,...pair.slice(2)],changed:false,reason:""}
+}
+function normalizeEarthCoordinatesV95(geometryType,coords,crs){
+  if(!isEarthCRSV95(crs))return{value:coords,changed:false,reasons:[]};
+  let changed=false,reasons=[];
+  const pair=p=>{const r=normalizeLonLatPairV95(p);changed=changed||r.changed;if(r.reason)reasons.push(r.reason);return r.value};
+  let value=coords;
+  if(geometryType==="Point")value=pair(coords);
+  else if(geometryType==="MultiPoint"||geometryType==="LineString"){
+    value=Array.isArray(coords)?coords.map(pair):coords
+  }else if(geometryType==="MultiLineString"||geometryType==="Polygon"){
+    value=Array.isArray(coords)?coords.map(line=>Array.isArray(line)?line.map(pair):line):coords
+  }else if(geometryType==="MultiPolygon"){
+    value=Array.isArray(coords)?coords.map(poly=>Array.isArray(poly)?poly.map(line=>Array.isArray(line)?line.map(pair):line):poly):coords
+  }else if(geometryType==="BBox"&&Array.isArray(coords)&&coords.length>=4){
+    // Standard BBox [west,south,east,north]. Only repair a common lat/lon-derived
+    // [south,west,north,east] ordering when latitude slots are impossible.
+    const [a,b,c,d]=coords.map(Number);
+    if([a,b,c,d].every(Number.isFinite)&&Math.abs(a)<=90&&Math.abs(c)<=90&&(Math.abs(b)>90||Math.abs(d)>90)&&Math.abs(b)<=180&&Math.abs(d)<=180){
+      value=[b,a,d,c];changed=true;reasons.push("unambiguous_bbox_lat_lon_swap")
+    }
+  }
+  return{value,changed,reasons:[...new Set(reasons)]}
+}
+function normalizeSpatialGroundingV95(g,{mutate=false}={}){
+  if(!g||!g.coordinates_json||!isEarthCRSV95(g.crs))return{grounding:g,changed:false,reason:""};
+  let coords;try{coords=JSON.parse(g.coordinates_json)}catch{return{grounding:g,changed:false,reason:"invalid_json"}}
+  const r=normalizeEarthCoordinatesV95(g.geometry_type,coords,g.crs);
+  if(!r.changed)return{grounding:g,changed:false,reason:""};
+  const out=mutate?g:{...g};
+  out.coordinates_json=JSON.stringify(r.value);
+  out.coordinate_normalization="GeoJSON [lon,lat]";
+  out.coordinate_normalization_reason=r.reasons.join(",");
+  return{grounding:out,changed:true,reason:r.reasons.join(",")}
+}
+function normalizeSpatialArrayV95(arr,{mutate=false}={}){
+  let changed=0;
+  const value=(arr||[]).map(g=>{const r=normalizeSpatialGroundingV95(g,{mutate});if(r.changed)changed++;return r.grounding});
+  return{value,changed}
+}
+
 function parseGroundingGeometry(g){if(!g||!g.coordinates_json)return null;try{return JSON.parse(g.coordinates_json)}catch{return null}}
+
+const parseGroundingGeometryBeforeV95=parseGroundingGeometry;
+parseGroundingGeometry=function(g){
+  const raw=parseGroundingGeometryBeforeV95(g);if(raw==null)return raw;
+  return normalizeEarthCoordinatesV95(g?.geometry_type,raw,g?.crs).value
+};
+
 function groundingPoint(g){if(g?.geometry_type!=="Point")return null;const c=parseGroundingGeometry(g);return Array.isArray(c)&&c.length>=2&&Number.isFinite(+c[0])&&Number.isFinite(+c[1])?[+c[0],+c[1]]:null}
 function isEarthGrounding(g){const crs=String(g?.crs||"").toUpperCase();return crs.includes("4326")||crs.includes("WGS84")||crs==="WGS84"}
 function spatialGroundings(){return ontology?.spatial_groundings||[]}
@@ -1332,7 +1396,7 @@ function drawWorldMap(){
   else if(g.geometry_type==="BBox"&&Array.isArray(coords)&&coords.length>=4){const [west,south,east,north]=coords,a=geoProject(west,north),b=geoProject(east,south);ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y)}
  }
  for(const b of manualGeoInputs()){const p=geoProject(Number(b.lon),Number(b.lat)),r=4/Math.max(.001,mapView.scale);ctx.strokeStyle="#ddd";ctx.lineWidth=1/Math.max(.001,mapView.scale);ctx.strokeRect(p.x-r,p.y-r,r*2,r*2)}
- ctx.restore();drawWorldMinimap();$("#empty").style.display="none";$("#graphStat").textContent=ontology?`${(ontology.spatial_groundings||[]).length} groundings · ${(ontology.spatial_relations||[]).length} spatial relations · ${(ontology.coordinate_frames||[]).length} frames`:"world basemap"
+ ctx.restore();drawWorldMinimap();$("#empty").style.display="none";$("#graphStat").textContent=ontology?`${spatialGroundings().length} groundings · ${(ontology.spatial_relations||[]).length} spatial relations · ${(ontology.coordinate_frames||[]).length} frames`:"world basemap"
 }
 function drawWorldMinimap(){const c=$("#minimapCanvas"),ctx=c.getContext("2d"),dpr=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight,pad=6,s=Math.min((w-pad*2)/1000,(h-pad*2)/500),ox=(w-1000*s)/2,oy=(h-500*s)/2;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.fillStyle="#0b0b0b";ctx.fillRect(0,0,w,h);ctx.strokeStyle="#555";ctx.lineWidth=.55;for(const country of decodeWorldGeometry())for(const ring of country.rings){if(!ring.length)continue;ctx.beginPath();let prev=ring[0],p=geoProject(prev[0],prev[1]);ctx.moveTo(ox+p.x*s,oy+p.y*s);for(let i=1;i<ring.length;i++){const q=ring[i];p=geoProject(q[0],q[1]);if(Math.abs(q[0]-prev[0])>180)ctx.moveTo(ox+p.x*s,oy+p.y*s);else ctx.lineTo(ox+p.x*s,oy+p.y*s);prev=q}ctx.stroke()}for(const g of spatialGroundings()){const pt=groundingPoint(g);if(!pt||!isEarthGrounding(g))continue;const p=geoProject(pt[0],pt[1]);ctx.fillStyle=focusedSpatialIds.has(g.id)?"#fff":"#999";ctx.fillRect(ox+p.x*s-1,oy+p.y*s-1,3,3)}for(const b of manualGeoInputs()){const p=geoProject(Number(b.lon),Number(b.lat));ctx.strokeStyle="#ddd";ctx.strokeRect(ox+p.x*s-1.5,oy+p.y*s-1.5,3,3)}
 const tl=geoScreenToWorld(0,0),br=geoScreenToWorld($("#view").clientWidth,$("#view").clientHeight);ctx.strokeStyle="#fff";ctx.strokeRect(ox+tl.x*s,oy+tl.y*s,(br.x-tl.x)*s,(br.y-tl.y)*s)}
@@ -2735,11 +2799,23 @@ function makeWorkspace(id=uid("ws"),name="Operational workspace"){
     history:{revisions:[],patches:[],snapshots:[],execution_receipts:[],schema_proposals:[]}
   }
 }
+
+const normalizeOntologyBeforeV95=normalizeOntology;
+normalizeOntology=function(){
+  normalizeOntologyBeforeV95();
+  if(!ontology)return;
+  const r=normalizeSpatialArrayV95(ontology.spatial_groundings||[],{mutate:true});
+  ontology.spatial_groundings=r.value;
+  if(r.changed)log(`Spatial normalization · repaired ${r.changed} unambiguously reversed WGS84 grounding(s) to [lon,lat].`,"warn")
+};
+
 function normalizeWorkspace(w){
   const base=makeWorkspace(w?.metadata?.id||uid("ws"),w?.metadata?.name||"Operational workspace");
   w={...base,...(w||{})};
   w.metadata={...base.metadata,...(w.metadata||{})};
   w.world={...base.world,...(w.world||{})};["instances","relationships","events","spatial"].forEach(k=>w.world[k]=Array.isArray(w.world[k])?w.world[k]:[]);w.world.state=w.world.state&&typeof w.world.state==="object"?w.world.state:{};
+  const spatialMigration=normalizeSpatialArrayV95(w.world.spatial,{mutate:true});w.world.spatial=spatialMigration.value;
+  if(spatialMigration.changed)w.metadata.spatial_coordinate_migrations=(Number(w.metadata.spatial_coordinate_migrations)||0)+spatialMigration.changed;
   w.epistemics={...base.epistemics,...(w.epistemics||{})};["claims","evidence","conflicts","resolutions"].forEach(k=>w.epistemics[k]=Array.isArray(w.epistemics[k])?w.epistemics[k]:[]);
   w.operations={...base.operations,...(w.operations||{})};["objectives","plans","simulations","executions","approvals"].forEach(k=>w.operations[k]=Array.isArray(w.operations[k])?w.operations[k]:[]);
   w.connections={...base.connections,...(w.connections||{})};["sources","streams","adapters","subscriptions"].forEach(k=>w.connections[k]=Array.isArray(w.connections[k])?w.connections[k]:[]);
@@ -2780,8 +2856,11 @@ function syncConnectionsFromRuntime(){
 }
 function syncSpatialFromOntology(){
   if(!ontology)return;
-  const existing=new Map((workspace.world.spatial||[]).map(g=>[g.id,g]));
-  for(const g of ontology.spatial_groundings||[])if(!existing.has(g.id))existing.set(g.id,{...cloneJSON(g),runtime_origin:"ontology_compile"});
+  const migrated=normalizeSpatialArrayV95(workspace.world.spatial||[],{mutate:true});const existing=new Map(migrated.value.map(g=>[g.id,g]));
+  for(const g0 of ontology.spatial_groundings||[]){
+    const g=normalizeSpatialGroundingV95(cloneJSON(g0),{mutate:true}).grounding;
+    if(!existing.has(g.id))existing.set(g.id,{...g,runtime_origin:"ontology_compile"})
+  }
   workspace.world.spatial=[...existing.values()]
 }
 async function persistWorkspace(reason="autosave"){
@@ -3024,6 +3103,57 @@ function appendRevision(kind,reason,operations=[],evidence_ids=[]){
   workspace.history.revisions.push({revision:workspace.world.revision,ontology_revision:workspace.metadata.ontology_revision||0,parent:workspace.world.revision>0?workspace.world.revision-1:null,timestamp:isoNow(),actor:"workbench",kind,operations:cloneJSON(operations),reason,evidence_ids:[...new Set(evidence_ids||[])]});
   if(workspace.history.revisions.length>160)workspace.history.revisions.splice(0,workspace.history.revisions.length-160)
 }
+
+function geometryFromStateValueV95(path,value){
+  const p=String(path||"").toLowerCase();
+  const geoPath=/\b(position|location|coordinate|coordinates|geo|gps|wgs84|lat|lon|latitude|longitude)\b/.test(p);
+  if(!geoPath)return null;
+  let crs="",coords=null,geometry_type="Point",place_name="";
+  if(Array.isArray(value)&&value.length>=2&&Number.isFinite(Number(value[0]))&&Number.isFinite(Number(value[1]))){
+    coords=[Number(value[0]),Number(value[1])];
+    crs="EPSG:4326";
+  }else if(value&&typeof value==="object"){
+    crs=String(value.crs||value.frame||value.coordinate_frame||"");
+    geometry_type=String(value.geometry_type||value.type||"Point");
+    place_name=String(value.place_name||value.name||"");
+    if(Array.isArray(value.coordinates))coords=value.coordinates;
+    else{
+      const lat=value.lat??value.latitude,lon=value.lon??value.lng??value.longitude;
+      if(Number.isFinite(Number(lat))&&Number.isFinite(Number(lon))){
+        coords=[Number(lon),Number(lat)];
+        if(!crs)crs="EPSG:4326"
+      }
+    }
+  }
+  if(!coords)return null;
+  // Do not reinterpret explicitly non-Earth frames as WGS84.
+  if(crs&&!isEarthCRSV95(crs))return null;
+  if(!crs)crs="EPSG:4326";
+  const norm=normalizeEarthCoordinatesV95(geometry_type,coords,crs);
+  if(geometry_type==="Point"){
+    const a=norm.value;
+    if(!Array.isArray(a)||a.length<2||Math.abs(Number(a[0]))>180||Math.abs(Number(a[1]))>90)return null
+  }
+  return{geometry_type,coordinates:norm.value,crs,place_name,normalized:norm.changed}
+}
+function upsertInstanceSpatialV95(inst,geometry,{observed_at="",valid_from="",valid_to="",confidence=1,evidence_ids=[],source_id="",locator=""}={}){
+  if(!inst||!geometry)return null;
+  const gid=inst.geometry_id||`geo_${inst.id}`;inst.geometry_id=gid;
+  let g=(workspace.world.spatial||[]).find(x=>x.id===gid);
+  const source_bindings=[...new Set(evidence_ids||[])].map(eid=>({source_id:(workspace.epistemics.evidence.find(e=>e.id===eid)?.source_id)||source_id||"",path:(workspace.epistemics.evidence.find(e=>e.id===eid)?.locator)||locator||"",confidence:Number(confidence??1),notes:"runtime spatial reconciliation"}));
+  const next={
+    id:gid,label:inst.label,kind:"world_instance",ontology_type_id:inst.type_id,instance_id:inst.id,
+    geometry_type:geometry.geometry_type||"Point",coordinates_json:JSON.stringify(geometry.coordinates??null),
+    crs:geometry.crs||"EPSG:4326",place_name:geometry.place_name||"",region_hint:"",
+    valid_from:valid_from||observed_at||inst.valid_from||"",valid_to:valid_to||"",
+    observed_at:observed_at||"",confidence:Number(confidence??inst.confidence??1),source_bindings,
+    runtime_origin:"world_state"
+  };
+  next.coordinates_json=normalizeSpatialGroundingV95(next,{mutate:true}).grounding.coordinates_json;
+  if(g)Object.assign(g,next);else{workspace.world.spatial.push(next);g=next}
+  return g
+}
+
 function applyWorldPatch(patch,meta={}){
   const validation=validateWorldPatch(patch);if(!validation.ok)throw new Error(`World patch rejected · ${validation.failureClass} · ${validation.errors.slice(0,4).map(x=>x.message).join(" | ")}`);
   snapshotWorld(`before patch rev ${workspace.world.revision+1}`);
@@ -3040,7 +3170,8 @@ function applyWorldPatch(patch,meta={}){
       const inst={id:v.id||op.target_id,type_id:v.type_id,label:v.label||v.id,identity:v.identity||{},state:v.state||{},lifecycle:v.lifecycle||"unknown",valid_from:v.valid_from||op.valid_from||"",valid_to:v.valid_to||op.valid_to||"",observed_at:v.observed_at||op.observed_at||"",confidence:Number(v.confidence??op.confidence??1),evidence_ids:[...new Set([...(v.evidence_ids||[]),...(op.evidence_ids||[])])],geometry_id:v.geometry_id||""};
       if(v.geometry&&v.geometry.crs){
         const gid=inst.geometry_id||`geo_${inst.id}`;inst.geometry_id=gid;
-        workspace.world.spatial.push({id:gid,label:inst.label,kind:"world_instance",ontology_type_id:inst.type_id,instance_id:inst.id,geometry_type:v.geometry.geometry_type||"Point",coordinates_json:JSON.stringify(v.geometry.coordinates??null),crs:v.geometry.crs,place_name:v.geometry.place_name||"",region_hint:"",valid_from:inst.valid_from,valid_to:inst.valid_to,confidence:inst.confidence,source_bindings:inst.evidence_ids.map(eid=>({source_id:(workspace.epistemics.evidence.find(e=>e.id===eid)?.source_id)||meta.source_id||"",path:(workspace.epistemics.evidence.find(e=>e.id===eid)?.locator)||"",confidence:inst.confidence,notes:"runtime reconciliation"}))})
+        const normalizedGeometry=normalizeEarthCoordinatesV95(v.geometry.geometry_type||"Point",v.geometry.coordinates??null,v.geometry.crs);
+        upsertInstanceSpatialV95(inst,{geometry_type:v.geometry.geometry_type||"Point",coordinates:normalizedGeometry.value,crs:v.geometry.crs,place_name:v.geometry.place_name||""},{observed_at:inst.observed_at,valid_from:inst.valid_from,valid_to:inst.valid_to,confidence:inst.confidence,evidence_ids:inst.evidence_ids,source_id:meta.source_id||"",locator:meta.locator||""})
       }
       workspace.world.instances.push(inst);trace.push(`+ instance ${inst.id}:${inst.type_id}`)
     }else if(op.op==="create_relation"){
@@ -3054,7 +3185,10 @@ function applyWorldPatch(patch,meta={}){
       workspace.epistemics.claims.push(c);trace.push(`+ claim ${c.subject_id}.${c.predicate}`)
     }else if(op.op==="update_state"){
       const inst=workspace.world.instances.find(x=>x.id===op.target_id);const stateValue={value:v,valid_from:op.valid_from||"",valid_to:op.valid_to||"",known_from:isoNow(),known_to:null,observed_at:op.observed_at||"",confidence:Number(op.confidence??1),evidence_ids:[...(op.evidence_ids||[])],epistemic_status:op.epistemic_status||"reported"};
-      setDeepState(inst.state,op.path,stateValue);workspace.world.state[`${op.target_id}.${op.path}`]=stateValue;trace.push(`~ state ${op.target_id}.${op.path}`)
+      setDeepState(inst.state,op.path,stateValue);workspace.world.state[`${op.target_id}.${op.path}`]=stateValue;
+      const stateGeometry=geometryFromStateValueV95(op.path,v);
+      if(stateGeometry){upsertInstanceSpatialV95(inst,stateGeometry,{observed_at:op.observed_at||"",valid_from:op.valid_from||"",valid_to:op.valid_to||"",confidence:Number(op.confidence??1),evidence_ids:op.evidence_ids||[],source_id:meta.source_id||"",locator:meta.locator||""});trace.push(`~ spatial ${op.target_id}`)}
+      trace.push(`~ state ${op.target_id}.${op.path}`)
     }else if(op.op==="close_relation"){
       const rel=workspace.world.relationships.find(x=>x.id===(v?.id||op.target_id));if(rel){rel.valid_to=v?.valid_to||op.valid_to||isoNow();trace.push(`× relation ${rel.id}`)}
     }else if(op.op==="retract_claim"){
@@ -3146,6 +3280,18 @@ async function reconcileWorkspace(){
 }
 
 /* ----- deterministic world health / lint ----- */
+
+function spatialPlacementAuditV95(){
+  const rows=[];
+  for(const g of spatialGroundings()){
+    if(!isEarthGrounding(g)||g.geometry_type!=="Point")continue;
+    let raw=null;try{raw=JSON.parse(g.coordinates_json)}catch{}
+    const normalized=raw?normalizeEarthCoordinatesV95("Point",raw,g.crs):{value:null,changed:false,reasons:[]};
+    rows.push({id:g.id,instance_id:g.instance_id||"",raw,rendered:normalized.value,swapped:normalized.changed,reason:(normalized.reasons||[]).join(",")})
+  }
+  return rows
+}
+
 function worldLint(){
   const issues=[],idx=worldIndexes(),allIds=[];
   const pushIds=(kind,arr)=>{for(const x of arr||[]){if(!x?.id)issues.push({severity:"error",kind,message:`${kind} missing id`});else allIds.push([x.id,kind])}};
@@ -3157,7 +3303,7 @@ function worldLint(){
   for(const c of workspace.epistemics.claims){if(!idx.instanceById.has(c.subject_id))issues.push({severity:"error",kind:"dangling_claim",message:`claim ${c.id} subject ${c.subject_id} unresolved`});for(const eid of c.evidence_ids||[])if(!idx.evidenceById.has(eid))issues.push({severity:"warn",kind:"missing_evidence",message:`claim ${c.id} evidence ${eid} unresolved`})}
   for(const a of ontology?.actions||[]){if(!(a.target_types||[]).length)issues.push({severity:"warn",kind:"action_target",message:`action ${a.id} has no target`});if(!(a.preconditions||[]).length)issues.push({severity:"info",kind:"action_preconditions",message:`action ${a.id} has no explicit preconditions`});if(!a.authority)issues.push({severity:"warn",kind:"action_authority",message:`action ${a.id} has no authority`})}
   for(const m of ontology?.metrics||[])if(!(m.inputs||[]).length&&!(m.source_dependencies||[]).length)issues.push({severity:"warn",kind:"metric_dependencies",message:`metric ${m.id} has no dependencies`});
-  for(const g of workspace.world.spatial||[]){if(String(g.crs||"").toUpperCase().includes("4326")&&g.geometry_type==="Point"){try{const a=JSON.parse(g.coordinates_json);if(!Array.isArray(a)||a.length<2||Math.abs(Number(a[0]))>180||Math.abs(Number(a[1]))>90)issues.push({severity:"error",kind:"spatial",message:`${g.id} invalid EPSG:4326 point`})}catch{issues.push({severity:"error",kind:"spatial",message:`${g.id} invalid coordinates_json`})}}}
+  for(const g of workspace.world.spatial||[]){if(String(g.crs||"").toUpperCase().includes("4326")&&g.geometry_type==="Point"){try{const raw=JSON.parse(g.coordinates_json),norm=normalizeEarthCoordinatesV95("Point",raw,g.crs),a=norm.value;if(norm.changed)issues.push({severity:"warning",kind:"spatial",message:`${g.id} stored lat/lon order; render-time normalization applied`});if(!Array.isArray(a)||a.length<2||Math.abs(Number(a[0]))>180||Math.abs(Number(a[1]))>90)issues.push({severity:"error",kind:"spatial",message:`${g.id} invalid EPSG:4326 point`})}catch{issues.push({severity:"error",kind:"spatial",message:`${g.id} invalid coordinates_json`})}}}
   const claims=workspace.epistemics.claims.filter(x=>x.status!=="retracted"),claimEv=claims.length?claims.filter(c=>(c.evidence_ids||[]).length).length/claims.length:1,inst=workspace.world.instances,temporal=inst.length?inst.filter(x=>x.observed_at||x.valid_from).length/inst.length:1,identity=inst.length?inst.reduce((a,x)=>a+Number(x.confidence??.5),0)/inst.length:1,conflicts=workspace.epistemics.conflicts,unresolved=conflicts.filter(x=>x.resolution!=="resolved").length,conflictScore=conflicts.length?1-unresolved/conflicts.length:1,spatial=inst.length?inst.filter(x=>x.geometry_id).length/inst.length:(ontology?.spatial_groundings?.length?1:0),refs=Math.max(0,1-issues.filter(x=>x.severity==="error").length/Math.max(1,allIds.length));
   const freshness=workspace.connections.sources.length?workspace.connections.sources.reduce((a,x)=>a+(x.freshness==="session"||x.freshness==="live"?1:x.freshness==="stale"?.35:.7),0)/workspace.connections.sources.length:1;
   const scores={schema_integrity:issues.some(x=>x.kind==="duplicate_id")?0.65:1,unresolved_refs:refs,evidence_coverage:claimEv,temporal_completeness:temporal,identity_confidence:identity,conflicts:conflictScore,source_freshness:freshness,spatial_grounding:spatial};
@@ -3253,7 +3399,21 @@ openNodeModal=function(n){if(n?._kind==="instance")return openRuntimeInstance(n.
 
 /* Extend world map with runtime-instance spatial state without mutating ontology. */
 const spatialGroundingsBeforeWorkspace=spatialGroundings;
-spatialGroundings=function(){const map=new Map((spatialGroundingsBeforeWorkspace()||[]).map(x=>[x.id,x]));for(const g of workspace?.world?.spatial||[])map.set(g.id,g);return[...map.values()]};
+spatialGroundings=function(){
+  const map=new Map((spatialGroundingsBeforeWorkspace()||[]).map(x=>[x.id,normalizeSpatialGroundingV95(x,{mutate:false}).grounding]));
+  const runtimeByInstance=new Map(),runtimeOther=[];
+  for(const g0 of workspace?.world?.spatial||[]){
+    const g=normalizeSpatialGroundingV95(g0,{mutate:false}).grounding;
+    if(g.instance_id){
+      const prev=runtimeByInstance.get(g.instance_id);
+      const time=x=>Date.parse(x?.observed_at||x?.valid_from||"")||0;
+      if(!prev||time(g)>=time(prev))runtimeByInstance.set(g.instance_id,g)
+    }else runtimeOther.push(g)
+  }
+  for(const g of runtimeOther)map.set(g.id,g);
+  for(const g of runtimeByInstance.values())map.set(g.id,g);
+  return[...map.values()]
+};
 const geojsonBeforeWorkspace=geojson;
 geojson=function(){const features=[];for(const g of spatialGroundings()){if(g.geometry_type==="Unresolved"||!g.coordinates_json||!isEarthGrounding(g))continue;let coords;try{coords=JSON.parse(g.coordinates_json)}catch{continue}let geom=null;if(g.geometry_type==="BBox"&&Array.isArray(coords)&&coords.length>=4){const[w,s,e,n]=coords;geom={type:"Polygon",coordinates:[[[w,s],[e,s],[e,n],[w,n],[w,s]]]}}else if(["Point","LineString","Polygon","MultiPoint","MultiLineString","MultiPolygon"].includes(g.geometry_type))geom={type:g.geometry_type,coordinates:coords};if(!geom)continue;features.push({type:"Feature",id:g.id,geometry:geom,properties:{label:g.label,kind:g.kind,ontology_type_id:g.ontology_type_id,instance_id:g.instance_id||null,crs:g.crs,place_name:g.place_name,valid_from:g.valid_from,valid_to:g.valid_to,confidence:g.confidence}})}return JSON.stringify({type:"FeatureCollection",features},null,2)};
 
