@@ -234,6 +234,86 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 .evidence-balance-row{padding:5px 0;border-bottom:1px solid #171717}
 .action-metrics{font:9px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;color:#8a8a8a;margin-top:3px}
 
+
+/* ========== v9.3 sidebar-width responsive layout ========== */
+#leftPanel{container-type:inline-size;container-name:left-sidebar}
+#rightPanel{container-type:inline-size;container-name:right-sidebar}
+
+/* Right inspector navigation is intrinsically wrappable at every width. */
+#rightPanel .tabs{display:flex;flex-flow:row wrap;align-items:stretch}
+#rightPanel .tab{flex:1 1 76px;min-width:0;white-space:normal}
+
+/* React to the actual dragged LEFT SIDEBAR width, not viewport width. */
+@container left-sidebar (max-width:285px){
+  #leftPanel .row,
+  #leftPanel .runtime-actions,
+  #leftPanel .workspace-actions,
+  #leftPanel .audit-options,
+  #leftPanel .audit-head{
+    display:flex;
+    flex-flow:column wrap;
+    align-items:stretch;
+  }
+  #leftPanel .row>* ,
+  #leftPanel .runtime-actions>* ,
+  #leftPanel .workspace-actions>* ,
+  #leftPanel .audit-options>* ,
+  #leftPanel .audit-head>*{
+    flex:1 1 auto;
+    width:100%;
+    min-width:0;
+  }
+  #leftPanel .row>.spacer,
+  #leftPanel .runtime-actions>.spacer,
+  #leftPanel .workspace-actions>.spacer,
+  #leftPanel .audit-head>.spacer{display:none}
+  #leftPanel .runtime-grid,
+  #leftPanel .input-grid,
+  #leftPanel .obs-grid,
+  #leftPanel .geo-input-grid{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+  }
+  #leftPanel .runtime-actions .check,
+  #leftPanel .audit-options .check{white-space:normal;margin:0}
+  #leftPanel .audit-options .field{min-width:0;width:100%}
+  #leftPanel .obs-cell{
+    border-right:0;
+    border-bottom:1px solid #202020;
+    padding:4px 0;
+  }
+  #leftPanel .obs-cell:last-child{border-bottom:0}
+  #leftPanel .sec-head{display:flex;flex-flow:row wrap;align-items:center}
+  #leftPanel .sec-head .spacer{flex:1 1 12px}
+  #leftPanel .card-head{display:flex;flex-flow:row wrap;align-items:center}
+  #leftPanel button{max-width:100%}
+}
+
+/* Slightly wider-but-constrained left panel: prevent rigid two-column controls. */
+@container left-sidebar (min-width:286px) and (max-width:335px){
+  #leftPanel .runtime-grid{grid-template-columns:minmax(0,1fr)}
+  #leftPanel .row{flex-flow:row wrap}
+  #leftPanel .row>.field{flex:1 1 130px}
+  #leftPanel .runtime-actions{flex-flow:row wrap}
+  #leftPanel .input-grid{grid-template-columns:minmax(0,1fr)}
+  #leftPanel .obs-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* Right sidebar content also reacts to its dragged width. */
+@container right-sidebar (max-width:320px){
+  #rightPanel .tabs{display:flex;flex-flow:row wrap}
+  #rightPanel .tab{flex:1 1 33.333%;min-width:72px;padding:8px 4px}
+  #rightPanel .metric-grid,
+  #rightPanel .world-summary{grid-template-columns:minmax(0,1fr)}
+  #rightPanel .kv{grid-template-columns:minmax(0,1fr);gap:3px}
+  #rightPanel .sec-head{display:flex;flex-flow:row wrap;align-items:center}
+  #rightPanel .sec-head .spacer{flex:1 1 12px}
+}
+
+@container right-sidebar (max-width:230px){
+  #rightPanel .tab{flex:1 1 50%;min-width:64px}
+}
+
 </style>
 </head>
 <body>
