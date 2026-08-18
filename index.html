@@ -338,6 +338,8 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
   <button id="auditWorldBtn" title="Deterministic world-model lint + health">audit</button>
   <button id="configBtn" class="header-icon" title="LLM configuration" aria-label="LLM configuration"><svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="M4 13.5v-3l2.1-.7.8-1.9-1-2 2.1-2.1 2 1 1.9-.8.7-2.1h3l.7 2.1 1.9.8 2-1 2.1 2.1-1 2 .8 1.9 2.1.7v3l-2.1.7-.8 1.9 1 2-2.1 2.1-2-1-1.9.8-.7 2.1h-3l-.7-2.1-1.9-.8-2 1-2.1-2.1 1-2-.8-1.9L4 13.5Z"/></svg></button>
   <div class="spacer"></div>
+  <span id="graphStat" class="small">empty</span>
+  <div class="spacer"></div>
   <div class="status"><span id="dot" class="dot"></span><span id="statusText">local</span></div>
 </header>
 
@@ -490,14 +492,12 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
       <option value="all">context · all</option><option value="focused_sources">context · sources</option><option value="focused_nodes">context · nodes</option><option value="focused_neighbors">context · nodes+1</option><option value="focused_combined">context · combined</option>
     </select>
     <button id="jsonBtn">json</button>
-    <button id="saveBtn">save model</button>
-    <button id="loadModelBtn">load model</button>
-    <button id="newWorkspaceBtn" title="New persistent workspace">new ws</button>
+    <button id="saveBtn">save</button>
+    <button id="loadModelBtn">load</button>
+    <button id="newWorkspaceBtn" title="New persistent workspace">new</button>
     <button id="forkWorkspaceBtn" title="Fork current workspace">fork</button>
     <button id="saveWorkspaceBtn" title="Export complete workspace">workspace</button>
     <input id="modelFilePicker" type="file" accept=".json" hidden>
-    <div class="spacer"></div>
-    <span id="graphStat" class="small">empty</span>
   </div>
 
   <div id="view" class="view">
