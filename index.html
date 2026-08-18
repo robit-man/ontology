@@ -3401,30 +3401,170 @@ function graphNeighborhoodV9(seedIds,depth=2){
   }
   return{ids:visited,relationships,paths}
 }
-function sourceWindowsV9(content,needles,maxChars=3200){
-  content=String(content||"");if(!content)return[];
-  const low=content.toLowerCase(),hits=[];
-  for(const n0 of needles){
-    const n=String(n0||"").toLowerCase().trim();if(n.length<3)continue;
-    let at=0,count=0;while((at=low.indexOf(n,at))>=0&&count<4){hits.push(at);at+=Math.max(1,n.length);count++}
+/* ------------------------------------------------------------------------
+   V9.1 GLOBAL ENTITY EVIDENCE RETRIEVER
+   Scan every occurrence of the resolved entity across the selected source,
+   then choose evidence by semantic role + temporal/document diversity.
+   ------------------------------------------------------------------------ */
+function allOccurrenceHitsV91(content,needles,maxHits=420){
+  content=String(content||"");const low=content.toLowerCase(),hits=[],seen=new Set();
+  for(const n0 of needles||[]){
+    const raw=String(n0||"").trim(),n=raw.toLowerCase();if(n.length<3)continue;
+    let at=0,guard=0;
+    while((at=low.indexOf(n,at))>=0&&hits.length<maxHits&&guard<maxHits){
+      // Collapse near-identical aliases landing on the same occurrence.
+      const key=Math.round(at/8);if(!seen.has(key)){seen.add(key);hits.push({at,needle:raw})}
+      at+=Math.max(1,n.length);guard++
+    }
+    if(hits.length>=maxHits)break
   }
-  if(!hits.length)return[];
-  hits.sort((a,b)=>a-b);
-  const ranges=[];for(const h of hits){let a=Math.max(0,h-520),b=Math.min(content.length,h+820);const prev=ranges.at(-1);if(prev&&a<=prev[1]+120)prev[1]=Math.max(prev[1],b);else ranges.push([a,b])}
-  const out=[];let used=0;for(const [a,b] of ranges){if(used>=maxChars)break;const txt=content.slice(a,Math.min(b,a+(maxChars-used)));out.push({start:a,end:a+txt.length,text:txt});used+=txt.length}
-  return out
+  return hits.sort((a,b)=>a.at-b.at)
+}
+function evidenceRolesV91(text){
+  const t=String(text||""),roles=[];
+  if(/packet\s*loss|latency|cpu|gpu|queue|throughput|bandwidth|load\b|utili[sz]ation|clock\s*(offset|skew|drift)|\b\d+(?:\.\d+)?\s*(?:ms|s|%|kt|mbps|gbps)\b/i.test(t))roles.push("health_metric");
+  if(/\b(?:\d{2}:\d{2}(?::\d{2})?Z?|20\d{2}-\d{2}-\d{2}T)|timeline|event\b|observed\b|reported\b|received\b|created\b/i.test(t))roles.push("event");
+  if(/clock\s*(offset|skew|drift)|stale|valid_from|valid_to|observed_at|last\s+(?:known|normal|reported|confirmed)|resumes?|later\b|subsequent|after\b|before\b/i.test(t))roles.push("temporal");
+  if(/contradict|conflict|however|although|despite|but\b|no\s+(?:matching|cooperative|evidence)|incomplete|unresolved|unknown|stale/i.test(t))roles.push("contradiction");
+  if(/\bstate\b|active\b|inactive\b|degraded\b|healthy\b|nominal\b|failed\b|airborne\b|position\b|status\b/i.test(t))roles.push("state");
+  if(/connected|topology|relay|receives?_from|link\b|path\b|mesh\b|route\b|dependency|hosted|feeds?\b/i.test(t))roles.push("relationship");
+  if(/identity|candidate|authorized|unauthorized|plate\b|badge\b|transponder|callsign|serial\b|association/i.test(t))roles.push("identity");
+  if(/policy|approval|allow\b|deny\b|prohibit|constraint|must\b|may\s+not|requires?\s+(?:human|approval)/i.test(t))roles.push("policy");
+  if(/inject|falls?\s+to|rises?\s+to|increases?\s+to|decreases?\s+to|remains?\b|recovers?|resumes?|becomes?\b|now\b/i.test(t))roles.push("update");
+  return roles.length?[...new Set(roles)]:["context"]
+}
+function evidenceScoreV91(text,primary,terms,pos,total){
+  const low=String(text||"").toLowerCase();let score=0;
+  for(const p of primary||[]){const q=String(p||"").toLowerCase();if(q&&low.includes(q))score+=20}
+  for(const t of terms||[])if(t&&low.includes(String(t).toLowerCase()))score+=3;
+  const roles=evidenceRolesV91(text);
+  const weight={health_metric:14,temporal:11,contradiction:12,event:9,state:7,relationship:5,identity:9,policy:5,update:10,context:1};
+  for(const r of roles)score+=weight[r]||0;
+  if(/\b(?:healthy|nominal|network and clock are the problems|root cause|cause\b|because\b|due to\b)\b/i.test(low))score+=9;
+  if(/\b\d+(?:\.\d+)?\s*(?:%|ms|seconds?|s|minutes?|km|m|kt|mbps|gbps)\b/i.test(low))score+=5;
+  // Slight recency bonus prevents a manifest mention from always outranking
+  // a later operational update when otherwise equally relevant.
+  score+=Math.min(4,(Number(pos||0)/Math.max(1,Number(total||1)))*4);
+  return score
+}
+function occurrenceWindowsV91(content,needles,terms){
+  content=String(content||"");const hits=allOccurrenceHitsV91(content,needles),wins=[];
+  for(const h of hits){
+    let a=Math.max(0,h.at-460),b=Math.min(content.length,h.at+980);
+    // Prefer nearby paragraph/newline boundaries where available.
+    const left=content.lastIndexOf("\n\n",h.at);if(left>=0&&h.at-left<720)a=Math.max(a,left+2);
+    const right=content.indexOf("\n\n",h.at);if(right>=0&&right-h.at<1200)b=Math.min(b,right);
+    if(b-a<180){a=Math.max(0,h.at-380);b=Math.min(content.length,h.at+700)}
+    const text=content.slice(a,b),roles=evidenceRolesV91(text),score=evidenceScoreV91(text,needles,terms,h.at,content.length);
+    wins.push({start:a,end:b,text,roles,score,hit:h.at,needle:h.needle})
+  }
+  // Collapse only windows that are substantially the same; do NOT merge
+  // distant occurrences into a giant early-document range.
+  wins.sort((a,b)=>b.score-a.score);
+  const uniq=[];
+  for(const w of wins){
+    const duplicate=uniq.some(x=>{
+      const overlap=Math.max(0,Math.min(x.end,w.end)-Math.max(x.start,w.start));
+      return overlap/Math.max(1,Math.min(x.end-x.start,w.end-w.start))>.72
+    });
+    if(!duplicate)uniq.push(w)
+  }
+  return uniq
+}
+function selectDiverseEvidenceV91(content,needles,terms,{maxWindows=10,maxChars=10500}={}){
+  const candidates=occurrenceWindowsV91(content,needles,terms);
+  if(!candidates.length)return[];
+  const selected=[],used=new Set(),roleOrder=["health_metric","temporal","contradiction","update","event","state","identity","relationship","policy","context"];
+  const add=w=>{if(!w||used.has(w))return false;const overlap=selected.some(x=>Math.max(0,Math.min(x.end,w.end)-Math.max(x.start,w.start))/Math.max(1,Math.min(x.end-x.start,w.end-w.start))>.58);if(overlap)return false;selected.push(w);used.add(w);return true};
+  // Semantic diversity: ensure metrics/health, temporal changes, contradictions,
+  // and state do not lose to repeated manifest/topology mentions.
+  for(const role of roleOrder){
+    const w=candidates.filter(x=>x.roles.includes(role)).sort((a,b)=>b.score-a.score)[0];
+    add(w);if(selected.length>=maxWindows)break
+  }
+  // Document diversity: force coverage from early/middle/late thirds when the
+  // target actually occurs there.
+  for(let bucket=0;bucket<3&&selected.length<maxWindows;bucket++){
+    const lo=content.length*bucket/3,hi=content.length*(bucket+1)/3;
+    const w=candidates.filter(x=>x.hit>=lo&&x.hit<hi).sort((a,b)=>b.score-a.score)[0];add(w)
+  }
+  // Temporal diversity: retain earliest and latest target occurrence.
+  const byPos=[...candidates].sort((a,b)=>a.hit-b.hit);add(byPos[0]);add(byPos.at(-1));
+  // Fill remaining slots by relevance score.
+  for(const w of [...candidates].sort((a,b)=>b.score-a.score)){if(selected.length>=maxWindows)break;add(w)}
+  // Enforce character budget after selection, preserving diverse high-value windows.
+  const ranked=[...selected].sort((a,b)=>b.score-a.score),kept=[];let usedChars=0;
+  for(const w of ranked){
+    if(kept.length>=maxWindows||usedChars>=maxChars)break;
+    const room=maxChars-usedChars,txt=w.text.slice(0,room);if(txt.length<120)continue;
+    kept.push({...w,text:txt,end:w.start+txt.length});usedChars+=txt.length
+  }
+  return kept.sort((a,b)=>a.start-b.start)
+}
+// Compatibility helper retained for any other v9 call sites.
+function sourceWindowsV9(content,needles,maxChars=3200){
+  return selectDiverseEvidenceV91(content,needles,[],{maxWindows:Math.max(2,Math.min(8,Math.ceil(maxChars/1100))),maxChars})
 }
 function sentenceSignalsV9(excerpts){
-  const signals=[],re=/(healthy|nominal|normal|no\b|not\b|without|stale|degraded|failed|failure|unavailable|contradict|conflict|unknown|intermittent|bottleneck|overload|authorized|unauthorized|problem)/i;
+  const signals=[],re=/(healthy|nominal|normal|no\b|not\b|without|stale|degraded|failed|failure|unavailable|contradict|conflict|unknown|intermittent|bottleneck|overload|authorized|unauthorized|problem|packet\s*loss|latency|clock\s*(?:offset|skew|drift)|cpu\b)/i;
   for(const e of excerpts){
-    // Clause-level signals prevent "compute healthy; network is degraded" from
-    // being misread as evidence that the network is healthy.
     for(const part of String(e.excerpt||"").split(/(?<=[.!?])\s+|\n+|;\s+|\s+\bbut\b\s+/i)){
-      const t=part.trim();if(t.length>=12&&t.length<=420&&re.test(t))signals.push({ref_id:e.ref_id||e.id,source_id:e.id,locator:e.locator,text:t})
+      const t=part.trim();if(t.length>=12&&t.length<=520&&re.test(t))signals.push({ref_id:e.ref_id||e.id,source_id:e.id,locator:e.locator,roles:e.roles||evidenceRolesV91(t),text:t})
     }
   }
-  return signals.slice(0,100)
+  // Preserve role diversity here too; otherwise many repeated "degraded"
+  // clauses can hide the one direct healthy/metric contradiction.
+  const out=[],seen=new Set();
+  for(const role of ["health_metric","temporal","contradiction","update","event","state","identity","relationship","policy","context"]){
+    const q=signals.find(x=>(x.roles||[]).includes(role));if(q&&!seen.has(q.text)){out.push(q);seen.add(q.text)}
+  }
+  for(const q of signals){if(out.length>=120)break;if(!seen.has(q.text)){out.push(q);seen.add(q.text)}}
+  return out
 }
+function retrievalRoleSummaryV91(rows){
+  const counts={};for(const r of rows||[])for(const role of r.roles||[])counts[role]=(counts[role]||0)+1;return counts
+}
+function targetedSourceEvidenceV9(objective,targets){
+  const terms=objectiveTermsV9(objective);
+  const primary=[...new Set(targets.flatMap(t=>[t.id,t.label,...(t.aliases||[])]).filter(x=>String(x||"").length>2))],rows=[];
+  for(const src of sourcesForContext()){
+    let wins=selectDiverseEvidenceV91(src.content,primary,terms,{maxWindows:11,maxChars:11800});
+    if(!wins.length)wins=selectDiverseEvidenceV91(src.content,terms,terms,{maxWindows:7,maxChars:7200});
+    // Discover identifiers co-referenced with the target windows and perform
+    // one GLOBAL evidence hop for the strongest directly connected entities.
+    const discovered=new Map();
+    for(const w of wins){
+      for(const id of (w.text.match(/\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\b/g)||[])){
+        if(primary.some(p=>String(p).toLowerCase()===id.toLowerCase()))continue;
+        discovered.set(id,(discovered.get(id)||0)+1)
+      }
+    }
+    const secondaryIds=[...discovered.entries()].sort((a,b)=>b[1]-a[1]).slice(0,7).map(x=>x[0]);
+    const secondary=secondaryIds.length?selectDiverseEvidenceV91(src.content,secondaryIds,terms,{maxWindows:4,maxChars:4200}):[];
+    const combined=[...wins.map(w=>({...w,hop:0})),...secondary.map(w=>({...w,hop:1}))],uniq=[];
+    for(const w of combined.sort((a,b)=>b.score-a.score)){
+      const duplicate=uniq.some(x=>Math.max(0,Math.min(x.end,w.end)-Math.max(x.start,w.start))/Math.max(1,Math.min(x.end-x.start,w.end-w.start))>.68);
+      if(!duplicate)uniq.push(w)
+    }
+    for(const w of uniq.slice(0,15).sort((a,b)=>a.start-b.start)){
+      const locator=`chars ${w.start}-${w.end}`,ref_id=`${src.id}@${w.start}-${w.end}`;
+      rows.push({ref_id,id:src.id,name:src.name,authority:src.authority||"unknown",locator,roles:w.roles,score:Math.round(w.score*10)/10,hop:w.hop||0,excerpt:w.text})
+    }
+  }
+  for(const b of inputBlocks){
+    const txt=String(b.value||""),needles=primary.length?primary:terms;
+    if(needles.some(n=>txt.toLowerCase().includes(String(n).toLowerCase())))rows.push({ref_id:`${b.id}@manual`,id:b.id,name:b.key||b.id,authority:b.authority||"authoritative",locator:"manual input",roles:evidenceRolesV91(txt),score:50,hop:0,excerpt:txt.slice(0,2600)})
+  }
+  // Keep globally strongest/diverse rows when multiple sources are selected.
+  if(rows.length<=32)return rows;
+  const picked=[],seen=new Set();
+  for(const role of ["health_metric","temporal","contradiction","update","event","state","identity","relationship","policy","context"]){
+    const r=[...rows].filter(x=>(x.roles||[]).includes(role)).sort((a,b)=>b.score-a.score)[0];if(r&&!seen.has(r.ref_id)){picked.push(r);seen.add(r.ref_id)}
+  }
+  for(const r of [...rows].sort((a,b)=>b.score-a.score)){if(picked.length>=32)break;if(!seen.has(r.ref_id)){picked.push(r);seen.add(r.ref_id)}}
+  return picked.sort((a,b)=>String(a.id).localeCompare(String(b.id))||String(a.locator).localeCompare(String(b.locator)))
+}
+
 function evidenceNeighborhoodV9(targetIds,neighborIds,needles){
   const allIds=new Set([...targetIds,...neighborIds]),claims=(workspace.epistemics.claims||[]).filter(c=>allIds.has(c.subject_id)&&c.status!=="retracted");
   const claimIds=new Set(claims.map(c=>c.id)),conflicts=(workspace.epistemics.conflicts||[]).filter(c=>c.claim_ids.some(id=>claimIds.has(id)));
@@ -3479,13 +3619,21 @@ function buildReasoningContextV9(objective,budget=36000){
     targets:targets.map(t=>({id:t.id,label:t.label,kind:t.kind,match_score:t.score,reasons:t.reasons})),
     instances,relationships:hood.relationships,dependency_paths:hood.paths,
     events:epi.events,claims:epi.claims,conflicts:epi.conflicts,evidence:epi.evidence,
-    source_evidence,qualifying_evidence,candidate_actions,candidate_metrics,candidate_policies
+    source_evidence,qualifying_evidence,
+    retrieval_summary:{source_windows:source_evidence.length,roles:retrievalRoleSummaryV91(source_evidence),direct_windows:source_evidence.filter(x=>!x.hop).length,expanded_windows:source_evidence.filter(x=>x.hop===1).length},
+    candidate_actions,candidate_metrics,candidate_policies
   };
   // Deterministic budget trimming preserves target evidence before background neighbors.
   let raw=JSON.stringify(context);
   if(raw.length>budget){
-    context.source_evidence=context.source_evidence.slice(0,12).map(e=>({...e,excerpt:e.excerpt.slice(0,1800)}));
-    context.qualifying_evidence=context.qualifying_evidence.slice(0,40);
+    // Trim by evidence-role diversity rather than document order.
+    const roleKeep=[],roleSeen=new Set();
+    for(const role of ["health_metric","temporal","contradiction","update","event","state","identity","relationship","policy","context"]){
+      const e=context.source_evidence.find(x=>(x.roles||[]).includes(role));if(e&&!roleSeen.has(e.ref_id)){roleKeep.push(e);roleSeen.add(e.ref_id)}
+    }
+    for(const e of [...context.source_evidence].sort((a,b)=>(b.score||0)-(a.score||0))){if(roleKeep.length>=16)break;if(!roleSeen.has(e.ref_id)){roleKeep.push(e);roleSeen.add(e.ref_id)}}
+    context.source_evidence=roleKeep.map(e=>({...e,excerpt:e.excerpt.slice(0,1800)}));
+    context.qualifying_evidence=sentenceSignalsV9(context.source_evidence).slice(0,70);
     context.evidence=context.evidence.slice(0,80);context.claims=context.claims.slice(0,90);
     context.events=context.events.slice(-70);context.instances=context.instances.slice(0,40);context.relationships=context.relationships.slice(0,80)
   }
@@ -3607,7 +3755,8 @@ function traceSummaryV9(ctx,verification,corrected=false){
   lines.push(`claims      ${(ctx.claims||[]).length}`);
   lines.push(`conflicts   ${(ctx.conflicts||[]).length}`);
   lines.push(`evidence    ${(ctx.evidence||[]).length}`);
-  lines.push(`source win  ${(ctx.source_evidence||[]).length}`);
+  lines.push(`source win  ${(ctx.source_evidence||[]).length} · direct ${ctx.retrieval_summary?.direct_windows||0} · expanded ${ctx.retrieval_summary?.expanded_windows||0}`);
+  lines.push(`roles       ${Object.entries(ctx.retrieval_summary?.roles||{}).map(([k,v])=>`${k}:${v}`).join(" ")||"none"}`);
   lines.push(`qualifiers  ${(ctx.qualifying_evidence||[]).length}`);
   lines.push(`verification ${verification?.verdict||"not run"}${corrected?" → corrected":""}`);
   for(const i of verification?.issues||[])lines.push(`${i.severity==="error"?"ERROR":"WARN "} ${i.kind}: ${i.detail}`);
