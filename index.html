@@ -314,6 +314,16 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
   #rightPanel .tab{flex:1 1 50%;min-width:64px}
 }
 
+
+/* ========== v9.4 provider diagnostics drawer ========== */
+.runtime-diagnostics{margin-top:7px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#090909}
+.runtime-diagnostics>summary{list-style:none;cursor:pointer;user-select:none;padding:7px 0;font:700 9px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:#666;display:flex;align-items:center;gap:6px}
+.runtime-diagnostics>summary::-webkit-details-marker{display:none}
+.runtime-diagnostics>summary::before{content:"›";font-size:13px;color:#666;transform:translateY(-1px)}
+.runtime-diagnostics[open]>summary::before{content:"⌄"}
+.runtime-diagnostics-body{padding:0 0 7px}
+.runtime-diagnostics .pool-order{margin-top:5px}
+
 </style>
 </head>
 <body>
@@ -341,34 +351,14 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
 <option value="ollama">ollama</option>
 <option value="anonymous_pool">AUTO · anonymous free pool</option>
 <option value="aihorde">AI Horde · OpenAI proxy · shared anonymous</option>
-<option value="aihorde_native">AI Horde · native async · shared anonymous</option>
 <option value="ovh">OVHcloud AI · anonymous</option>
 <option value="llm7">LLM7 · anonymous</option>
-<option value="opencode_free">OpenCode Console · free anonymous</option>
 <option value="andy">Andy distributed pool · anonymous</option>
-<option value="blockrun">BlockRun · free reasoning · anonymous</option>
 <option value="arcrouter">ArcRouter · free smart route · anonymous</option>
-<option value="kilo">Kilo Gateway · anonymous free</option>
-<option value="peerwave">Peerwave · decentralized anonymous</option>
-<option value="tangle">Tangle Router · anonymous free tier</option>
 <option value="chat_at">ch.at · universal basic chat</option>
 <option value="tiamat">TIAMAT · anonymous streaming chat</option>
-<option value="distil_sn97">Distil SN97 · public Bittensor king</option>
-<option value="ailiance">Ailiance · public sovereign gateway</option>
-<option value="novai_free">NovAI · free GLM playground</option>
-<option value="mimocode">Xiaomi MiMo Code · anonymous bootstrap</option>
-<option value="dandolo">Dandolo · anonymous 50/day</option>
 <option value="vedaya">Vedaya · direct LLM bypass · anonymous</option>
-<option value="agentbot_demo">Agentbot Demo · no-auth models</option>
-<option value="mlvoca">MLvoca · public Ollama inference</option>
-<option value="helloblue_test">Helloblue · public test inference</option>
-<option value="iaqa_mcp">IA-QA · remote MCP LLM</option>
 <option value="unclose_hermes">uncloseai · Hermes community</option>
-<option value="unclose_qwen">uncloseai · Qwen Coder community</option>
-<option value="openapis">OpenAPIs beta · shared public credential</option>
-<option value="openapis_anthropic">OpenAPIs Anthropic · shared public credential</option>
-<option value="mangaai">MangaAI / LLMPlayGround · community anonymous</option>
-<option value="petals">Petals · public research swarm</option>
 <option value="hf_space">HF / public Gradio Space</option>
 <option value="inference_sh">inference.sh · public embedded agent</option>
 <option value="puter">Puter.js · user-auth</option>
@@ -394,12 +384,17 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
       <div class="field"><label>max output tokens</label><input id="maxOutputTokens" type="number" value="16384" min="128" step="1024"></div>
       <div class="field"><label>request timeout sec</label><input id="requestTimeout" type="number" value="180" min="10" step="10"></div>
     </div>
-    <div class="runtime-actions">
-      <label class="check"><input id="showReasoning" type="checkbox"> show provider reasoning trace</label>
-      <div class="spacer"></div><button id="probePool" class="iconbtn" title="Probe anonymous provider registries">probe pool</button>
-    </div>
-    <div id="poolStatus" class="small mono" style="margin-top:5px">anonymous resolver idle</div>
-    <div id="poolOrder" class="pool-order small mono">AUTO order unavailable until provider state is initialized.</div>
+    <details id="providerDiagnostics" class="runtime-diagnostics">
+      <summary>provider diagnostics</summary>
+      <div class="runtime-diagnostics-body">
+        <div class="runtime-actions">
+          <label class="check"><input id="showReasoning" type="checkbox"> show provider reasoning trace</label>
+          <div class="spacer"></div><button id="probePool" class="iconbtn" title="Probe active active anonymous provider registries">probe pool</button>
+        </div>
+        <div id="poolStatus" class="small mono" style="margin-top:5px">anonymous resolver idle</div>
+        <div id="poolOrder" class="pool-order small mono">AUTO order unavailable until provider state is initialized.</div>
+      </div>
+    </details>
     <div id="inferenceObs" class="obs">
       <div class="obs-grid">
         <div class="obs-cell"><span class="obs-k">state</span><span id="obsState" class="obs-v">idle</span></div>
@@ -461,9 +456,9 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
   <details id="debugTools" class="debug-tools">
     <summary>debug</summary>
     <div class="debug-tools-body">
-      <div class="debug-note">Provider audit fixture. Hidden from the normal workflow; expands only for endpoint diagnostics and AUTO-routing calibration.</div>
+      <div class="debug-note">Provider audit fixture for the active anonymous pool only. Retired non-functional routes are no longer enumerated or tested.</div>
       <div class="runtime-actions">
-        <button id="auditPool" class="iconbtn" title="Run the embedded PDF structured-extraction fixture through every anonymous provider">run provider audit</button>
+        <button id="auditPool" class="iconbtn" title="Run the embedded PDF structured-extraction fixture through every active anonymous provider">run provider audit</button>
         <button id="stopAudit" class="iconbtn" title="Abort provider audit" disabled>stop</button>
         <div class="spacer"></div>
         <button id="exportAudit" class="iconbtn">export</button>
@@ -477,7 +472,7 @@ label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.
       </div>
       <div id="providerAuditPanel" class="audit-panel">
         <div class="audit-head"><b>provider structured-extraction audit</b><div class="spacer"></div></div>
-        <div id="auditSummary" class="audit-summary">Not run. Debug audit parses an embedded synthetic PDF through the same PDF.js intake path, exercises every endpoint, validates structured output, and measures factual fidelity.</div>
+        <div id="auditSummary" class="audit-summary">Not run. Debug audit parses an embedded synthetic PDF through the same PDF.js intake path, exercises every active anonymous endpoint, validates structured output, and measures factual fidelity.</div>
         <div id="auditRows" class="audit-table"></div>
       </div>
     </div>
@@ -1805,6 +1800,7 @@ connect=async function(){
 
 const renderProviderEditorV4Base=renderProviderEditor;
 renderProviderEditor=function(){
+  if(typeof RETIRED_PROVIDER_KEYS!=="undefined")for(const key of RETIRED_PROVIDER_KEYS)delete providerConfig.profiles[key];
   renderProviderEditorV4Base();
   for(const [key,p] of Object.entries(providerConfig.profiles)){
     const card=document.querySelector(`[data-prof-endpoint="${key}"]`)?.closest(".provider-card");if(!card)continue;
@@ -1864,8 +1860,24 @@ Object.assign(PROVIDER_DEFAULTS.andy,{trust:2});
 Object.assign(PROVIDER_DEFAULTS.unclose_hermes,{trust:2});
 PROVIDER_DEFAULTS.anthropic.stream=true;
 PROVIDER_DEFAULTS.gemini.stream=false;
+
+// v9.4 measured-origin provider pruning.
+// Retired because the 2026-08-17 robit-man.github.io browser burn-in classified
+// them as origin-blocked, hard-fail/payment-auth, or model-stale.
+// Adapters may remain in dead-code compatibility paths, but they are not active
+// profiles, selectable routes, AUTO candidates, or audit targets.
+const RETIRED_PROVIDER_KEYS=new Set(["aihorde_native","opencode_free","blockrun","kilo","peerwave","tangle","distil_sn97","ailiance","novai_free","mimocode","dandolo","agentbot_demo","mlvoca","helloblue_test","iaqa_mcp","unclose_qwen","openapis","openapis_anthropic","mangaai","petals"]);
+for(const key of RETIRED_PROVIDER_KEYS){
+  delete PROVIDER_DEFAULTS[key];
+  if(providerConfig.profiles?.[key])delete providerConfig.profiles[key];
+}
+if(RETIRED_PROVIDER_KEYS.has(providerConfig.defaultProvider))providerConfig.defaultProvider="anonymous_pool";
+for(const layer of Object.values(providerConfig.layers||{})){
+  if(layer&&RETIRED_PROVIDER_KEYS.has(layer.provider)){layer.provider="default";layer.model=""}
+}
+
 // Migrate the obsolete pre-gateway Kilo profile if it was persisted by an earlier build.
-if(providerConfig.defaultProvider==="kilo_legacy")providerConfig.defaultProvider="kilo";
+if(providerConfig.defaultProvider==="kilo_legacy")providerConfig.defaultProvider="anonymous_pool";
 if(providerConfig.profiles?.kilo_legacy)delete providerConfig.profiles.kilo_legacy;
 for(const [k,v] of Object.entries(PROVIDER_DEFAULTS)){
   if(!providerConfig.profiles[k])providerConfig.profiles[k]={...v};
@@ -1876,10 +1888,9 @@ if(providerConfig.profiles?.iaqa_mcp?.endpoint==="https://api-ia-qa.run.tools"){
   providerConfig.profiles.iaqa_mcp.endpoint="https://ia-qa.com/mcp/call";
   providerConfig.profiles.iaqa_mcp.model="qwen/qwen3-32b";
 }
-if(!providerConfig.profiles.aihorde.apiKey)providerConfig.profiles.aihorde.apiKey="0000000000";
-if(!providerConfig.profiles.aihorde_native.apiKey)providerConfig.profiles.aihorde_native.apiKey="0000000000";
+if(providerConfig.profiles.aihorde&&!providerConfig.profiles.aihorde.apiKey)providerConfig.profiles.aihorde.apiKey="0000000000";
 
-const ANON_POOL_KEYS=["blockrun","arcrouter","kilo","peerwave","tangle","chat_at","tiamat","distil_sn97","ailiance","dandolo","vedaya","ovh","openapis","llm7","opencode_free","andy","unclose_hermes","unclose_qwen","aihorde","aihorde_native","novai_free","mimocode","agentbot_demo","mlvoca","helloblue_test","iaqa_mcp","mangaai","petals"];
+const ANON_POOL_KEYS=["ovh","vedaya","chat_at","unclose_hermes","llm7","aihorde","arcrouter","andy","tiamat"];
 const PROVIDER_AUDIT_SCHEMA={type:"object",additionalProperties:false,required:["project","owner","status","priority","deadline","activation_minutes","coordination_threshold","coordination_percent","network_access_required","host_provides_gateway","concepts"],properties:{project:{type:"string"},owner:{type:"string"},status:{type:"string"},priority:{type:"string"},deadline:{type:"string"},activation_minutes:{type:"integer"},coordination_threshold:{type:"integer"},coordination_percent:{type:"integer"},network_access_required:{type:"boolean"},host_provides_gateway:{type:"boolean"},concepts:{type:"array",items:{type:"string"}}}};
 const PROVIDER_AUDIT_SYSTEM="You are a provider compatibility evaluator. Read the supplied PDF-extracted source text and return only one JSON object matching the supplied schema. Extract exact source facts; do not infer missing facts, add prose, or wrap the JSON.";
 const MOCK_PROVIDER_AUDIT_PDF_B64="JVBERi0xLjMKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMSAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL0NvbnRlbnRzIDcgMCBSIC9NZWRpYUJveCBbIDAgMCA2MTIgNzkyIF0gL1BhcmVudCA2IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9QYWdlTW9kZSAvVXNlTm9uZSAvUGFnZXMgNiAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0F1dGhvciAoYW5vbnltb3VzKSAvQ3JlYXRpb25EYXRlIChEOjIwMjYwODE3MTk0MDIyKzAwJzAwJykgL0NyZWF0b3IgKGFub255bW91cykgL0tleXdvcmRzICgpIC9Nb2REYXRlIChEOjIwMjYwODE3MTk0MDIyKzAwJzAwJykgL1Byb2R1Y2VyIChSZXBvcnRMYWIgUERGIExpYnJhcnkgLSBcKG9wZW5zb3VyY2VcKSkgCiAgL1N1YmplY3QgKHVuc3BlY2lmaWVkKSAvVGl0bGUgKHVudGl0bGVkKSAvVHJhcHBlZCAvRmFsc2UKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0NvdW50IDEgL0tpZHMgWyAzIDAgUiBdIC9UeXBlIC9QYWdlcwo+PgplbmRvYmoKNyAwIG9iago8PAovRmlsdGVyIFsgL0FTQ0lJODVEZWNvZGUgL0ZsYXRlRGVjb2RlIF0gL0xlbmd0aCA2ODIKPj4Kc3RyZWFtCkdhcm5UZ01ZTHAmOk8iS2JbV3JsWWg5RE4rSFRiVCFmPkAqNy5CUSYtYkheLWxzTW1vbyhTKlZEMz9LRC4kNjkrazAwNUxGcDwjOlpNNiJlSkJKIiNJKipSOTVaJ2hVOGxuaTpLcmEzbGo0T05WXW4wPi9mMjBzZUEvOjxORjpqVnRcKDJOaVU0aixURE00bnMuSW9XLFskIVBxaTdhRmlFNzpLQVBnS3NuL1JlO1xNRU1bIitoV0E2Ty86MV1TJEBHKl1XY0AxOShcMTtvOiZMTWMpMmZqTUwlZ0NwVk9CbExQc1UwIUpnMEgtIkMoTCVcSUlJKW88W284ND1HPD1OaFI3QkNlJ2dDamRNaiVZKGxzWXQiK2Q1Klg8OjRKYy4sI11TaTpHXCQzQCtzKCEmJClRJFVFIyo0VCQ4dSEoTV1kVkctb21oMFohSyM5USc0JUhVbyE9KyolXjhMUEFXT3BDIUR0TyxUYG1QRFVgRENKMUU7aFtNRlFlUnQsL2plWyUvPyxNUTInMkZcVDg4S1NsV1xTbiNMNlZWOVEqUSQpXSYnXSpOJVFtN2k5XEc6JUQ+XTdoY28vYTk6YD1hcGxvZS1AVSlTZVVldDhKMlBqKFsrWkJXVl8oImtXJzUtXSVVWlhCOzpJKjlnKyRsZixQXUc1TjBzNURbJllZPSFcPixxRUghZVhlPF5sJmRES2QxdTFyb05KQ0dIYV1MPWlvNyI9UmZgNyIvUy9QJ0tJcU87bipVSm1AXVJYLF5WNTZcJ3NgKy4/a19YSlRUQGVmI0FAXig+WCdvT21oUlpfYWZgPEkoRzdsZ0hNLjYmZlt0cz8pZ3FbXHAvUmJCUFZZQjNFaF8yW0w5QykjO1pPRSdURCMqayFxcjpmIy0vXy9lcUdGfj5lbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA4CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMDkyIDAwMDAwIG4gCjAwMDAwMDAxOTkgMDAwMDAgbiAKMDAwMDAwMDM5MiAwMDAwMCBuIAowMDAwMDAwNDYwIDAwMDAwIG4gCjAwMDAwMDA3MjEgMDAwMDAgbiAKMDAwMDAwMDc4MCAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9JRCAKWzxiMGRiOTdmZjY4YzU5OWMwMTM2NzhlYWY0YmJmYjA0Mz48YjBkYjk3ZmY2OGM1OTljMDEzNjc4ZWFmNGJiZmIwNDM+XQolIFJlcG9ydExhYiBnZW5lcmF0ZWQgUERGIGRvY3VtZW50IC0tIGRpZ2VzdCAob3BlbnNvdXJjZSkKCi9JbmZvIDUgMCBSCi9Sb290IDQgMCBSCi9TaXplIDgKPj4Kc3RhcnR4cmVmCjE1NTIKJSVFT0YK";
@@ -1976,7 +1987,7 @@ function renderPoolStatus(){
   const el=runtimeEl("poolStatus");if(!el)return;
   const enabled=ANON_POOL_KEYS.filter(k=>!disabledAnonProviders.has(k)).length;
   const chips=ANON_POOL_KEYS.map(k=>{const st=providerRuntime[k]||{},p=providerConfig.profiles[k]||PROVIDER_DEFAULTS[k],d=auditDisposition(k,true),a=d.result,off=disabledAnonProviders.has(k),cool=(st.cooldownUntil||0)>Date.now();let cls=off?"off":d.kind==="proven"?"ok":["origin_blocked","hard_fail","model_stale","failed"].includes(d.kind)?"bad":cool||d.kind==="transient"?"cool":st.ok?"ok":"";const auditTag=a?` · ${d.tier}/${d.label}${a.semanticScore!==undefined?` ${Math.round((a.semanticScore||0)*100)}%`:""}${a.seed?" seed":""}`:"";const detail=off?"disabled":cool?`cool ${Math.ceil((st.cooldownUntil-Date.now())/1000)}s`:d.kind!=="unknown"?d.label:st.catalogOnly?"catalog":st.latency?`${Math.round(st.latency)}ms`:st.lastError?"fail":"unprobed";const flag=p.experimental?" · exp":"";return `<span class="pool-chip ${cls}" data-pool-key="${esc(k)}" title="click to ${off?"enable":"disable"} · tier ${d.tier} ${d.label} · trust ${p.trust||1}/3${auditTag} · ${st.catalogOnly?"catalog only; health learned on first inference · ":""}${esc(st.lastError||p.rate||"")}">${esc(k)}${flag} · ${esc(detail)}${esc(auditTag)}</span>`}).join("");
-  el.innerHTML=`pool ${enabled}/${ANON_POOL_KEYS.length} enabled · ${chips}`;renderPoolOrder()
+  el.innerHTML=`pool ${enabled}/${ANON_POOL_KEYS.length} active · ${chips}`;renderPoolOrder()
 }
 function toggleAnonProvider(key){
   if(!ANON_POOL_KEYS.includes(key))return;
@@ -4100,7 +4111,10 @@ The target-focused context is authoritative for what was selected. Do not broade
 /* ====================== end v9 target-focused reasoning ====================== */
 
 function initContextUI(){const saved=localStorage.getItem("ontologyContextMode")||"all";setContextMode(saved);$("#contextMode").onchange=e=>setContextMode(e.target.value);$("#toolbarContextMode").onchange=e=>setContextMode(e.target.value)}
-function initProviderUI(){$("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();$("#provider").onchange=async()=>{syncRuntimeFromConfig();if(["ollama","anonymous_pool","aihorde","aihorde_native","ovh","llm7","opencode_free","andy","blockrun","arcrouter","unclose_hermes","unclose_qwen","openapis","openapis_anthropic","mangaai","petals","puter","hf_space","inference_sh","kilo","peerwave","tangle","chat_at","tiamat","distil_sn97","ailiance","novai_free","mimocode","dandolo","vedaya","agentbot_demo","mlvoca","helloblue_test","iaqa_mcp"].includes($("#provider").value))await connect()};$("#host").oninput=syncRuntimeToConfig;$("#model").onchange=syncRuntimeToConfig;$("#configBtn").onclick=openConfig;$("#closeConfig").onclick=()=>$("#configModal").classList.remove("on");$("#saveConfig").onclick=()=>{captureConfigEditor();$("#configModal").classList.remove("on");log("LLM configuration saved.","good")};$("#resetConfig").onclick=()=>{providerConfig={defaultProvider:"ollama",persistKeys:false,profiles:JSON.parse(JSON.stringify(PROVIDER_DEFAULTS)),layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""}}};prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyProviderConfig");localStorage.removeItem("ontologyWorkbenchPrompts");renderProviderEditor();$("#provider").value="ollama";syncRuntimeFromConfig();renderPromptEditor();log("LLM configuration reset.","good")};$("#persistKeys").onchange=e=>providerConfig.persistKeys=e.target.checked}
+function initProviderUI(){
+  for(const opt of [...$("#provider").options])if(typeof RETIRED_PROVIDER_KEYS!=="undefined"&&RETIRED_PROVIDER_KEYS.has(opt.value))opt.remove();
+  if(typeof RETIRED_PROVIDER_KEYS!=="undefined"&&RETIRED_PROVIDER_KEYS.has(providerConfig.defaultProvider))providerConfig.defaultProvider="anonymous_pool";
+  $("#provider").value=providerConfig.defaultProvider;syncRuntimeFromConfig();$("#provider").onchange=async()=>{syncRuntimeFromConfig();if(["ollama","anonymous_pool","aihorde","ovh","llm7","andy","arcrouter","unclose_hermes","puter","hf_space","inference_sh","chat_at","tiamat","vedaya"].includes($("#provider").value))await connect()};$("#host").oninput=syncRuntimeToConfig;$("#model").onchange=syncRuntimeToConfig;$("#configBtn").onclick=openConfig;$("#closeConfig").onclick=()=>$("#configModal").classList.remove("on");$("#saveConfig").onclick=()=>{captureConfigEditor();$("#configModal").classList.remove("on");log("LLM configuration saved.","good")};$("#resetConfig").onclick=()=>{providerConfig={defaultProvider:"ollama",persistKeys:false,profiles:JSON.parse(JSON.stringify(PROVIDER_DEFAULTS)),layers:{extract:{provider:"default",model:""},compile:{provider:"default",model:""},insight:{provider:"default",model:""},custom_output:{provider:"default",model:""}}};prompts={...DEFAULT_PROMPTS};localStorage.removeItem("ontologyProviderConfig");localStorage.removeItem("ontologyWorkbenchPrompts");renderProviderEditor();$("#provider").value="ollama";syncRuntimeFromConfig();renderPromptEditor();log("LLM configuration reset.","good")};$("#persistKeys").onchange=e=>providerConfig.persistKeys=e.target.checked}
 function initNodeModal(){$("#closeNodeModal").onclick=()=>{$("#nodeModal").classList.remove("on");selected=null;drawGraph()};$("#nodeFocusBtn").onclick=()=>{if(!selected)return;if(focusedNodeIds.has(selected.id))focusedNodeIds.delete(selected.id);else focusedNodeIds.add(selected.id);$("#nodeFocusBtn").textContent=focusedNodeIds.has(selected.id)?"unfocus":"focus";renderFocusSummary();drawGraph()}}
 
 // Replace legacy fit/layout controls with viewport-aware graph controls.
