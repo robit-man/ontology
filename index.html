@@ -1389,8 +1389,20 @@ function drawWorldMap(){
  for(let lat=-60;lat<=60;lat+=30){const a=geoProject(-180,lat),b=geoProject(180,lat);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}
  ctx.strokeStyle="#777";ctx.fillStyle="#111";ctx.lineWidth=.8/Math.max(.001,mapView.scale);
  for(const country of decodeWorldGeometry())for(const ring of country.rings){if(!ring.length)continue;ctx.beginPath();let prev=ring[0],p=geoProject(prev[0],prev[1]);ctx.moveTo(p.x,p.y);for(let i=1;i<ring.length;i++){const q=ring[i];p=geoProject(q[0],q[1]);if(Math.abs(q[0]-prev[0])>180)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);prev=q}ctx.stroke()}
- for(const g of spatialGroundings()){if(!isEarthGrounding(g)||g.geometry_type==="Unresolved")continue;const coords=parseGroundingGeometry(g);if(!coords)continue;const focus=focusedSpatialIds.has(g.id)||focusedNodeIds.has(g.ontology_type_id);ctx.strokeStyle=focus?"#fff":"#aaa";ctx.fillStyle=focus?"#fff":"#aaa";ctx.lineWidth=(focus?2:1)/Math.max(.001,mapView.scale);
-  if(g.geometry_type==="Point"&&Array.isArray(coords)){const p=geoProject(+coords[0],+coords[1]),r=(focus?5:3.2)/Math.max(.001,mapView.scale);ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill()}
+ // Draw explicit spatial relationships behind entity nodes.
+ const sgById=new Map(spatialGroundings().map(g=>[g.id,g]));
+ ctx.strokeStyle="#4a4a4a";ctx.lineWidth=.7/Math.max(.001,mapView.scale);
+ for(const rel of ontology?.spatial_relations||[]){
+   const ga=sgById.get(rel.from_id),gb=sgById.get(rel.to_id),a=ga&&groundingPoint(ga),b=gb&&groundingPoint(gb);
+   if(!a||!b||!isEarthGrounding(ga)||!isEarthGrounding(gb))continue;
+   const pa=geoProject(a[0],a[1]),pb=geoProject(b[0],b[1]);ctx.beginPath();ctx.moveTo(pa.x,pa.y);ctx.lineTo(pb.x,pb.y);ctx.stroke()
+ }
+ for(const g of spatialGroundings()){if(!isEarthGrounding(g)||g.geometry_type==="Unresolved")continue;const coords=parseGroundingGeometry(g);if(!coords)continue;const bindId=spatialBindingIdV96(g),focus=focusedSpatialIds.has(g.id)||focusedNodeIds.has(bindId)||focusedNodeIds.has(g.ontology_type_id);ctx.strokeStyle=focus?"#fff":"#aaa";ctx.fillStyle=focus?"#fff":"#aaa";ctx.lineWidth=(focus?2:1)/Math.max(.001,mapView.scale);
+  if(g.geometry_type==="Point"&&Array.isArray(coords)){
+    const p=geoProject(+coords[0],+coords[1]),r=(focus?5:3.2)/Math.max(.001,mapView.scale);ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();
+    const label=spatialDisplayLabelV96(g),showLabel=focus||mapView.scale>=3||effectiveEarthPointGroundingsV96().length<=20;
+    if(showLabel&&label){const fs=(focus?10:8)/Math.max(.001,mapView.scale);ctx.font=`600 ${fs}px ui-monospace`;ctx.fillStyle=focus?"#fff":"#aaa";ctx.fillText(label,p.x+r+3/Math.max(.001,mapView.scale),p.y-2/Math.max(.001,mapView.scale))}
+  }
   else if(g.geometry_type==="LineString"&&Array.isArray(coords)){ctx.beginPath();coords.forEach((q,i)=>{const p=geoProject(+q[0],+q[1]);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)});ctx.stroke()}
   else if(g.geometry_type==="Polygon"&&Array.isArray(coords))for(const ring of coords){if(!Array.isArray(ring)||!ring.length)continue;ctx.beginPath();ring.forEach((q,i)=>{const p=geoProject(+q[0],+q[1]);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)});ctx.closePath();ctx.stroke()}
   else if(g.geometry_type==="BBox"&&Array.isArray(coords)&&coords.length>=4){const [west,south,east,north]=coords,a=geoProject(west,north),b=geoProject(east,south);ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y)}
@@ -1409,20 +1421,20 @@ const fitOntologyGraphV3=fitGraph;fitGraph=function(){if(canvasMode==="world")fi
 const resetOntologyGraphViewV3=resetGraphView;resetGraphView=function(){if(canvasMode==="world")fitWorld();else resetOntologyGraphViewV3()};
 const zoomOntologyAtV3=zoomAt;zoomAt=function(sx,sy,f){if(canvasMode==="world")zoomWorldAt(sx,sy,f);else zoomOntologyAtV3(sx,sy,f)};
 
-function setCanvasMode(mode){canvasMode=mode==="world"?"world":"graph";localStorage.setItem("ontologyCanvasMode",canvasMode);$("#graphModeBtn").classList.toggle("on",canvasMode==="graph");$("#mapModeBtn").classList.toggle("on",canvasMode==="world");$("#mapReadout").style.display=canvasMode==="world"?"block":"none";$("#minimapCanvas").title=canvasMode==="world"?"World viewshed":"Graph minimap";if(canvasMode==="world"&&mapView.x===0&&mapView.y===0&&mapView.scale===1)fitWorld();else drawGraph()}
+function setCanvasMode(mode){canvasMode=mode==="world"?"world":"graph";localStorage.setItem("ontologyCanvasMode",canvasMode);$("#graphModeBtn").classList.toggle("on",canvasMode==="graph");$("#mapModeBtn").classList.toggle("on",canvasMode==="world");$("#mapReadout").style.display=canvasMode==="world"?"block":"none";$("#minimapCanvas").title=canvasMode==="world"?"World viewshed":"Graph minimap";if(canvasMode==="world"&&mapView.x===0&&mapView.y===0&&mapView.scale===1)fitWorldToGroundingsV96();else drawGraph()}
 
 function haversineKm(a,b){const R=6371.0088,rad=Math.PI/180,dLat=(b[1]-a[1])*rad,dLon=(b[0]-a[0])*rad,la1=a[1]*rad,la2=b[1]*rad,h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(h)))}
 function renderSpatial(){
  const summary=$("#geoSummary"),frames=$("#geoFrames"),list=$("#geoList");if(!summary||!frames||!list)return;if(!ontology){summary.textContent="No spatial model.";frames.innerHTML="";list.innerHTML="";return}
  const gs=spatialGroundings(),resolved=gs.filter(g=>g.geometry_type!=="Unresolved"&&g.coordinates_json),earth=resolved.filter(isEarthGrounding);const focusedPts=gs.filter(g=>focusedSpatialIds.has(g.id)&&isEarthGrounding(g)).map(groundingPoint).filter(Boolean),dist=focusedPts.length===2?` · focus distance ${haversineKm(focusedPts[0],focusedPts[1]).toFixed(1)} km`:"",pending=manualGeoInputs().length;summary.textContent=`${gs.length} groundings · ${earth.length} Earth · ${resolved.length-earth.length} local/frame · ${gs.length-resolved.length} unresolved${pending?` · ${pending} pending input`:""}${dist}`;
  frames.innerHTML=(ontology.coordinate_frames||[]).map(f=>`<div class="geo-frame"><b>${esc(f.label)}</b> <span class="badge">${esc(f.kind)}</span><div class="geo-coord">${esc(f.id)} · ${esc(f.crs||"no CRS")}${f.parent_frame?` · parent ${esc(f.parent_frame)}`:""}</div></div>`).join("");
- list.innerHTML=gs.map(g=>{const p=groundingPoint(g),coord=p?`${p[1].toFixed(5)}, ${p[0].toFixed(5)}`:(g.coordinates_json||g.place_name||"unresolved");return `<div class="geo-list-item ${focusedSpatialIds.has(g.id)?"focused":""}" data-geo-id="${esc(g.id)}"><div class="geo-title"><span class="badge">${esc(g.geometry_type)}</span><b>${esc(g.label)}</b></div><div class="small">${esc(g.kind)} · ${esc(g.crs||"unknown frame")} · ${Math.round((g.confidence||0)*100)}%</div><div class="geo-coord">${esc(coord)}</div></div>`}).join("")||'<div class="small">No spatial groundings.</div>';list.querySelectorAll("[data-geo-id]").forEach(el=>el.onclick=()=>openGeoModal(gs.find(g=>g.id===el.dataset.geoId)))
+ list.innerHTML=gs.map(g=>{const p=groundingPoint(g),coord=p?`${p[1].toFixed(5)}, ${p[0].toFixed(5)}`:(g.coordinates_json||g.place_name||"unresolved");return `<div class="geo-list-item ${focusedSpatialIds.has(g.id)?"focused":""}" data-geo-id="${esc(g.id)}"><div class="geo-title"><span class="badge">${esc(g.geometry_type)}</span><b>${esc(g.label)}</b></div><div class="small">${esc(g.kind)} · ${esc(spatialBindingIdV96(g)||"unbound")} · ${esc(g.crs||"unknown frame")} · ${Math.round((g.confidence||0)*100)}%</div><div class="geo-coord">${esc(coord)}</div></div>`}).join("")||'<div class="small">No spatial groundings.</div>';list.querySelectorAll("[data-geo-id]").forEach(el=>el.onclick=()=>openGeoModal(gs.find(g=>g.id===el.dataset.geoId)))
 }
-function openGeoModal(g){if(!g)return;selectedSpatial=g;$("#geoModalKind").textContent=g.geometry_type;$("#geoModalTitle").textContent=g.label||g.id;$("#geoFocusBtn").textContent=focusedSpatialIds.has(g.id)?"unfocus":"focus";const rows=[],add=(k,v)=>rows.push(`<div>${esc(k)}</div><div>${v}</div>`);add("id",`<code>${esc(g.id)}</code>`);add("kind",esc(g.kind));add("ontology type",`<code>${esc(g.ontology_type_id||"")}</code>`);add("geometry",`<code>${esc(g.geometry_type)}</code> · ${esc(g.crs||"")}`);add("coordinates",`<code>${esc(g.coordinates_json||"unresolved")}</code>`);add("place",esc(g.place_name||""));add("region",esc(g.region_hint||""));const gp=groundingPoint(g),derivedCountry=gp&&isEarthGrounding(g)?countryAt(gp[0],gp[1]):null;if(derivedCountry)add("local region",`${esc(derivedCountry.name)} (${esc(derivedCountry.iso)}) · derived from embedded basemap`);add("valid",`${esc(g.valid_from||"")} ${g.valid_to?"→ "+esc(g.valid_to):""}`);add("confidence",Math.round((g.confidence||0)*100)+"%");add("source bindings",(g.source_bindings||[]).map(b=>`${esc(b.source_id)} · ${esc(b.path)} · ${Math.round((b.confidence||0)*100)}%`).join("<br>")||"—");$("#geoModalBody").innerHTML=`<div class="spatial-modal-grid">${rows.join("")}</div>`;$("#geoModal").classList.add("on");drawGraph()}
+function openGeoModal(g){if(!g)return;selectedSpatial=g;$("#geoModalKind").textContent=g.geometry_type;$("#geoModalTitle").textContent=g.label||g.id;$("#geoFocusBtn").textContent=focusedSpatialIds.has(g.id)?"unfocus":"focus";const rows=[],add=(k,v)=>rows.push(`<div>${esc(k)}</div><div>${v}</div>`);add("id",`<code>${esc(g.id)}</code>`);add("kind",esc(g.kind));add("ontology type",`<code>${esc(g.ontology_type_id||"")}</code>`);add("entity",`<code>${esc(spatialBindingIdV96(g)||"unbound")}</code>`);add("geometry",`<code>${esc(g.geometry_type)}</code> · ${esc(g.crs||"")}`);add("coordinates",`<code>${esc(g.coordinates_json||"unresolved")}</code>`);add("place",esc(g.place_name||""));add("region",esc(g.region_hint||""));const gp=groundingPoint(g),derivedCountry=gp&&isEarthGrounding(g)?countryAt(gp[0],gp[1]):null;if(derivedCountry)add("local region",`${esc(derivedCountry.name)} (${esc(derivedCountry.iso)}) · derived from embedded basemap`);add("valid",`${esc(g.valid_from||"")} ${g.valid_to?"→ "+esc(g.valid_to):""}`);add("confidence",Math.round((g.confidence||0)*100)+"%");add("source bindings",(g.source_bindings||[]).map(b=>`${esc(b.source_id)} · ${esc(b.path)} · ${Math.round((b.confidence||0)*100)}%`).join("<br>")||"—");$("#geoModalBody").innerHTML=`<div class="spatial-modal-grid">${rows.join("")}</div>`;$("#geoModal").classList.add("on");drawGraph()}
 
 const renderAllV3=renderAll;renderAll=function(){renderAllV3();renderSpatial()};
 
-function geojson(){const features=[];(ontology?.spatial_groundings||[]).forEach(g=>{if(g.geometry_type==="Unresolved"||!g.coordinates_json||!isEarthGrounding(g))return;let coords;try{coords=JSON.parse(g.coordinates_json)}catch{return}let geom=null;if(g.geometry_type==="BBox"&&Array.isArray(coords)&&coords.length>=4){const [w,s,e,n]=coords;geom={type:"Polygon",coordinates:[[[w,s],[e,s],[e,n],[w,n],[w,s]]]}}else if(["Point","LineString","Polygon"].includes(g.geometry_type))geom={type:g.geometry_type,coordinates:coords};if(!geom)return;features.push({type:"Feature",id:g.id,geometry:geom,properties:{label:g.label,kind:g.kind,ontology_type_id:g.ontology_type_id,crs:g.crs,place_name:g.place_name,region_hint:g.region_hint,valid_from:g.valid_from,valid_to:g.valid_to,confidence:g.confidence,source_bindings:g.source_bindings}})});return JSON.stringify({type:"FeatureCollection",features},null,2)}
+function geojson(){const features=[];(ontology?.spatial_groundings||[]).forEach(g=>{if(g.geometry_type==="Unresolved"||!g.coordinates_json||!isEarthGrounding(g))return;let coords;try{coords=JSON.parse(g.coordinates_json)}catch{return}let geom=null;if(g.geometry_type==="BBox"&&Array.isArray(coords)&&coords.length>=4){const [w,s,e,n]=coords;geom={type:"Polygon",coordinates:[[[w,s],[e,s],[e,n],[w,n],[w,s]]]}}else if(["Point","LineString","Polygon"].includes(g.geometry_type))geom={type:g.geometry_type,coordinates:coords};if(!geom)return;features.push({type:"Feature",id:g.id,geometry:geom,properties:{label:g.label,kind:g.kind,entity_id:inferSpatialEntityIdV96(g),ontology_type_id:g.ontology_type_id,crs:g.crs,place_name:g.place_name,region_hint:g.region_hint,valid_from:g.valid_from,valid_to:g.valid_to,confidence:g.confidence,source_bindings:g.source_bindings}})});return JSON.stringify({type:"FeatureCollection",features},null,2)}
 const renderOutputV3=renderOutput;renderOutput=async function(){if($("#format").value==="geojson"){const original=ontology,scoped=ontologyForContext();if(scoped)ontology=scoped;try{$("#outputText").value=geojson();outputExt="geojson";return}finally{ontology=original}}return renderOutputV3()};
 const markdownV3=markdown;markdown=function(){let s=markdownV3();if(ontology?.spatial_groundings?.length){s+="\n\n## Spatial Grounding";for(const g of ontology.spatial_groundings)s+=`\n- **${g.label}** [${g.geometry_type}/${g.crs||"unknown"}] — ${g.coordinates_json||g.place_name||"unresolved"}`}return s};
 const csvV3=csv;csv=function(){let s=csvV3();for(const g of ontology?.spatial_groundings||[])s+=`\n"spatial","${String(g.ontology_type_id||"").replace(/"/g,'""')}","${String(g.id).replace(/"/g,'""')}","${String(g.label).replace(/"/g,'""')}","${g.geometry_type}","${String(g.crs||"").replace(/"/g,'""')}","${(g.source_bindings||[]).map(x=>x.source_id).join("|")}"`;return s};
@@ -1439,7 +1451,7 @@ initCanvas=function(){
  const mini=$("#minimapCanvas");mini.addEventListener("pointerdown",e=>{const r=mini.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;if(canvasMode==="world"){const pad=6,s=Math.min((mini.clientWidth-pad*2)/1000,(mini.clientHeight-pad*2)/500),ox=(mini.clientWidth-1000*s)/2,oy=(mini.clientHeight-500*s)/2,wx=(mx-ox)/s,wy=(my-oy)/s,v=$("#view");mapView.x=v.clientWidth/2-wx*mapView.scale;mapView.y=v.clientHeight/2-wy*mapView.scale;saveMapView();drawGraph()}else{const b=(typeof graphLayerMode!=="undefined"&&graphLayerMode!=="type")?runtimeBounds(graphLayerMode==="hybrid"):graphBounds(),pad=8,s=Math.min((mini.clientWidth-pad*2)/Math.max(1,b.w),(mini.clientHeight-pad*2)/Math.max(1,b.h)),wx=b.x+(mx-pad)/s,wy=b.y+(my-pad)/s,v=$("#view");graphView.x=v.clientWidth/2-wx*graphView.scale;graphView.y=v.clientHeight/2-wy*graphView.scale;saveGraphView();drawGraph()}});
  new ResizeObserver(()=>{resizeCanvas();drawGraph()}).observe(view)
 };
-function initGeoUI(){$("#graphModeBtn").onclick=()=>setCanvasMode("graph");$("#mapModeBtn").onclick=()=>setCanvasMode("world");$("#showWorldBtn").onclick=()=>{setCanvasMode("world");fitWorld()};$("#addGeo").onclick=()=>addInput("geo");$("#closeGeoModal").onclick=()=>{$("#geoModal").classList.remove("on");selectedSpatial=null;drawGraph()};$("#geoFocusBtn").onclick=()=>{if(!selectedSpatial)return;if(focusedSpatialIds.has(selectedSpatial.id))focusedSpatialIds.delete(selectedSpatial.id);else focusedSpatialIds.add(selectedSpatial.id);if(selectedSpatial.ontology_type_id&&allNodes().some(n=>n.id===selectedSpatial.ontology_type_id)&&focusedSpatialIds.has(selectedSpatial.id))focusedNodeIds.add(selectedSpatial.ontology_type_id);$("#geoFocusBtn").textContent=focusedSpatialIds.has(selectedSpatial.id)?"unfocus":"focus";renderFocusSummary();renderSpatial();drawGraph()};setCanvasMode(canvasMode)}
+function initGeoUI(){$("#graphModeBtn").onclick=()=>setCanvasMode("graph");$("#mapModeBtn").onclick=()=>setCanvasMode("world");$("#showWorldBtn").onclick=()=>{setCanvasMode("world");fitWorldToGroundingsV96()};$("#addGeo").onclick=()=>addInput("geo");$("#closeGeoModal").onclick=()=>{$("#geoModal").classList.remove("on");selectedSpatial=null;drawGraph()};$("#geoFocusBtn").onclick=()=>{if(!selectedSpatial)return;if(focusedSpatialIds.has(selectedSpatial.id))focusedSpatialIds.delete(selectedSpatial.id);else focusedSpatialIds.add(selectedSpatial.id);const bindId=spatialBindingIdV96(selectedSpatial);if(bindId&&focusedSpatialIds.has(selectedSpatial.id))focusedNodeIds.add(bindId);else if(selectedSpatial.ontology_type_id&&allNodes().some(n=>n.id===selectedSpatial.ontology_type_id)&&focusedSpatialIds.has(selectedSpatial.id))focusedNodeIds.add(selectedSpatial.ontology_type_id);$("#geoFocusBtn").textContent=focusedSpatialIds.has(selectedSpatial.id)?"unfocus":"focus";renderFocusSummary();renderSpatial();drawGraph()};setCanvasMode(canvasMode)}
 /* -------------- end v3 geospatial ontology layer -------------- */
 
 
@@ -2858,8 +2870,9 @@ function syncSpatialFromOntology(){
   if(!ontology)return;
   const migrated=normalizeSpatialArrayV95(workspace.world.spatial||[],{mutate:true});const existing=new Map(migrated.value.map(g=>[g.id,g]));
   for(const g0 of ontology.spatial_groundings||[]){
-    const g=normalizeSpatialGroundingV95(cloneJSON(g0),{mutate:true}).grounding;
-    if(!existing.has(g.id))existing.set(g.id,{...g,runtime_origin:"ontology_compile"})
+    const g=normalizeSpatialEntityBindingV96(normalizeSpatialGroundingV95(cloneJSON(g0),{mutate:true}).grounding,{mutate:true});
+    if(!existing.has(g.id))existing.set(g.id,{...g,runtime_origin:"ontology_compile"});
+    else Object.assign(existing.get(g.id),g)
   }
   workspace.world.spatial=[...existing.values()]
 }
@@ -3142,7 +3155,7 @@ function upsertInstanceSpatialV95(inst,geometry,{observed_at="",valid_from="",va
   let g=(workspace.world.spatial||[]).find(x=>x.id===gid);
   const source_bindings=[...new Set(evidence_ids||[])].map(eid=>({source_id:(workspace.epistemics.evidence.find(e=>e.id===eid)?.source_id)||source_id||"",path:(workspace.epistemics.evidence.find(e=>e.id===eid)?.locator)||locator||"",confidence:Number(confidence??1),notes:"runtime spatial reconciliation"}));
   const next={
-    id:gid,label:inst.label,kind:"world_instance",ontology_type_id:inst.type_id,instance_id:inst.id,
+    id:gid,label:inst.label,kind:"world_instance",ontology_type_id:inst.type_id,entity_id:inst.id,instance_id:inst.id,
     geometry_type:geometry.geometry_type||"Point",coordinates_json:JSON.stringify(geometry.coordinates??null),
     crs:geometry.crs||"EPSG:4326",place_name:geometry.place_name||"",region_hint:"",
     valid_from:valid_from||observed_at||inst.valid_from||"",valid_to:valid_to||"",
@@ -3281,6 +3294,137 @@ async function reconcileWorkspace(){
 
 /* ----- deterministic world health / lint ----- */
 
+
+/* ========== v9.6 entity-bound world placement ========== */
+// v3 called spatial groundings "instance-level" but only supplied ontology_type_id.
+// That conflated an entity's type with the identity of the entity being grounded.
+// Add an explicit binding while keeping old ontology JSON loadable via migration.
+if(typeof GEO_GROUNDING!=="undefined"){
+  GEO_GROUNDING.properties.entity_id={type:"string"};
+  if(!GEO_GROUNDING.required.includes("entity_id")){
+    const at=GEO_GROUNDING.required.indexOf("ontology_type_id");
+    GEO_GROUNDING.required.splice(at>=0?at+1:GEO_GROUNDING.required.length,0,"entity_id")
+  }
+}
+if(typeof PARTIAL_SCHEMA!=="undefined"&&PARTIAL_SCHEMA.properties?.spatial_candidates?.items){
+  const sci=PARTIAL_SCHEMA.properties.spatial_candidates.items;
+  sci.properties.entity_id_hint={type:"string"};
+  if(!sci.required.includes("entity_id_hint"))sci.required.push("entity_id_hint")
+}
+const GEO_ENTITY_BIND_APPEND_V96=`
+
+GEOSPATIAL ENTITY BINDING
+- Every spatial candidate must carry entity_id_hint when the source names the entity/event/place/region being located. Use the exact source identifier; do not substitute the ontology type.
+- Every spatial_grounding must carry entity_id. For kind=entity, this is the exact operational entity identifier (for example EDGE-PIER-2), while ontology_type_id remains only its schema/type (for example system).
+- entity_id="" is allowed only when the source does not identify a specific grounded subject.
+- Multiple entities of the same ontology_type_id must remain separately grounded; never collapse them to the type node.
+- A later location for the same entity supersedes its current placement only when temporally newer; retain older groundings as historical evidence.
+`;
+if(typeof DEFAULT_PROMPTS!=="undefined"){
+  DEFAULT_PROMPTS.extract_system+=GEO_ENTITY_BIND_APPEND_V96;
+  DEFAULT_PROMPTS.compile_system+=GEO_ENTITY_BIND_APPEND_V96
+}
+if(typeof prompts!=="undefined"){
+  if(!String(prompts.extract_system||"").includes("GEOSPATIAL ENTITY BINDING"))prompts.extract_system+=GEO_ENTITY_BIND_APPEND_V96;
+  if(!String(prompts.compile_system||"").includes("GEOSPATIAL ENTITY BINDING"))prompts.compile_system+=GEO_ENTITY_BIND_APPEND_V96
+}
+
+function canonicalSpatialIdV96(x){return String(x||"").trim()}
+function labelEntityTokenV96(label){
+  const t=String(label||"");
+  // Prefer source-style operational IDs. This safely recovers existing v9.x
+  // files such as "EDGE-PIER-2 location" without guessing natural-language names.
+  const ids=t.match(/\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\b/g)||[];
+  return ids[0]||""
+}
+function normalizedIdSlugV96(x){return String(x||"").toLowerCase().replace(/[^a-z0-9]+/g,"")}
+function knownSpatialEntityIdsV96(){
+  const ids=new Set();
+  for(const x of workspace?.world?.instances||[])ids.add(String(x.id));
+  // Grounding labels often contain exact operational IDs even before world
+  // reconciliation has produced runtime instances.
+  for(const g of ontology?.spatial_groundings||[]){const x=labelEntityTokenV96(g.label);if(x)ids.add(x)}
+  return ids
+}
+function inferSpatialEntityIdV96(g){
+  if(!g)return"";
+  if(g.instance_id)return canonicalSpatialIdV96(g.instance_id);
+  if(g.entity_id)return canonicalSpatialIdV96(g.entity_id);
+  const fromLabel=labelEntityTokenV96(g.label);if(fromLabel)return fromLabel;
+  const gid=normalizedIdSlugV96(String(g.id||"").replace(/^sg[_-]?/i,""));
+  if(gid){
+    const known=[...knownSpatialEntityIdsV96()];
+    const match=known.find(id=>normalizedIdSlugV96(id)===gid||gid.startsWith(normalizedIdSlugV96(id))||normalizedIdSlugV96(id).startsWith(gid));
+    if(match)return match
+  }
+  return""
+}
+function normalizeSpatialEntityBindingV96(g,{mutate=false}={}){
+  if(!g)return g;
+  const out=mutate?g:{...g};
+  const entity=inferSpatialEntityIdV96(out);
+  if(entity)out.entity_id=entity;else if(out.entity_id==null)out.entity_id="";
+  if(!out.instance_id&&entity){
+    const inst=(workspace?.world?.instances||[]).find(x=>x.id===entity||normalizedIdSlugV96(x.id)===normalizedIdSlugV96(entity)||normalizedIdSlugV96(x.label)===normalizedIdSlugV96(entity));
+    if(inst)out.instance_id=inst.id
+  }
+  return out
+}
+function normalizeAllSpatialBindingsV96(){
+  if(ontology?.spatial_groundings)ontology.spatial_groundings=ontology.spatial_groundings.map(g=>normalizeSpatialEntityBindingV96(g,{mutate:true}));
+  if(workspace?.world?.spatial)workspace.world.spatial=workspace.world.spatial.map(g=>normalizeSpatialEntityBindingV96(g,{mutate:true}))
+}
+function spatialBindingIdV96(g){return g?.instance_id||g?.entity_id||inferSpatialEntityIdV96(g)||g?.ontology_type_id||g?.id||""}
+function spatialDisplayLabelV96(g){
+  const id=spatialBindingIdV96(g);
+  if(id&&id!==g?.ontology_type_id&&id!==g?.id)return id;
+  return String(g?.label||g?.id||"")
+}
+function effectiveEarthPointGroundingsV96(){
+  // One current point per bound entity; unbound places/regions remain independent.
+  const current=new Map(),other=[];
+  const ts=g=>Date.parse(g?.observed_at||g?.valid_from||"")||0;
+  for(const g0 of spatialGroundings()){
+    const g=normalizeSpatialEntityBindingV96(g0,{mutate:false});
+    if(!isEarthGrounding(g)||g.geometry_type!=="Point"||!groundingPoint(g))continue;
+    const id=spatialBindingIdV96(g);
+    if((g.kind==="entity"||g.instance_id)&&id){
+      const prev=current.get(id);
+      if(!prev||ts(g)>ts(prev)||(ts(g)===ts(prev)&&Number(g.confidence||0)>Number(prev.confidence||0)))current.set(id,g)
+    }else other.push(g)
+  }
+  return[...current.values(),...other]
+}
+function fitWorldToGroundingsV96(){
+  const v=$("#view"),pts=effectiveEarthPointGroundingsV96().map(g=>groundingPoint(g)).filter(Boolean);
+  if(!pts.length)return fitWorld();
+  const projected=pts.map(p=>geoProject(p[0],p[1]));
+  let minX=Math.min(...projected.map(p=>p.x)),maxX=Math.max(...projected.map(p=>p.x));
+  let minY=Math.min(...projected.map(p=>p.y)),maxY=Math.max(...projected.map(p=>p.y));
+  // Prevent a single point / meter-scale cluster from producing absurd zoom.
+  const spanX=Math.max(.08,maxX-minX),spanY=Math.max(.05,maxY-minY),pad=72;
+  const scale=Math.min((v.clientWidth-pad*2)/spanX,(v.clientHeight-pad*2)/spanY);
+  mapView.scale=Math.max(.1,Math.min(8000,scale));
+  const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
+  mapView.x=v.clientWidth/2-cx*mapView.scale;
+  mapView.y=v.clientHeight/2-cy*mapView.scale;
+  saveMapView();drawGraph()
+}
+function worldPlacementAuditV96(){
+  return spatialGroundings().map(g=>{
+    const p=groundingPoint(g);
+    return{id:g.id,entity_id:inferSpatialEntityIdV96(g),instance_id:g.instance_id||"",ontology_type_id:g.ontology_type_id||"",label:g.label||"",point:p,current:effectiveEarthPointGroundingsV96().some(x=>x.id===g.id)}
+  })
+}
+
+
+const normalizeOntologyBeforeV96=normalizeOntology;
+normalizeOntology=function(){
+  normalizeOntologyBeforeV96();
+  if(!ontology)return;
+  normalizeAllSpatialBindingsV96()
+};
+
 function spatialPlacementAuditV95(){
   const rows=[];
   for(const g of spatialGroundings()){
@@ -3400,10 +3544,10 @@ openNodeModal=function(n){if(n?._kind==="instance")return openRuntimeInstance(n.
 /* Extend world map with runtime-instance spatial state without mutating ontology. */
 const spatialGroundingsBeforeWorkspace=spatialGroundings;
 spatialGroundings=function(){
-  const map=new Map((spatialGroundingsBeforeWorkspace()||[]).map(x=>[x.id,normalizeSpatialGroundingV95(x,{mutate:false}).grounding]));
+  const map=new Map((spatialGroundingsBeforeWorkspace()||[]).map(x=>{const g=normalizeSpatialEntityBindingV96(normalizeSpatialGroundingV95(x,{mutate:false}).grounding,{mutate:false});return[g.id,g]}));
   const runtimeByInstance=new Map(),runtimeOther=[];
   for(const g0 of workspace?.world?.spatial||[]){
-    const g=normalizeSpatialGroundingV95(g0,{mutate:false}).grounding;
+    const g=normalizeSpatialEntityBindingV96(normalizeSpatialGroundingV95(g0,{mutate:false}).grounding,{mutate:false});
     if(g.instance_id){
       const prev=runtimeByInstance.get(g.instance_id);
       const time=x=>Date.parse(x?.observed_at||x?.valid_from||"")||0;
@@ -4278,7 +4422,7 @@ function initProviderUI(){
 function initNodeModal(){$("#closeNodeModal").onclick=()=>{$("#nodeModal").classList.remove("on");selected=null;drawGraph()};$("#nodeFocusBtn").onclick=()=>{if(!selected)return;if(focusedNodeIds.has(selected.id))focusedNodeIds.delete(selected.id);else focusedNodeIds.add(selected.id);$("#nodeFocusBtn").textContent=focusedNodeIds.has(selected.id)?"unfocus":"focus";renderFocusSummary();drawGraph()}}
 
 // Replace legacy fit/layout controls with viewport-aware graph controls.
-$("#fitBtn").onclick=fitGraph;$("#layoutBtn").onclick=()=>{if(canvasMode==="world")fitWorld();else{layoutGraph(true);fitGraph()}};$("#fitGraphBtn").onclick=fitGraph;$("#resetViewBtn").onclick=resetGraphView;$("#zoomInBtn").onclick=()=>zoomAt($("#view").clientWidth/2,$("#view").clientHeight/2,1.2);$("#zoomOutBtn").onclick=()=>zoomAt($("#view").clientWidth/2,$("#view").clientHeight/2,1/1.2);
+$("#fitBtn").onclick=()=>{if(canvasMode==="world")fitWorldToGroundingsV96();else fitGraph()};$("#layoutBtn").onclick=()=>{if(canvasMode==="world")fitWorldToGroundingsV96();else{layoutGraph(true);fitGraph()}};$("#fitGraphBtn").onclick=fitGraph;$("#resetViewBtn").onclick=resetGraphView;$("#zoomInBtn").onclick=()=>zoomAt($("#view").clientWidth/2,$("#view").clientHeight/2,1.2);$("#zoomOutBtn").onclick=()=>zoomAt($("#view").clientWidth/2,$("#view").clientHeight/2,1/1.2);
 initPanelLayout();initContextUI();initProviderUI();initCanvas();initNodeModal();initGeoUI();
 /* -------------- end v2 interaction/runtime layer -------------- */
 
